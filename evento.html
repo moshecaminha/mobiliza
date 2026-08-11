@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cadastro no evento · MOBILIZZA.ORG</title>
+<style>
+:root{--brand:#00A878;--brand-2:#00805F;--ink:#0F172A;--ink-2:#1E293B;--muted:#64748B;--border:#E2E8F0;--soft:#F8FAFC;--coral:#DC2626}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:linear-gradient(160deg,#0A1628,#13213D);min-height:100vh;color:var(--ink);display:flex;align-items:flex-start;justify-content:center;padding:18px}
+.wrap{width:100%;max-width:460px;margin-top:10px}
+.card{background:#fff;border-radius:18px;box-shadow:0 24px 60px -18px rgba(0,0,0,.5);overflow:hidden}
+.hero{background:linear-gradient(135deg,var(--brand),var(--brand-2));padding:22px;color:#fff;display:flex;align-items:center;gap:14px}
+.hero .ph{width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;overflow:hidden;flex-shrink:0}
+.hero .ph img{width:100%;height:100%;object-fit:cover}
+.hero .nm{font-size:18px;font-weight:800;line-height:1.15}
+.hero .of{font-size:12px;opacity:.9;margin-top:2px}
+.body{padding:22px}
+.evt{background:var(--soft);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:16px}
+.evt .t{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.evt .v{font-size:15px;font-weight:700;color:var(--ink-2);margin-top:2px}
+h2{font-size:18px;margin-bottom:4px}
+.lede{color:var(--muted);font-size:14px;line-height:1.5;margin-bottom:16px}
+label{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin:12px 0 4px}
+input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:15px;outline:none}
+input:focus{border-color:var(--brand)}
+.hint{font-size:11px;color:var(--muted);margin-top:3px}
+.btn{width:100%;background:var(--brand);color:#fff;border:none;padding:14px;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;margin-top:18px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:disabled{opacity:.6}
+.btn.wa{background:#25D366}
+.btn.ig{background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF,#515BD4)}
+.btn.ghost{background:#fff;color:var(--ink-2);border:1px solid var(--border)}
+.err{color:var(--coral);font-size:13px;margin-top:10px}
+.ok-ic{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+.center{text-align:center}
+.spin{animation:s 1s linear infinite}@keyframes s{to{transform:rotate(360deg)}}
+.foot{padding:14px 22px;font-size:11px;color:#94A3B8;text-align:center;background:#fff;border-top:1px solid var(--soft)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="hero" id="hero">
+      <div class="ph" id="ph">M</div>
+      <div><div class="nm" id="cand-name">Carregando…</div><div class="of" id="cand-office"></div></div>
+    </div>
+    <div class="body" id="body"><div class="center" style="padding:20px;color:var(--muted)">Carregando evento…</div></div>
+    <div class="foot">Seus dados são usados apenas pela campanha para comunicação. Você pode pedir remoção a qualquer momento.</div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const SUPABASE_URL='https://dhxizqszipfnlpojzpbc.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRoeGl6cXN6aXBmbmxwb2p6cGJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NDgyNzYsImV4cCI6MjA5ODMyNDI3Nn0.Mb8IKH9MKumo4H4bag5iAjD7IXS8ogg9skKrCdvqV1M';
+const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+const esc=s=>(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const OFFICES={deputado_estadual:'Deputado Estadual',deputado_federal:'Deputado Federal',prefeito:'Prefeito',vereador:'Vereador',governador:'Governador',senador:'Senador',presidente:'Presidente'};
+const TOKEN=new URLSearchParams(location.search).get('e');
+let EV=null, CAND=null;
+
+async function rpc(fn,args){ const{data,error}=await sb.rpc(fn,args||{}); if(error) throw new Error(error.message); return data; }
+
+async function start(){
+  if(!TOKEN){ $('body').innerHTML='<div class="center" style="color:var(--coral);padding:20px">Link inválido — falta o código do evento.</div>'; return; }
+  let r;
+  try { r = await rpc('mob_event_public',{p_qr_token:TOKEN}); } catch(e){ $('body').innerHTML='<div class="center" style="color:var(--coral);padding:20px">Erro ao carregar. Tente novamente.</div>'; return; }
+  if(!r || !r.ok){ $('body').innerHTML='<div class="center" style="color:var(--coral);padding:20px">Evento não encontrado.</div>'; return; }
+  EV=r.event; CAND=r.candidate;
+  // branding
+  if(CAND.theme_color){ document.documentElement.style.setProperty('--brand',CAND.theme_color); document.documentElement.style.setProperty('--brand-2',CAND.theme_color); }
+  $('cand-name').textContent = CAND.name||'Campanha';
+  $('cand-office').textContent = (OFFICES[CAND.office]||CAND.office||'')+(CAND.party_number?' · '+CAND.party_number:'');
+  if(CAND.photo_url) $('ph').innerHTML='<img src="'+esc(CAND.photo_url)+'">'; else $('ph').textContent=(CAND.name||'M').slice(0,1).toUpperCase();
+  screenPhone();
+}
+
+function evtLine(){
+  var d = EV.date ? new Date(EV.date+'T00:00:00').toLocaleDateString('pt-BR') : '';
+  var loc = [EV.location, EV.bairro, EV.city].filter(Boolean).join(' · ');
+  return '<div class="evt"><div class="t">Evento</div><div class="v">'+esc(EV.title)+'</div><div class="hint" style="margin-top:4px">'+esc([d,loc].filter(Boolean).join(' · '))+'</div></div>';
+}
+
+// Passo 1: telefone
+function screenPhone(){
+  $('body').innerHTML = evtLine()
+    +'<h2>Confirme sua presença</h2><p class="lede">Digite seu WhatsApp para começar. Se você já é cadastrado, a gente te reconhece.</p>'
+    +'<label>WhatsApp (com DDD)</label><input id="f-phone" type="tel" inputmode="tel" placeholder="(00) 00000-0000">'
+    +'<button class="btn" id="btn-phone" onclick="checkPhone()">Continuar</button><div class="err" id="err"></div>';
+  $('f-phone').addEventListener('keydown',e=>{ if(e.key==='Enter') checkPhone(); });
+  $('f-phone').focus();
+}
+window.checkPhone=async function(){
+  const phone=($('f-phone').value||'').trim(); const err=$('err'); err.textContent='';
+  if(phone.replace(/\D/g,'').length<10){ err.textContent='Informe o WhatsApp com DDD.'; return; }
+  const b=$('btn-phone'); b.disabled=true; b.innerHTML='<svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.2-8.5"/></svg>Verificando…';
+  try{
+    const r=await rpc('mob_lead_check_phone',{p_qr_token:TOKEN,p_phone:phone});
+    if(!r.ok){ err.textContent=r.error||'Erro'; b.disabled=false; b.textContent='Continuar'; return; }
+    if(r.exists){ screenWelcome(r.lead, phone); } else { screenRegister(phone); }
+  }catch(e){ err.textContent=e.message; b.disabled=false; b.textContent='Continuar'; }
+};
+
+// Passo 2a: já cadastrado → boas-vindas + compartilhar
+function screenWelcome(lead, phone){
+  $('body').innerHTML='<div class="center"><div class="ok-ic"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>'
+    +'<h2>Que bom te ver, '+esc((lead.name||'').split(' ')[0]||'')+'! 👋</h2>'
+    +'<p class="lede">Presença registrada em <strong>'+esc(EV.title)+'</strong>. Obrigado por estar com a gente.</p></div>'
+    +'<button class="btn ig" onclick="share(\''+esc(phone).replace(/\x27/g,'')+'\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="#fff" stroke="none"/></svg>Compartilhar no Instagram</button>'
+    +'<div class="hint center" style="margin-top:8px">Dá visibilidade pra campanha na sua rede.</div>';
+}
+window.share=async function(phone){
+  try{ await rpc('mob_lead_mark_shared',{p_qr_token:TOKEN,p_phone:phone}); }catch(e){}
+  const txt='Estou no evento de '+(CAND.name||'')+(EV.title?' — '+EV.title:'')+'! 💪 #'+(CAND.name||'campanha').replace(/[^A-Za-zÀ-ÿ0-9]/g,'');
+  // Compartilhamento nativo do celular: a folha de compartilhar traz o Instagram (Stories/Direct)
+  if(navigator.share){
+    try{ await navigator.share({ title: CAND.name||'Evento', text: txt }); return; }
+    catch(e){ return; } // usuário cancelou
+  }
+  // Sem compartilhamento nativo (desktop): copia o texto e abre o Instagram
+  try{ await navigator.clipboard.writeText(txt); }catch(e){}
+  alert('Texto copiado! Abrindo o Instagram — é só colar no seu story ou publicação.');
+  window.open('https://www.instagram.com/','_blank');
+}
+
+// Passo 2b: cadastro novo
+function screenRegister(phone){
+  $('body').innerHTML = evtLine()
+    +'<h2>Seu cadastro</h2><p class="lede">Leva 30 segundos. O CEP preenche o endereço; só falta o número.</p>'
+    +'<label>Nome completo *</label><input id="r-name" placeholder="Seu nome">'
+    +'<label>WhatsApp *</label><input id="r-phone" type="tel" value="'+esc(phone)+'">'
+    +'<label>CEP</label><input id="r-cep" inputmode="numeric" maxlength="9" placeholder="00000-000">'
+    +'<div id="r-addr" style="display:none">'
+      +'<label>Bairro</label><input id="r-bairro">'
+      +'<div style="display:flex;gap:10px"><div style="flex:2"><label>Cidade</label><input id="r-city"></div><div style="flex:1"><label>UF</label><input id="r-uf" maxlength="2" style="text-transform:uppercase"></div></div>'
+    +'</div>'
+    +'<label>Número da casa *</label><input id="r-num" inputmode="numeric" placeholder="Ex: 1500">'
+    +'<button class="btn" id="btn-reg" onclick="doRegister()">Confirmar cadastro</button><div class="err" id="err"></div>';
+  const cep=$('r-cep');
+  cep.addEventListener('input',()=>{ let v=cep.value.replace(/\D/g,'').slice(0,8); cep.value=v.length>5?v.slice(0,5)+'-'+v.slice(5):v; if(v.length===8) lookupCep(v); });
+  $('r-name').focus();
+}
+async function lookupCep(cep){
+  try{
+    const r=await fetch('https://viacep.com.br/ws/'+cep+'/json/'); const d=await r.json();
+    if(d.erro) return;
+    $('r-addr').style.display='block';
+    if(d.bairro) $('r-bairro').value=d.bairro;
+    if(d.localidade) $('r-city').value=d.localidade;
+    if(d.uf) $('r-uf').value=d.uf;
+    $('r-num').focus();
+  }catch(e){ $('r-addr').style.display='block'; }
+}
+window.doRegister=async function(){
+  const g=x=>($(x)?$(x).value.trim():'');
+  const err=$('err'); err.textContent='';
+  if(!g('r-name')){ err.textContent='Informe seu nome.'; return; }
+  if(g('r-phone').replace(/\D/g,'').length<10){ err.textContent='WhatsApp inválido.'; return; }
+  if(!g('r-num')){ err.textContent='O número da casa é obrigatório.'; $('r-num').focus(); return; }
+  const b=$('btn-reg'); b.disabled=true; b.textContent='Enviando…';
+  try{
+    const r=await rpc('mob_lead_register',{p_qr_token:TOKEN,p_name:g('r-name'),p_phone:g('r-phone'),
+      p_cep:g('r-cep')||null,p_address:null,p_number:g('r-num'),p_bairro:g('r-bairro')||null,
+      p_city:g('r-city')||null,p_uf:g('r-uf')||null,p_ibge_code:null,p_email:null});
+    if(!r.ok){ err.textContent=r.error||'Erro'; b.disabled=false; b.textContent='Confirmar cadastro'; return; }
+    $('body').innerHTML='<div class="center"><div class="ok-ic"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>'
+      +'<h2>Cadastro confirmado! 🎉</h2><p class="lede">Obrigado por se juntar à campanha de <strong>'+esc(CAND.name)+'</strong>. Em breve entraremos em contato.</p></div>'
+      +'<button class="btn ig" onclick="share(\''+esc(g('r-phone')).replace(/\x27/g,'')+'\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="#fff" stroke="none"/></svg>Compartilhar no Instagram</button>';
+  }catch(e){ err.textContent=e.message; b.disabled=false; b.textContent='Confirmar cadastro'; }
+};
+
+start();
+</script>
+</body>
+</html>
