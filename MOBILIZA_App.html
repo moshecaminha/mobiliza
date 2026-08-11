@@ -614,36 +614,25 @@ input,select,textarea{font-family:inherit;outline:none;color:var(--ink)}
       </div>
     </div>
 
-    <!-- Step 1: Credentials -->
+    <!-- Login por e-mail + senha (Supabase Auth) -->
     <div id="login-step-1">
       <h2>Acesso à plataforma</h2>
-      <p class="lede">Informe seu e-mail corporativo e WhatsApp. Você receberá um código de verificação em ambos.</p>
+      <p class="lede">Entre com o e-mail e a senha liberados pelo administrador da campanha.</p>
       <label>E-mail</label>
-      <input id="lg-email" type="email" placeholder="seu@email.com" autocomplete="email">
-      <label>WhatsApp · com DDD</label>
-      <input id="lg-phone" type="tel" placeholder="(00) 00000-0000" autocomplete="tel">
-      <button class="btn-primary full" onclick="loginSendCode()">Enviar código<svg class="icon" width="14" height="14" style="margin-left:6px"><use href="#i-arrow-right"/></svg></button>
-      <div class="demo-hint"><svg width="13" height="13" style="vertical-align:-2px;margin-right:5px;color:#92400E"><use href="#i-lock"/></svg><strong>Ambiente de teste</strong> · aceita qualquer contato com código <strong>123456</strong>. Em produção o código chega via SMS e e-mail.</div>
+      <input id="lg-email" type="email" placeholder="seu@email.com" autocomplete="username">
+      <label>Senha</label>
+      <input id="lg-pass" type="password" placeholder="••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginPassword()">
+      <button class="btn-primary full" onclick="loginPassword()">Entrar<svg class="icon" width="14" height="14" style="margin-left:6px"><use href="#i-arrow-right"/></svg></button>
+      <div id="lg-err" style="color:var(--coral);font-size:13px;margin-top:10px"></div>
+      <div class="demo-hint"><svg width="13" height="13" style="vertical-align:-2px;margin-right:5px;color:#92400E"><use href="#i-lock"/></svg>Acesso criado pelo administrador no painel. Esqueceu a senha? Fale com o admin da campanha.</div>
     </div>
 
-    <!-- Step 2: OTP -->
-    <div id="login-step-2" style="display:none">
-      <h2>Verificação</h2>
-      <p class="lede">Código de 6 dígitos enviado para <strong id="lg-target-email" style="color:var(--ink)">…</strong> e WhatsApp <strong id="lg-target-phone" style="color:var(--ink)">…</strong></p>
-      <div class="otp-grid" id="otp-grid">
-        <input maxlength="1" inputmode="numeric" placeholder="·"><input maxlength="1" inputmode="numeric" placeholder="·"><input maxlength="1" inputmode="numeric" placeholder="·"><input maxlength="1" inputmode="numeric" placeholder="·"><input maxlength="1" inputmode="numeric" placeholder="·"><input maxlength="1" inputmode="numeric" placeholder="·">
-      </div>
-      <div class="send-status" id="send-status">
-        <strong><svg width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-mail"/></svg>Código enviado</strong>
-        <div class="ch ok" id="ch-email"><svg width="12" height="12"><use href="#i-check"/></svg>E-mail · simulado em modo teste</div>
-        <div class="ch ok" id="ch-sms"><svg width="12" height="12"><use href="#i-check"/></svg>SMS · simulado em modo teste</div>
-      </div>
-      <button class="btn-primary full" onclick="loginVerify()">Entrar</button>
-      <div class="alt">
-        <span class="timer" id="resend-timer">Reenviar em 60s</span>
-        · <a onclick="loginBack()">alterar contato</a>
-      </div>
-      <div class="demo-hint"><svg width="13" height="13" style="vertical-align:-2px;margin-right:5px;color:#92400E"><use href="#i-lock"/></svg>Modo teste · código <strong>123456</strong></div>
+    <!-- Seletor de candidato (quem tem acesso a mais de uma campanha) -->
+    <div id="login-step-cand" style="display:none">
+      <h2>Escolha a campanha</h2>
+      <p class="lede">Você tem acesso a mais de um candidato. Selecione qual quer abrir.</p>
+      <div id="cand-list"></div>
+      <div class="alt" style="margin-top:12px"><a onclick="mobLogout()">Sair</a></div>
     </div>
   </div>
 </div>
@@ -1001,6 +990,9 @@ function loadState(){
 }
 function saveState(){
   try { var s = JSON.stringify(state); if(lsAvailable) localStorage.setItem(STORE_KEY,s); else mem[STORE_KEY]=s; } catch(e){ toast('Erro: '+e.message,'err'); }
+  // Espelha o estado no banco, por candidato (se logado). Não toca em nenhum módulo:
+  // todo módulo continua chamando saveState() como antes; a gravação no banco vem de graça.
+  try { if(window._mobCandId && typeof mobStateSyncPush==='function') mobStateSyncPush(); } catch(e){}
 }
 function genId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function esc(s){ if(s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -1233,9 +1225,8 @@ function showLogin(){
   document.getElementById('welcome-screen').classList.add('hidden');
   document.getElementById('app').classList.remove('show');
   document.getElementById('wizard-screen').classList.remove('show');
-  // se já tinha sessão salva, pré-preencher
-  if(state.session && state.session.email) document.getElementById('lg-email').value = state.session.email;
-  if(state.session && state.session.phone) document.getElementById('lg-phone').value = state.session.phone;
+  var e=document.getElementById('lg-email');
+  if(e && !e.value && state.session && state.session.email) e.value = state.session.email;
 }
 
 function maskEmail(e){
@@ -1406,12 +1397,135 @@ window.loginBack = function(){
   document.getElementById('login-step-2').style.display = 'none';
 };
 
-window.logout = function(){
-  if(!confirm('Sair da plataforma? Seus dados ficam salvos para o próximo acesso.')) return;
-  if(state.session) state.session.loggedIn = false;
-  saveState();
+// ============ AUTH REAL (Supabase) + ROTEAMENTO POR CANDIDATO ============
+// Substitui o OTP falso por login e-mail/senha. Ao entrar, a plataforma reconhece
+// a pessoa, abre o candidato dela (ou o seletor) e carrega TODO o estado do banco,
+// por candidato. Todo o resto do app (módulos, layout) continua igual.
+var _mobCands = [];
+var _mobStatePushTimer = null;
+var OFFICE_MAP = {deputado_estadual:['estadual','Deputado Estadual'],deputado_federal:['federal','Deputado Federal'],prefeito:['municipal','Prefeito'],vereador:['municipal','Vereador'],governador:['estadual','Governador'],senador:['federal','Senador'],presidente:['presidencial','Presidente']};
+
+function mobSbReady(cb){
+  if(window.MOB_SB) return cb();
+  var done=false;
+  window.addEventListener('mob-sb-ready', function(){ if(!done){ done=true; cb(); } }, {once:true});
+  var tries=0, iv=setInterval(function(){ if(window.MOB_SB){ clearInterval(iv); if(!done){ done=true; cb(); } } else if(++tries>50){ clearInterval(iv); } }, 100);
+}
+
+window.loginPassword = function(){
+  var email=(document.getElementById('lg-email').value||'').trim();
+  var pass=document.getElementById('lg-pass').value||'';
+  var err=document.getElementById('lg-err'); if(err) err.textContent='';
+  if(!email||!pass){ if(err) err.textContent='Informe e-mail e senha.'; return; }
+  if(err) err.textContent='Entrando…';
+  mobSbReady(function(){
+    window.MOB_SB.auth.signInWithPassword({email:email,password:pass}).then(function(r){
+      if(r.error){ if(err) err.textContent='Login falhou: '+r.error.message; return; }
+      if(err) err.textContent='';
+      mobAfterAuth();
+    });
+  });
+};
+
+function mobAfterAuth(){
+  window.MOB_RPC('mob_my_candidates').then(function(cands){
+    _mobCands = cands||[];
+    var list=document.getElementById('cand-list');
+    if(!_mobCands.length){
+      document.getElementById('login-step-1').style.display='none';
+      document.getElementById('login-step-cand').style.display='block';
+      if(list) list.innerHTML='<div class="lede">Sua conta ainda não está vinculada a nenhuma campanha.<br>Peça ao administrador para adicionar seu e-mail à equipe do candidato.</div>';
+      return;
+    }
+    var saved=null; try{ saved=localStorage.getItem('mob_cur_candidate'); }catch(e){}
+    var pref = saved && _mobCands.find(function(c){return c.id===saved;});
+    if(_mobCands.length===1){ mobOpenCandidate(_mobCands[0]); return; }
+    if(pref){ mobOpenCandidate(pref); return; }
+    document.getElementById('login-step-1').style.display='none';
+    document.getElementById('login-step-cand').style.display='block';
+    if(list) list.innerHTML = _mobCands.map(function(c){
+      var init=(c.name||'?').slice(0,1).toUpperCase();
+      return '<div onclick="mobPick(\''+c.id+'\')" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;background:#fff">'
+        +'<div style="width:40px;height:40px;border-radius:10px;background:'+(esc(c.theme_color||'#00A878'))+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;overflow:hidden">'+(c.photo_url?'<img src="'+esc(c.photo_url)+'" style="width:100%;height:100%;object-fit:cover">':init)+'</div>'
+        +'<div><div style="font-weight:700">'+esc(c.name)+'</div><div class="sub">'+esc(c.uf||'')+(c.city?'/'+esc(c.city):'')+' · '+c.election_year+' · '+esc(c.role||'')+'</div></div></div>';
+    }).join('');
+  }).catch(function(e){ var err=document.getElementById('lg-err'); if(err) err.textContent=(e&&e.message)||'erro'; });
+}
+window.mobPick = function(id){ var c=_mobCands.find(function(x){return x.id===id;}); if(c) mobOpenCandidate(c); };
+
+function mobOpenCandidate(cand){
+  window._mobCandId = cand.id;
+  try { localStorage.setItem('mob_cur_candidate', cand.id); } catch(e){}
+  window.MOB_RPC('mob_state_get', {p_candidate:cand.id}).then(function(res){
+    var savedState = res && res.state;
+    var c = (res && res.candidate) || cand;
+    if(savedState && savedState.candidate){
+      state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), savedState);
+    } else {
+      state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+      state.setup = true;
+      var om = OFFICE_MAP[c.office] || ['municipal', c.office||''];
+      state.candidate = { name:c.name||'', party:c.party||'', partyNumberSigla:c.party_sigla||'', partyNumber:c.party_number||'', photo:c.photo_url||'', color:c.theme_color||'#00C896', bio:c.bio||'' };
+      state.election = Object.assign({}, state.election, { level:om[0], position:om[1], city:c.city||'', state:c.uf||'' });
+    }
+    if(c.theme_color) state.candidate.color = c.theme_color;
+    if(c.photo_url) state.candidate.photo = c.photo_url;
+    state.session = state.session || {}; state.session.loggedIn = true; state.session.candidateId = cand.id;
+    mobApplyTheme(state.candidate.color);
+    document.getElementById('login-screen').classList.remove('show');
+    document.getElementById('login-step-cand').style.display='none';
+    document.getElementById('login-step-1').style.display='block';
+    showApp();
+    mobApplyCandidatePhoto();
+    try { saveState(); } catch(e){}
+  }).catch(function(e){
+    var err=document.getElementById('lg-err');
+    document.getElementById('login-step-cand').style.display='none';
+    document.getElementById('login-step-1').style.display='block';
+    if(err) err.textContent='Erro ao abrir a campanha: '+((e&&e.message)||'');
+  });
+}
+
+function mobApplyTheme(color){
+  if(!color) return;
+  var r=document.documentElement.style;
+  r.setProperty('--brand', color); r.setProperty('--brand-2', color); r.setProperty('--brand-3', color);
+}
+function mobApplyCandidatePhoto(){
+  try{
+    var av=document.getElementById('sidebar-av');
+    if(av && state.candidate && state.candidate.photo){ av.innerHTML='<img src="'+esc(state.candidate.photo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">'; }
+  }catch(e){}
+}
+
+// Sincroniza o estado inteiro do candidato no banco (debounce), a cada saveState()
+function mobStateSyncPush(){
+  if(!window._mobCandId || !window.MOB_RPC) return;
+  if(_mobStatePushTimer) clearTimeout(_mobStatePushTimer);
+  _mobStatePushTimer = setTimeout(function(){
+    try { window.MOB_RPC('mob_state_save', {p_candidate:window._mobCandId, p_state:state}).catch(function(){}); } catch(e){}
+  }, 1200);
+}
+
+window.mobLogout = function(){
+  try { if(window.MOB_SB) window.MOB_SB.auth.signOut(); } catch(e){}
+  try { localStorage.removeItem('mob_cur_candidate'); } catch(e){}
   location.reload();
 };
+window.logout = function(){
+  if(!confirm('Sair da plataforma?')) return;
+  mobLogout();
+};
+
+// Boot com autenticação real (chamado no lugar do fluxo antigo)
+function mobAuthBoot(){
+  showLogin(); // evita tela branca enquanto verifica a sessão
+  mobSbReady(function(){
+    window.MOB_SB.auth.getSession().then(function(r){
+      if(r.data && r.data.session){ mobAfterAuth(); }
+    }).catch(function(){});
+  });
+}
 
 function setupOtpInputs(){
   var inputs = document.querySelectorAll('#otp-grid input');
@@ -2433,12 +2547,8 @@ if(_joinParams.has('join')){
 }
 if(!_joinParams.has('join')){
   try { setTimeout(function(){ sbQueueFlush(); }, 1500); } catch(e){}
-  if(state.session && state.session.loggedIn){
-    if(state.setup) showApp();
-    else showWelcome();
-  } else {
-    showLogin();
-  }
+  // Autenticação real: login e-mail/senha → candidato → estado do banco.
+  mobAuthBoot();
 }
 window._mobiliza = { state: state, save: saveState };
 // A partir daqui o app está de pé: erros pontuais viram toast, não derrubam a tela.
