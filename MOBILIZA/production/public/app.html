@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOBILIZA</title>
+<style>
+:root{--navy:#0A1628;--brand:#00A878;--brand-2:#00805F;--coral:#DC2626;--gold-2:#D97706;--blue:#2563EB;--bg:#F5F7FA;--card:#fff;--ink:#0F172A;--ink-2:#1E293B;--muted:#64748B;--border:#E2E8F0;--soft:#F8FAFC}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select,textarea{font-family:inherit;outline:none;color:var(--ink);width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;font-size:14px;background:#fff}
+label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:10px 0 4px}
+.btn{background:var(--brand);color:#fff;padding:10px 16px;border-radius:9px;font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{filter:brightness(.94)}
+.btn.ghost{background:#fff;color:var(--ink-2);border:1px solid var(--border)}
+.btn.sm{padding:6px 11px;font-size:12px}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.badge.admin{background:#EEF2FF;color:#4338CA}.badge.coord{background:#ECFDF5;color:#047857}.badge.assessor{background:#FEF3C7;color:#B45309}
+/* login / picker */
+.center{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0A1628,#13213D 60%,#1A2C4F);padding:20px}
+.auth-card{background:#fff;border-radius:18px;padding:34px;width:420px;max-width:100%;box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
+.logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;overflow:hidden}
+.err{color:var(--coral);font-size:13px;margin-top:8px}
+/* shell */
+#shell{display:none;min-height:100vh}
+.top{background:#fff;border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:10}
+.layout{display:flex;min-height:calc(100vh - 57px)}
+.side{width:210px;background:#fff;border-right:1px solid var(--border);padding:14px 10px;flex-shrink:0}
+.nav{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;font-size:14px;font-weight:600;color:var(--ink-2);cursor:pointer}
+.nav:hover{background:var(--soft)}
+.nav.on{background:var(--brand);color:#fff}
+.nav .soon{margin-left:auto;font-size:9px;background:var(--soft);color:var(--muted);padding:1px 6px;border-radius:10px;font-weight:700}
+.nav.on .soon{background:rgba(255,255,255,.2);color:#fff}
+.main{flex:1;padding:22px 26px;max-width:1000px}
+.card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px}
+.h2{font-size:19px;font-weight:800}
+.sub{font-size:12px;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px}
+.kpi .v{font-size:26px;font-weight:800}.kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.avatar{width:38px;height:38px;border-radius:10px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;overflow:hidden;flex-shrink:0}
+table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;font-size:11px;text-transform:uppercase;color:var(--muted);padding:8px;border-bottom:1px solid var(--border)}td{padding:9px 8px;border-bottom:1px solid var(--soft)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:100;opacity:0;transition:.2s;pointer-events:none}.toast.show{opacity:1}
+.pick{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px}
+.pick:hover{border-color:var(--brand);box-shadow:0 4px 14px -6px rgba(0,0,0,.15)}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="center" id="login">
+  <div class="auth-card">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div class="logo">M</div>
+      <div><div style="font-size:20px;font-weight:800">MOBILIZA</div><div class="sub">Plataforma da campanha</div></div>
+    </div>
+    <label>E-mail</label><input id="lg-email" type="email" autocomplete="username" placeholder="voce@email.com">
+    <label>Senha</label><input id="lg-pass" type="password" autocomplete="current-password" placeholder="••••••">
+    <button class="btn" style="width:100%;justify-content:center;margin-top:16px" onclick="doLogin()">Entrar</button>
+    <div id="lg-err" class="err"></div>
+    <div class="sub" style="margin-top:14px;text-align:center">Acesso liberado pelo administrador da campanha.</div>
+  </div>
+</div>
+
+<!-- SELETOR DE CANDIDATO -->
+<div class="center" id="picker" style="display:none">
+  <div class="auth-card" style="width:480px">
+    <div style="font-size:18px;font-weight:800;margin-bottom:4px">Escolha a campanha</div>
+    <div class="sub" style="margin-bottom:16px">Você tem acesso a mais de um candidato.</div>
+    <div id="picker-list"></div>
+    <button class="btn ghost sm" style="margin-top:8px" onclick="doLogout()">Sair</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="shell">
+  <div class="top">
+    <div class="logo" style="width:34px;height:34px;font-size:16px">M</div>
+    <div id="cand-badge" style="display:flex;align-items:center;gap:10px;flex:1"></div>
+    <button class="btn ghost sm" id="switch-btn" onclick="showPicker()" style="display:none">Trocar campanha</button>
+    <span id="me" class="sub"></span>
+    <button class="btn ghost sm" onclick="doLogout()">Sair</button>
+  </div>
+  <div class="layout">
+    <div class="side" id="side"></div>
+    <div class="main" id="main"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const SUPABASE_URL='https://dhxizqszipfnlpojzpbc.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRoeGl6cXN6aXBmbmxwb2p6cGJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NDgyNzYsImV4cCI6MjA5ODMyNDI3Nn0.Mb8IKH9MKumo4H4bag5iAjD7IXS8ogg9skKrCdvqV1M';
+const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const OFFICES={deputado_estadual:'Deputado Estadual',deputado_federal:'Deputado Federal',prefeito:'Prefeito',vereador:'Vereador',governador:'Governador',senador:'Senador',presidente:'Presidente'};
+const NAV=[
+  {k:'inicio',label:'Início',soon:false},
+  {k:'candidato',label:'Candidato',soon:false},
+  {k:'equipe',label:'Equipe',soon:false},
+  {k:'militancia',label:'Militância',soon:true},
+  {k:'eventos',label:'Eventos',soon:true},
+  {k:'mapa',label:'Mapa',soon:true},
+  {k:'financeiro',label:'Financeiro',soon:true},
+  {k:'logistica',label:'Logística',soon:true},
+  {k:'comunicacao',label:'Comunicação',soon:true},
+];
+let ME=null, CANDS=[], CUR=null, VIEW='inicio';
+
+const $=id=>document.getElementById(id);
+const esc=s=>(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const money=v=>'R$ '+(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
+async function rpc(fn,args){const{data,error}=await sb.rpc(fn,args||{});if(error)throw new Error(error.message||('erro em '+fn));return data}
+function initials(n){return (n||'?').split(' ').map(x=>x[0]||'').slice(0,2).join('').toUpperCase()}
+function applyTheme(color){document.documentElement.style.setProperty('--brand',color||'#00A878');
+  // deriva um tom mais escuro simples
+  document.documentElement.style.setProperty('--brand-2', color||'#00805F');}
+
+window.doLogin=async function(){
+  const email=$('lg-email').value.trim(), password=$('lg-pass').value;
+  $('lg-err').textContent='';
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
+  if(error){$('lg-err').textContent='Login falhou: '+error.message;return}
+  await boot();
+};
+window.doLogout=async function(){await sb.auth.signOut();location.reload()};
+
+async function boot(){
+  ME = await rpc('mob_me');
+  CANDS = await rpc('mob_my_candidates');
+  $('login').style.display='none';
+  if(!CANDS || CANDS.length===0){ showNoCandidate(); return; }
+  if(CANDS.length===1){ openCandidate(CANDS[0]); return; }
+  const saved = localStorage.getItem('mob_cur_candidate');
+  const found = saved && CANDS.find(c=>c.id===saved);
+  if(found){ openCandidate(found); } else { showPicker(); }
+}
+
+function showNoCandidate(){
+  $('picker').style.display='none'; $('shell').style.display='none';
+  $('login').style.display='flex';
+  $('login').innerHTML='<div class="auth-card"><div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><div class="logo">M</div><div><div style="font-size:20px;font-weight:800">MOBILIZA</div><div class="sub">'+esc(ME?.email||'')+'</div></div></div>'
+    +'<div class="empty">Sua conta ainda não está vinculada a nenhuma campanha.<br><br>Peça ao administrador para adicionar seu e-mail à equipe do candidato.<br><br><button class="btn ghost sm" onclick="doLogout()">Sair</button></div></div>';
+}
+
+window.showPicker=function(){
+  $('login').style.display='none'; $('shell').style.display='none'; $('picker').style.display='flex';
+  $('picker-list').innerHTML = CANDS.map(c=>'<div class="pick" onclick="pickCand(\''+c.id+'\')">'
+    +'<div class="avatar" style="background:'+(esc(c.theme_color||'#00A878'))+'">'+(c.photo_url?'<img src="'+esc(c.photo_url)+'" style="width:100%;height:100%;object-fit:cover">':esc(initials(c.name)))+'</div>'
+    +'<div><div style="font-weight:700">'+esc(c.name)+'</div><div class="sub">'+(OFFICES[c.office]||esc(c.office||'—'))+' · '+esc(c.uf||'')+' · '+c.election_year+' · <span class="badge '+(c.role==='admin'?'admin':c.role==='coordenador'?'coord':'assessor')+'">'+c.role+'</span></div></div>'
+  +'</div>').join('');
+};
+window.pickCand=function(id){ const c=CANDS.find(x=>x.id===id); if(c) openCandidate(c); };
+
+function openCandidate(c){
+  CUR=c; localStorage.setItem('mob_cur_candidate', c.id);
+  applyTheme(c.theme_color);
+  $('picker').style.display='none'; $('login').style.display='none'; $('shell').style.display='block';
+  $('switch-btn').style.display = CANDS.length>1 ? '' : 'none';
+  $('me').textContent = ME?.email||'';
+  $('cand-badge').innerHTML='<div class="avatar">'+(c.photo_url?'<img src="'+esc(c.photo_url)+'" style="width:100%;height:100%;object-fit:cover">':esc(initials(c.name)))+'</div>'
+    +'<div><div style="font-weight:800;line-height:1.1">'+esc(c.name)+'</div><div class="sub">'+(OFFICES[c.office]||esc(c.office||'—'))+' · '+esc(c.uf||'')+(c.city?'/'+esc(c.city):'')+' · '+c.election_year+' · <span class="badge '+(c.role==='admin'?'admin':c.role==='coordenador'?'coord':'assessor')+'">'+esc(c.role)+'</span></div></div>';
+  renderNav(); go('inicio');
+}
+function renderNav(){
+  $('side').innerHTML = NAV.map(n=>'<div class="nav'+(n.k===VIEW?' on':'')+'" onclick="go(\''+n.k+'\')">'+n.label+(n.soon?'<span class="soon">em breve</span>':'')+'</div>').join('');
+}
+window.go=function(v){ VIEW=v; renderNav();
+  if(v==='inicio') return viewInicio();
+  if(v==='candidato') return viewCandidato();
+  if(v==='equipe') return viewEquipe();
+  return viewSoon(v);
+};
+
+async function viewInicio(){
+  $('main').innerHTML='<div class="h2">Início</div><div class="sub">Panorama da campanha em tempo real.</div><div id="kpis" style="margin-top:16px" class="sub">Carregando…</div>';
+  try{
+    const r = await rpc('mob_candidate_report',{ p_candidate:CUR.id });
+    const f=r.finance||{};
+    const k=(v,l)=>'<div class="kpi"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';
+    $('kpis').className='';
+    $('kpis').innerHTML='<div class="kpis">'
+      +k(r.leaders,'Lideranças')+k(r.militants,'Militantes')+k(r.leads,'Leads (eventos)')+k(r.leads_apoiador,'Leads → apoiador')
+      +'</div><div class="kpis" style="margin-top:12px">'
+      +k(r.events,'Eventos')+k(r.checkins,'Check-ins')+k(r.checkins_shared,'Compartilharam')+k((r.votes_estimated||0).toLocaleString('pt-BR'),'Votos estimados')
+      +'</div><div class="kpis" style="grid-template-columns:repeat(3,1fr);margin-top:12px">'
+      +k(money(f.income),'Receitas')+k(money(f.expense),'Despesas')+k(money(f.donations),'Doações')
+      +'</div>'
+      +'<div class="card" style="margin-top:16px"><div class="sub">Os módulos de preenchimento (militância, eventos, mapa, financeiro, logística e comunicação) serão conectados a esta base em breve. Por enquanto, você já pode editar os dados do candidato e ver a equipe.</div></div>';
+  }catch(e){ $('kpis').innerHTML='<div class="err">'+esc(e.message)+'</div>'; }
+}
+
+function viewCandidato(){
+  const c=CUR;
+  const opt=Object.entries(OFFICES).map(([k,v])=>'<option value="'+k+'"'+(c.office===k?' selected':'')+'>'+v+'</option>').join('');
+  $('main').innerHTML='<div class="h2">Candidato</div><div class="sub">Dados básicos e identidade visual da campanha.</div>'
+    +'<div class="card" style="margin-top:16px">'
+    +'<label>Nome *</label><input id="f-name" value="'+esc(c.name||'')+'">'
+    +'<div class="form-row"><div><label>Cargo</label><select id="f-office"><option value="">—</option>'+opt+'</select></div><div><label>Ano</label><select id="f-year"><option'+(c.election_year===2026?' selected':'')+'>2026</option><option'+(c.election_year===2028?' selected':'')+'>2028</option></select></div></div>'
+    +'<div class="form-row"><div><label>UF</label><input id="f-uf" maxlength="2" style="text-transform:uppercase" value="'+esc(c.uf||'')+'"></div><div><label>Cidade</label><input id="f-city" value="'+esc(c.city||'')+'"></div></div>'
+    +'<div class="form-row"><div><label>Partido</label><input id="f-party" value="'+esc(c.party||'')+'"></div><div><label>Número</label><input id="f-num" value="'+esc(c.party_number||'')+'"></div></div>'
+    +'<div class="form-row"><div><label>Cor do tema</label><input id="f-color" type="color" value="'+(esc(c.theme_color||'#00A878'))+'" style="height:44px;padding:4px" oninput="applyThemeLive(this.value)"></div><div><label>Foto (URL)</label><input id="f-photo" value="'+esc(c.photo_url||'')+'" placeholder="https://…"></div></div>'
+    +'<label>Bio / slogan</label><textarea id="f-bio" rows="3">'+esc(c.bio||'')+'</textarea>'
+    +'<div style="text-align:right;margin-top:14px"><button class="btn" onclick="saveCandidato()">Salvar</button></div>'
+    +'</div>';
+}
+window.applyThemeLive=function(v){ applyTheme(v); };
+window.saveCandidato=async function(){
+  const p={name:$('f-name').value.trim(),office:$('f-office').value,election_year:+$('f-year').value,
+    uf:$('f-uf').value.trim().toUpperCase(),city:$('f-city').value.trim(),party:$('f-party').value.trim(),
+    party_number:$('f-num').value.trim(),theme_color:$('f-color').value,photo_url:$('f-photo').value.trim(),bio:$('f-bio').value.trim()};
+  if(!p.name){toast('Informe o nome');return}
+  try{
+    const r=await rpc('mob_update_candidate_self',{p_id:CUR.id,p_data:p});
+    if(!r.ok){toast(r.error);return}
+    Object.assign(CUR,p); const idx=CANDS.findIndex(x=>x.id===CUR.id); if(idx>=0) Object.assign(CANDS[idx],p);
+    applyTheme(p.theme_color); openCandidate(CUR); go('candidato'); toast('Dados salvos');
+  }catch(e){toast(e.message)}
+};
+
+async function viewEquipe(){
+  $('main').innerHTML='<div class="h2">Equipe</div><div class="sub">Quem tem acesso a esta campanha.</div><div id="team" class="sub" style="margin-top:16px">Carregando…</div>';
+  try{
+    const t=await rpc('mob_candidate_team',{ p_candidate:CUR.id });
+    let h='<div class="card"><div style="overflow-x:auto"><table><thead><tr><th>E-mail</th><th>Nome</th><th>Papel</th></tr></thead><tbody>';
+    (t||[]).forEach(m=>{ h+='<tr><td><strong>'+esc(m.email)+'</strong></td><td>'+esc(m.name||'')+'</td><td><span class="badge '+(m.role==='admin'?'admin':m.role==='coordenador'?'coord':'assessor')+'">'+esc(m.role)+'</span></td></tr>'; });
+    h+='</tbody></table></div></div><div class="sub">Para adicionar ou remover pessoas, use o Painel do Administrador.</div>';
+    $('team').className=''; $('team').innerHTML=h;
+  }catch(e){ $('team').innerHTML='<div class="err">'+esc(e.message)+'</div>'; }
+}
+
+function viewSoon(v){
+  const label=(NAV.find(n=>n.k===v)||{}).label||v;
+  $('main').innerHTML='<div class="h2">'+esc(label)+'</div><div class="card" style="margin-top:16px"><div class="empty">Este módulo será conectado à base desta campanha em breve.<br>Estamos migrando cada módulo para gravar direto no banco, por candidato.</div></div>';
+}
+
+$('lg-pass')?.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+(async()=>{ const {data}=await sb.auth.getSession(); if(data.session){ try{ await boot(); }catch(e){ console.error(e); } } })();
+</script>
+</body>
+</html>

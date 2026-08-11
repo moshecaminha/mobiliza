@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campanha — Site Oficial</title>
+<style>
+:root{--brand:#00C896;--brand-2:#00A878;--brand-3:#00E5A8;--navy:#0A1628;--navy-2:#162447;--gold:#FFB800;--coral:#FF6B6B;--ink:#0F172A;--ink-2:#1E293B;--muted:#64748B;--bg:#FFFFFF;--soft:#F5F7FA;--border:#E2E8F0;--success:#10B981}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select,textarea{font-family:inherit;outline:none}
+
+/* HEADER */
+.header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.header-inner{max-width:1180px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;letter-spacing:-.02em}
+.logo-mark{width:38px;height:38px;border-radius:10px;background:var(--brand);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px;background-size:cover;background-position:center}
+.nav{display:flex;align-items:center;gap:22px;font-size:14px;font-weight:500;color:var(--muted)}
+.nav a{cursor:pointer}
+.nav a:hover{color:var(--ink)}
+.cta-mini{background:var(--brand);color:#fff !important;padding:10px 18px;border-radius:10px;font-weight:600;box-shadow:0 2px 8px rgba(0,200,150,.3)}
+.cta-mini:hover{color:#fff !important;transform:translateY(-1px)}
+.mob-menu{display:none}
+
+/* HERO */
+.hero{position:relative;background:linear-gradient(135deg,#0A1628 0%,#162447 65%,#1B2C5C 100%);color:#fff;overflow:hidden;min-height:80vh;display:flex;align-items:center}
+.hero-grid{position:absolute;inset:0;opacity:.08;background-image:linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px);background-size:64px 64px;pointer-events:none}
+.hero-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.5;pointer-events:none}
+.hero-inner{max-width:1180px;margin:0 auto;padding:60px 24px;display:grid;grid-template-columns:1.3fr 1fr;gap:60px;align-items:center;width:100%;position:relative}
+.hero-text .badge-party{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(0,200,150,.12);border:1px solid rgba(0,200,150,.3);color:var(--brand);border-radius:999px;font-size:13px;font-weight:600;margin-bottom:24px}
+.hero h1{font-size:64px;line-height:1.02;font-weight:800;letter-spacing:-.03em;margin-bottom:20px}
+.hero h1 .hl{background:linear-gradient(135deg,#fff 0%,#A7F3D0 50%,#00C896 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .slogan{font-size:20px;line-height:1.5;color:rgba(255,255,255,.8);margin-bottom:32px;max-width:520px}
+.hero .actions{display:flex;gap:14px;flex-wrap:wrap}
+.btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;padding:16px 28px;border-radius:12px;font-weight:700;font-size:15px;box-shadow:0 4px 12px rgba(0,200,150,.4);display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:none;transition:transform .15s}
+.btn-primary:hover{transform:translateY(-2px)}
+.btn-outline{background:rgba(255,255,255,.08);color:#fff;padding:16px 28px;border-radius:12px;font-weight:700;font-size:15px;border:1px solid rgba(255,255,255,.2);display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.btn-outline:hover{background:rgba(255,255,255,.14)}
+.hero-photo{position:relative;display:flex;justify-content:center;align-items:center}
+.hero-photo .frame{width:380px;height:480px;border-radius:24px;background:linear-gradient(135deg,rgba(0,200,150,.4),rgba(255,184,0,.2));position:relative;overflow:hidden;box-shadow:0 24px 48px -12px rgba(0,0,0,.4)}
+.hero-photo .frame::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,rgba(10,22,40,.4) 100%)}
+.hero-photo .frame .initials{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:160px;font-weight:800;color:rgba(255,255,255,.4);letter-spacing:-.04em}
+.hero-photo .frame.with-photo{background:none}
+.hero-photo .frame.with-photo .initials{display:none}
+.hero-photo .num-badge{position:absolute;bottom:30px;right:-10px;background:#fff;color:var(--ink);border-radius:16px;padding:14px 22px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.hero-photo .num-badge .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:2px}
+.hero-photo .num-badge .v{font-size:32px;font-weight:800;letter-spacing:-.02em;color:var(--brand-2);line-height:1}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;margin-top:48px;padding-top:32px;border-top:1px solid rgba(255,255,255,.1)}
+.stat-mini .v{font-size:36px;font-weight:800;letter-spacing:-.02em;color:var(--brand)}
+.stat-mini .l{font-size:12px;color:rgba(255,255,255,.6);margin-top:4px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+
+/* SECTIONS */
+.section{padding:80px 0}
+.section-narrow{max-width:1180px;margin:0 auto;padding:0 24px}
+.section h2{font-size:42px;font-weight:800;letter-spacing:-.02em;margin-bottom:14px;line-height:1.1}
+.section .eyebrow{display:inline-block;font-size:12px;text-transform:uppercase;letter-spacing:.12em;font-weight:700;color:var(--brand-2);margin-bottom:14px}
+.section .lede{font-size:18px;color:var(--muted);max-width:700px;line-height:1.6;margin-bottom:48px}
+
+/* ABOUT */
+.about{background:var(--soft)}
+.about-grid{display:grid;grid-template-columns:1fr 1.5fr;gap:60px;align-items:start}
+.about-card{background:#fff;border-radius:18px;padding:28px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.about-card h3{font-size:18px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.about-card .ic{width:32px;height:32px;border-radius:10px;background:rgba(0,200,150,.12);display:flex;align-items:center;justify-content:center;color:var(--brand-2);font-size:18px}
+.about-content{font-size:16px;line-height:1.7;color:var(--ink-2)}
+.about-content p{margin-bottom:14px}
+
+/* PROPOSTAS */
+.proposals-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:32px}
+.proposal{background:#fff;border-radius:16px;padding:24px;border:1px solid var(--border);transition:all .2s;position:relative;overflow:hidden}
+.proposal::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--brand)}
+.proposal:nth-child(2)::before{background:var(--gold)}
+.proposal:nth-child(3)::before{background:var(--coral)}
+.proposal:nth-child(4)::before{background:#3B82F6}
+.proposal:nth-child(5)::before{background:#7C3AED}
+.proposal:nth-child(6)::before{background:#06B6D4}
+.proposal:hover{transform:translateY(-4px);box-shadow:0 12px 24px -8px rgba(0,0,0,.1)}
+.proposal .num{font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.05em;margin-bottom:10px}
+.proposal h4{font-size:18px;font-weight:700;margin-bottom:10px;line-height:1.3}
+.proposal p{font-size:14px;color:var(--muted);line-height:1.6}
+
+/* AGENDA */
+.agenda-grid{display:grid;gap:14px;margin-top:32px}
+.event{background:#fff;border-radius:14px;padding:22px;border:1px solid var(--border);display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;border-left:4px solid var(--brand);transition:all .15s}
+.event:hover{box-shadow:0 8px 16px -4px rgba(0,0,0,.06)}
+.event .date-box{background:var(--soft);border-radius:10px;padding:12px 16px;text-align:center;min-width:80px}
+.event .date-box .d{font-size:24px;font-weight:800;color:var(--ink);line-height:1;letter-spacing:-.02em}
+.event .date-box .m{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.06em;font-weight:700;margin-top:3px}
+.event .info h4{font-size:17px;font-weight:700;margin-bottom:6px}
+.event .info p{font-size:13px;color:var(--muted)}
+.event .time{font-size:15px;font-weight:700;color:var(--brand-2)}
+.empty-agenda{text-align:center;padding:60px 20px;background:#fff;border-radius:14px;border:1px dashed var(--border)}
+.empty-agenda h4{font-size:17px;font-weight:600;margin-bottom:6px;color:var(--muted)}
+
+/* VOLUNTEER */
+.volunteer{background:linear-gradient(135deg,#0A1628 0%,#162447 100%);color:#fff;position:relative;overflow:hidden}
+.volunteer-blob{position:absolute;border-radius:50%;filter:blur(120px);opacity:.4;pointer-events:none}
+.volunteer .section-narrow{position:relative;display:grid;grid-template-columns:1fr 1.2fr;gap:60px;align-items:center}
+.volunteer .eyebrow{color:var(--brand-3)}
+.volunteer h2{color:#fff}
+.volunteer .lede{color:rgba(255,255,255,.75);max-width:none}
+.volunteer ul{list-style:none;margin-top:20px}
+.volunteer ul li{padding:12px 0 12px 32px;position:relative;font-size:15px;color:rgba(255,255,255,.85)}
+.volunteer ul li::before{content:"✓";position:absolute;left:0;top:12px;color:var(--brand);font-weight:800;font-size:18px}
+.signup-card{background:#fff;color:var(--ink);border-radius:20px;padding:32px;box-shadow:0 24px 48px -12px rgba(0,0,0,.3)}
+.signup-card h3{font-size:22px;font-weight:800;margin-bottom:6px;letter-spacing:-.02em}
+.signup-card .sub{color:var(--muted);font-size:14px;margin-bottom:22px}
+.signup-card label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin:14px 0 6px}
+.signup-card input,.signup-card select{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;color:var(--ink)}
+.signup-card input:focus,.signup-card select:focus{border-color:var(--brand)}
+.signup-card .checkbox{display:flex;align-items:flex-start;gap:8px;margin-top:14px;font-size:12px;color:var(--muted);line-height:1.5;cursor:pointer}
+.signup-card .checkbox input{width:auto;margin-top:2px;flex-shrink:0}
+.signup-card .btn-primary{width:100%;justify-content:center;margin-top:18px}
+.signup-success{display:none;text-align:center;padding:30px 0}
+.signup-success.show{display:block}
+.signup-success .ic{width:64px;height:64px;border-radius:50%;background:rgba(0,200,150,.12);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:16px}
+.signup-success h3{font-size:20px;font-weight:800;margin-bottom:8px}
+.signup-success p{color:var(--muted);font-size:14px}
+
+/* DONATION */
+.donate-section{background:#FFFBEB}
+.donate-card{background:#fff;border-radius:20px;padding:40px;text-align:center;max-width:680px;margin:0 auto;border:2px solid #FEF3C7;position:relative;overflow:hidden}
+.donate-card::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,var(--gold),#FF9500)}
+.donate-card .ic{width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,var(--gold),#FF9500);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:18px}
+.donate-amounts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:24px 0}
+.amount{padding:14px;background:var(--soft);border:2px solid transparent;border-radius:10px;font-weight:700;cursor:pointer;font-size:15px;color:var(--ink)}
+.amount:hover{background:#FEF3C7}
+.amount.active{background:#FEF3C7;border-color:var(--gold);color:#92400E}
+.donate-note{font-size:11px;color:var(--muted);margin-top:18px;line-height:1.5;background:var(--soft);padding:14px;border-radius:10px}
+
+/* SOCIAL */
+.social-grid{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+.social-link{width:54px;height:54px;border-radius:14px;background:#fff;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--ink);transition:all .15s}
+.social-link:hover{transform:translateY(-3px);background:var(--soft);box-shadow:0 6px 12px rgba(0,0,0,.06)}
+
+/* FOOTER */
+.footer{background:var(--navy);color:rgba(255,255,255,.6);padding:60px 0 30px;font-size:13px}
+.footer .section-narrow{display:grid;grid-template-columns:2fr 1fr 1fr;gap:40px;margin-bottom:40px}
+.footer h4{color:#fff;font-size:14px;font-weight:700;margin-bottom:14px;text-transform:uppercase;letter-spacing:.06em}
+.footer-brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:800;font-size:18px;margin-bottom:14px}
+.footer ul{list-style:none}
+.footer ul li{padding:5px 0;cursor:pointer}
+.footer ul li:hover{color:#fff}
+.footer-legal{border-top:1px solid rgba(255,255,255,.1);padding-top:20px;text-align:center;color:rgba(255,255,255,.4);font-size:12px;max-width:1180px;margin:0 auto;padding-left:24px;padding-right:24px}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:14px 18px;border-radius:12px;font-size:14px;display:flex;align-items:center;gap:10px;z-index:600;transform:translateY(100px);opacity:0;transition:all .25s;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.toast.show{transform:translateY(0);opacity:1}
+.toast .check{width:24px;height:24px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:13px}
+
+/* CONFIG NOTICE */
+.config-notice{background:#FFF8E1;color:#92400E;padding:12px 24px;text-align:center;font-size:13px;border-bottom:1px solid #FDE68A}
+.config-notice a{color:#B17800;font-weight:700;text-decoration:underline}
+
+/* RESPONSIVE */
+@media (max-width:960px){
+  .hero-inner{grid-template-columns:1fr;gap:40px;padding:40px 20px}
+  .hero h1{font-size:44px}
+  .hero-photo .frame{width:280px;height:340px}
+  .hero-photo .frame .initials{font-size:120px}
+  .hero-stats{grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .stat-mini .v{font-size:24px}
+  .about-grid{grid-template-columns:1fr;gap:30px}
+  .proposals-grid{grid-template-columns:1fr 1fr;gap:14px}
+  .volunteer .section-narrow{grid-template-columns:1fr;gap:30px}
+  .section{padding:50px 0}
+  .section h2{font-size:30px}
+  .nav{display:none}
+  .mob-menu{display:flex;width:40px;height:40px;border-radius:10px;background:var(--soft);align-items:center;justify-content:center;font-size:20px;cursor:pointer;border:none}
+  .footer .section-narrow{grid-template-columns:1fr;gap:30px}
+  .event{grid-template-columns:auto 1fr;gap:14px}
+  .event .time{grid-column:2/3}
+}
+@media (max-width:600px){
+  .hero h1{font-size:34px}
+  .hero .slogan{font-size:16px}
+  .section h2{font-size:26px}
+  .donate-amounts{grid-template-columns:1fr 1fr}
+  .proposals-grid{grid-template-columns:1fr}
+  .hero-stats{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- CONFIG NOTICE if no data -->
+<div id="config-notice" class="config-notice" style="display:none">
+  ⚠️ Esta landing page lê dados do app admin no mesmo navegador. <a href="MOBILIZA_App.html">Configure aqui</a> ou os dados padrão de exemplo serão usados.
+</div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <a href="#hero" class="logo">
+      <div class="logo-mark" id="logo-mark" style="background:var(--brand)">M</div>
+      <span id="logo-name">Campanha</span>
+    </a>
+    <nav class="nav">
+      <a onclick="scrollTo('#sobre')">Sobre</a>
+      <a onclick="scrollTo('#propostas')">Propostas</a>
+      <a onclick="scrollTo('#agenda')">Agenda</a>
+      <a onclick="scrollTo('#apoiar')">Apoiar</a>
+      <a onclick="scrollTo('#doar')">Doar</a>
+      <a onclick="scrollTo('#apoiar')" class="cta-mini">Seja apoiador</a>
+    </nav>
+    <button class="mob-menu" onclick="scrollTo('#apoiar')">☰</button>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-blob" style="background:var(--brand);width:400px;height:400px;top:-100px;left:-100px"></div>
+  <div class="hero-blob" style="background:var(--gold);width:300px;height:300px;bottom:-50px;right:-50px"></div>
+  <div class="hero-inner">
+    <div class="hero-text">
+      <div class="badge-party"><span style="width:8px;height:8px;border-radius:2px;background:var(--brand)"></span> <span id="hero-party">Partido</span> <span id="hero-pnum"></span></div>
+      <h1>Vote em <span class="hl" id="hero-name">CANDIDATO</span></h1>
+      <p class="slogan" id="hero-slogan">Por uma cidade melhor para todos. Junte-se a esta caminhada de transformação.</p>
+      <div class="actions">
+        <button class="btn-primary" onclick="scrollTo('#apoiar')">Quero apoiar →</button>
+        <button class="btn-outline" onclick="scrollTo('#propostas')">Conheça as propostas</button>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-mini"><div class="v" id="stat-supporters">0</div><div class="l">Apoiadores</div></div>
+        <div class="stat-mini"><div class="v" id="stat-regions">0</div><div class="l">Regiões</div></div>
+        <div class="stat-mini"><div class="v" id="stat-days">—</div><div class="l">Dias p/ eleição</div></div>
+      </div>
+    </div>
+    <div class="hero-photo">
+      <div class="frame" id="hero-frame">
+        <div class="initials" id="hero-initials">?</div>
+      </div>
+      <div class="num-badge">
+        <div class="l">Vote</div>
+        <div class="v" id="hero-numero">XX</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SOBRE -->
+<section class="section about" id="sobre">
+  <div class="section-narrow">
+    <span class="eyebrow">Quem sou</span>
+    <h2>Conheça o candidato</h2>
+    <p class="lede" id="about-lede">Saiba mais sobre a história, valores e visão de futuro para a nossa cidade.</p>
+    <div class="about-grid">
+      <div>
+        <div class="about-card" style="margin-bottom:16px">
+          <h3><span class="ic">🎯</span>Missão</h3>
+          <p style="font-size:14px;color:var(--muted);line-height:1.6" id="about-mission">Transformar nossa cidade em um lugar melhor para viver, trabalhar e criar nossos filhos.</p>
+        </div>
+        <div class="about-card" style="margin-bottom:16px">
+          <h3><span class="ic">💎</span>Valores</h3>
+          <p style="font-size:14px;color:var(--muted);line-height:1.6">Transparência, eficiência, compromisso real com as pessoas e respeito pelo dinheiro público.</p>
+        </div>
+        <div class="about-card">
+          <h3><span class="ic">🤝</span>Compromisso</h3>
+          <p style="font-size:14px;color:var(--muted);line-height:1.6">Governo aberto, prestação de contas mensal e canais diretos com o cidadão.</p>
+        </div>
+      </div>
+      <div class="about-content">
+        <p id="about-bio">Atuo há anos pelo bem da nossa comunidade, conhecendo de perto os problemas e construindo soluções que de fato fazem diferença na vida das pessoas.</p>
+        <p>Esta campanha não é minha — é nossa. É de cada pessoa que acredita que é possível construir uma cidade mais justa, com saúde de qualidade, segurança real, educação que prepara nossas crianças para o futuro e uma economia que gera oportunidades para todos.</p>
+        <p>Não estamos aqui para fazer promessas vazias. Estamos aqui para apresentar um plano detalhado, factível e com cronograma. E para construir junto, ouvindo cada bairro, cada liderança comunitária, cada pessoa que vive a realidade que queremos transformar.</p>
+        <p style="font-weight:600;color:var(--brand-2)">— Junte-se a nós nessa caminhada. Sua participação faz toda a diferença.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROPOSTAS -->
+<section class="section" id="propostas">
+  <div class="section-narrow">
+    <span class="eyebrow">Plano de Governo</span>
+    <h2>Propostas para a cidade</h2>
+    <p class="lede">Compromissos concretos para os primeiros 100 dias e para todo o mandato. Pode cobrar.</p>
+    <div class="proposals-grid" id="proposals-grid">
+      <!-- preenchido por JS -->
+    </div>
+  </div>
+</section>
+
+<!-- AGENDA -->
+<section class="section about" id="agenda">
+  <div class="section-narrow">
+    <span class="eyebrow">Agenda Pública</span>
+    <h2>Onde você pode me encontrar</h2>
+    <p class="lede">Eventos públicos da campanha. Venha conversar, tirar dúvidas e fazer parte deste movimento.</p>
+    <div class="agenda-grid" id="agenda-grid">
+      <!-- preenchido por JS -->
+    </div>
+  </div>
+</section>
+
+<!-- VOLUNTEER -->
+<section class="section volunteer" id="apoiar">
+  <div class="volunteer-blob" style="background:var(--brand);width:500px;height:500px;top:-100px;right:-100px"></div>
+  <div class="section-narrow">
+    <div>
+      <span class="eyebrow">Movimento</span>
+      <h2>Seja apoiador desta campanha</h2>
+      <p class="lede">Cadastre-se gratuitamente em segundos. Você vai receber atualizações sobre eventos no seu bairro, conteúdos exclusivos e formas de ajudar.</p>
+      <ul>
+        <li>Receba a agenda do candidato no seu bairro</li>
+        <li>Convide amigos e familiares para apoiar</li>
+        <li>Participe de eventos exclusivos para apoiadores</li>
+        <li>Tenha acesso a conteúdos antes do público geral</li>
+        <li>Faça parte da rede de mobilização local</li>
+      </ul>
+    </div>
+    <div class="signup-card" id="signup-card">
+      <div id="signup-form-wrap">
+        <h3>Quero apoiar</h3>
+        <p class="sub">Leva 30 segundos. Sem custo. Sem compromisso financeiro.</p>
+        <label>Seu nome *</label>
+        <input id="su-name" placeholder="Como você quer ser chamado">
+        <label>WhatsApp *</label>
+        <input id="su-phone" placeholder="(00) 00000-0000">
+        <label>E-mail</label>
+        <input id="su-email" type="email" placeholder="seu@email.com">
+        <label>Seu bairro</label>
+        <select id="su-region"><option value="">— selecione —</option></select>
+        <label class="checkbox">
+          <input type="checkbox" id="su-consent" checked>
+          <span>Aceito receber comunicações da campanha por WhatsApp e e-mail (você pode cancelar a qualquer momento).</span>
+        </label>
+        <button class="btn-primary" onclick="signUp()">🤝 Quero apoiar</button>
+      </div>
+      <div class="signup-success" id="signup-success">
+        <div class="ic">✓</div>
+        <h3>Bem-vindo ao time!</h3>
+        <p>Você é oficialmente parte deste movimento. Em breve você receberá atualizações no WhatsApp informado.</p>
+        <button class="btn-primary" style="margin-top:18px" onclick="resetForm()">Cadastrar outra pessoa</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DONATION -->
+<section class="section donate-section" id="doar">
+  <div class="section-narrow">
+    <div class="donate-card">
+      <div class="ic">💛</div>
+      <span class="eyebrow">Apoio Financeiro</span>
+      <h2 style="font-size:32px;margin:8px 0">Toda contribuição faz diferença</h2>
+      <p style="color:var(--muted);max-width:480px;margin:0 auto 20px;font-size:15px;line-height:1.6">Esta campanha é financiada por cidadãos como você. Doe via Pix com total transparência e dedução fiscal.</p>
+      <div class="donate-amounts">
+        <button class="amount" onclick="pickAmount(this,25)">R$ 25</button>
+        <button class="amount active" onclick="pickAmount(this,50)">R$ 50</button>
+        <button class="amount" onclick="pickAmount(this,100)">R$ 100</button>
+        <button class="amount" onclick="pickAmount(this,250)">R$ 250</button>
+      </div>
+      <button class="btn-primary" style="background:linear-gradient(135deg,var(--gold),#FF9500);box-shadow:0 4px 12px rgba(255,184,0,.4);padding:16px 36px;width:100%;justify-content:center" onclick="initiateDonation()">📱 Doar R$ <span id="donate-amount-text">50</span> via Pix</button>
+      <p class="donate-note">⚠️ <strong>Modo demo:</strong> integração real com Pix requer backend integrado ao ASAAS/PagSeguro com compliance TSE (limite anual por CPF, prestação de contas oficial). Veja a especificação técnica.</p>
+    </div>
+  </div>
+</section>
+
+<!-- REDES SOCIAIS -->
+<section class="section" style="padding:60px 0">
+  <div class="section-narrow" style="text-align:center">
+    <span class="eyebrow">Acompanhe</span>
+    <h2 style="font-size:28px">Siga nas redes sociais</h2>
+    <p style="color:var(--muted);margin-top:10px">Conteúdo diário, transparência total e bastidores da campanha.</p>
+    <div class="social-grid">
+      <a class="social-link" onclick="toast('Configure a URL nas configurações')" title="Instagram">📷</a>
+      <a class="social-link" onclick="toast('Configure a URL nas configurações')" title="Facebook">📘</a>
+      <a class="social-link" onclick="toast('Configure a URL nas configurações')" title="X/Twitter">🐦</a>
+      <a class="social-link" onclick="toast('Configure a URL nas configurações')" title="TikTok">🎵</a>
+      <a class="social-link" onclick="toast('Configure a URL nas configurações')" title="YouTube">▶️</a>
+      <a class="social-link" onclick="toast('Configure a URL nas configurações')" title="WhatsApp">💬</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="section-narrow">
+    <div>
+      <div class="footer-brand">
+        <div class="logo-mark" id="footer-logo">M</div>
+        <span id="footer-name">Campanha</span>
+      </div>
+      <p style="line-height:1.6" id="footer-slogan">Por uma cidade melhor para todos.</p>
+      <p style="margin-top:14px;color:rgba(255,255,255,.4);font-size:11px" id="footer-cnpj">CNPJ da campanha: a ser cadastrado · Eleições <span id="footer-year">2026</span></p>
+    </div>
+    <div>
+      <h4>Mapa do site</h4>
+      <ul>
+        <li onclick="scrollTo('#sobre')">Sobre</li>
+        <li onclick="scrollTo('#propostas')">Propostas</li>
+        <li onclick="scrollTo('#agenda')">Agenda</li>
+        <li onclick="scrollTo('#apoiar')">Apoiar</li>
+        <li onclick="scrollTo('#doar')">Doar</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Compliance</h4>
+      <ul>
+        <li>Prestação de contas</li>
+        <li>Política de privacidade</li>
+        <li>Termos de uso</li>
+        <li>LGPD</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-legal">
+    Plataforma MOBILIZA · campanha registrada conforme legislação eleitoral brasileira · TSE · LGPD
+  </div>
+</footer>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><div class="check">✓</div><div id="toast-msg">Cadastrado!</div></div>
+
+<script>
+'use strict';
+
+var STORE_KEY = 'mobiliza_data_v1';
+var lsAvailable = false;
+try { localStorage.setItem('__t__','1'); localStorage.removeItem('__t__'); lsAvailable=true; } catch(e){}
+
+var DEFAULT_STATE = {
+  candidate:{name:'CANDIDATO',party:'PARTIDO',partyNumber:'12',color:'#00C896',bio:'',partyNumberSigla:'PT'},
+  election:{position:'PREFEITO',city:'CIDADE',state:'UF',date:'',voterCount:0,victoryTarget:0},
+  regions:[],leaders:[],militants:[],events:[],
+  setup:false
+};
+
+function loadState(){
+  try {
+    if(!lsAvailable) return DEFAULT_STATE;
+    var raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return DEFAULT_STATE;
+    return Object.assign({}, DEFAULT_STATE, JSON.parse(raw));
+  } catch(e){ return DEFAULT_STATE; }
+}
+
+function saveState(s){
+  try { if(lsAvailable) localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch(e){}
+}
+
+function esc(s){
+  if(s===null||s===undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function genId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+window.scrollTo = function(sel){
+  if(typeof sel==='string'){
+    var el = document.querySelector(sel);
+    if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+};
+
+window.toast = function(msg){
+  document.getElementById('toast-msg').textContent = msg;
+  var t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show')}, 2400);
+};
+
+// SAMPLE PROPOSALS (Brazilian campaign defaults)
+var DEFAULT_PROPOSALS = [
+  {n:'01 · SAÚDE',t:'Mais médicos, menos fila',d:'Plano emergencial para reduzir em 50% o tempo de espera para consultas e exames nos primeiros 100 dias.'},
+  {n:'02 · EDUCAÇÃO',t:'Escola em tempo integral',d:'Expansão progressiva da educação em tempo integral nas escolas municipais, com reforço escolar e alimentação de qualidade.'},
+  {n:'03 · SEGURANÇA',t:'Cidade iluminada e vigilante',d:'Investimento em iluminação pública, câmeras inteligentes e parceria estruturada com forças estaduais.'},
+  {n:'04 · EMPREGO',t:'Cidade que gera oportunidade',d:'Programa de capacitação profissional gratuita e atração de empresas com incentivos fiscais responsáveis.'},
+  {n:'05 · MOBILIDADE',t:'Trânsito que respeita o tempo',d:'Plano de mobilidade urbana com corredores de ônibus, ciclofaixas e revisão de sinalização nos pontos críticos.'},
+  {n:'06 · GESTÃO',t:'Transparência radical',d:'Prestação de contas mensal pública, digitalização total de serviços e fim das filas em órgãos municipais.'}
+];
+
+var DEFAULT_BIO = 'Atuo há anos pelo bem da nossa comunidade, conhecendo de perto os problemas e construindo soluções que de fato fazem diferença na vida das pessoas.';
+
+function render(){
+  var s = loadState();
+  if(!s.setup){
+    document.getElementById('config-notice').style.display = 'block';
+  }
+
+  // Candidate
+  var name = s.candidate.name || 'CANDIDATO';
+  var initials = name.split(' ').map(function(p){return p[0]}).slice(0,2).join('').toUpperCase();
+  document.title = name + ' · ' + (s.election.position||'') + ' · Site Oficial';
+  document.getElementById('logo-name').textContent = name;
+  document.getElementById('footer-name').textContent = name;
+  document.getElementById('hero-name').textContent = name;
+  document.getElementById('hero-initials').textContent = initials;
+  document.getElementById('logo-mark').textContent = initials.slice(0,1);
+  document.getElementById('footer-logo').textContent = initials.slice(0,1);
+  document.getElementById('hero-party').textContent = s.candidate.party || 'Partido';
+  document.getElementById('hero-pnum').textContent = s.candidate.partyNumber ? '· '+s.candidate.partyNumber : '';
+  document.getElementById('hero-numero').textContent = s.candidate.partyNumber || 'XX';
+  document.getElementById('hero-slogan').textContent = s.candidate.bio || ('Por uma '+(s.election.city||'cidade')+' melhor para todos. Junte-se a esta caminhada de transformação.');
+
+  // Photo
+  if(s.candidate.photo){
+    var frame = document.getElementById('hero-frame');
+    frame.classList.add('with-photo');
+    frame.style.backgroundImage = 'url('+s.candidate.photo+')';
+    frame.style.backgroundSize = 'cover';
+    frame.style.backgroundPosition = 'center';
+  }
+
+  // Color theme
+  if(s.candidate.color){
+    document.documentElement.style.setProperty('--brand', s.candidate.color);
+  }
+
+  // Stats
+  document.getElementById('stat-supporters').textContent = ((s.militants||[]).length + (s.leaders||[]).length);
+  document.getElementById('stat-regions').textContent = (s.regions||[]).length;
+  if(s.election.date){
+    var diff = Math.ceil((new Date(s.election.date) - new Date())/86400000);
+    document.getElementById('stat-days').textContent = diff>0?diff:'—';
+  }
+  var year = s.election.date ? new Date(s.election.date).getFullYear() : new Date().getFullYear();
+  document.getElementById('footer-year').textContent = year;
+
+  // About
+  document.getElementById('about-lede').textContent = 'Saiba mais sobre quem é '+name+' e por que esta campanha representa uma chance real de mudança para '+(s.election.city||'a cidade')+'.';
+  if(s.candidate.bio){
+    document.getElementById('about-bio').textContent = s.candidate.bio;
+  }
+  document.getElementById('about-mission').textContent = 'Transformar '+(s.election.city||'nossa cidade')+' em um lugar melhor para viver, trabalhar e criar nossos filhos.';
+  document.getElementById('footer-slogan').textContent = s.candidate.bio || 'Por uma cidade melhor para todos.';
+
+  // Proposals (use defaults — admin app currently doesn't store proposals)
+  var propGridEl = document.getElementById('proposals-grid');
+  var propsHTML = '';
+  for(var i=0;i<DEFAULT_PROPOSALS.length;i++){
+    var p = DEFAULT_PROPOSALS[i];
+    propsHTML += '<div class="proposal"><div class="num">'+esc(p.n)+'</div><h4>'+esc(p.t)+'</h4><p>'+esc(p.d)+'</p></div>';
+  }
+  propGridEl.innerHTML = propsHTML;
+
+  // Agenda (only public + media events, future, max 8)
+  var now = new Date(); now.setHours(0,0,0,0);
+  var publicEvents = (s.events||[])
+    .filter(function(e){return (e.type==='publico'||e.type==='midia') && new Date(e.date)>=now})
+    .sort(function(a,b){return new Date(a.date)-new Date(b.date)})
+    .slice(0,8);
+  var agendaEl = document.getElementById('agenda-grid');
+  if(publicEvents.length===0){
+    agendaEl.innerHTML = '<div class="empty-agenda"><h4>Em breve novos compromissos</h4><p style="color:var(--muted);font-size:13px">Acompanhe as redes sociais para saber dos próximos eventos.</p></div>';
+  } else {
+    var months = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+    var agHtml = '';
+    for(var j=0;j<publicEvents.length;j++){
+      var ev = publicEvents[j];
+      var d = new Date(ev.date);
+      var typeLabel = ev.type==='midia'?'📺 Mídia/Imprensa':'🟢 Aberto ao público';
+      agHtml += '<div class="event">'
+        +'<div class="date-box"><div class="d">'+d.getDate()+'</div><div class="m">'+months[d.getMonth()]+'</div></div>'
+        +'<div class="info"><h4>'+esc(ev.title)+'</h4><p>'+esc(ev.location||'Local a confirmar')+' · '+typeLabel+'</p></div>'
+        +'<div class="time">'+(ev.time||'—')+'</div>'
+        +'</div>';
+    }
+    agendaEl.innerHTML = agHtml;
+  }
+
+  // Regions for signup dropdown
+  var regSelect = document.getElementById('su-region');
+  var regOpts = '<option value="">— selecione —</option>';
+  for(var k=0;k<(s.regions||[]).length;k++){
+    regOpts += '<option value="'+s.regions[k].id+'">'+esc(s.regions[k].name)+'</option>';
+  }
+  regOpts += '<option value="other">Outro bairro</option>';
+  regSelect.innerHTML = regOpts;
+}
+
+// ============ SIGNUP ============
+window.signUp = function(){
+  var name = document.getElementById('su-name').value.trim();
+  var phone = document.getElementById('su-phone').value.trim();
+  var email = document.getElementById('su-email').value.trim();
+  var regionId = document.getElementById('su-region').value;
+  var consent = document.getElementById('su-consent').checked;
+
+  if(!name){ toast('Informe seu nome'); return; }
+  if(!phone){ toast('Informe seu WhatsApp'); return; }
+  if(!consent){ toast('Você precisa aceitar receber comunicações'); return; }
+
+  var s = loadState();
+  if(!s.militants) s.militants = [];
+  s.militants.push({
+    id: genId(),
+    name: name,
+    phone: phone,
+    email: email,
+    regionId: regionId==='other'?'':regionId,
+    status:'active',
+    source:'landing-public',
+    createdAt: Date.now(),
+    optIn: true,
+    optInAt: new Date().toISOString()
+  });
+  saveState(s);
+
+  document.getElementById('signup-form-wrap').style.display = 'none';
+  document.getElementById('signup-success').classList.add('show');
+  // re-render stats
+  document.getElementById('stat-supporters').textContent = ((s.militants||[]).length + (s.leaders||[]).length);
+};
+
+window.resetForm = function(){
+  document.getElementById('su-name').value = '';
+  document.getElementById('su-phone').value = '';
+  document.getElementById('su-email').value = '';
+  document.getElementById('su-region').value = '';
+  document.getElementById('su-consent').checked = true;
+  document.getElementById('signup-form-wrap').style.display = 'block';
+  document.getElementById('signup-success').classList.remove('show');
+};
+
+// ============ DONATE ============
+var donateAmount = 50;
+window.pickAmount = function(el, val){
+  donateAmount = val;
+  document.querySelectorAll('.amount').forEach(function(b){b.classList.remove('active')});
+  el.classList.add('active');
+  document.getElementById('donate-amount-text').textContent = val;
+};
+
+window.initiateDonation = function(){
+  toast('Modo demo: doação de R$ '+donateAmount+' simulada. Integração real requer backend (ASAAS/Pix).');
+};
+
+// BOOT
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOBILIZA — Plataforma Estratégica de Inteligência Eleitoral</title>
+<style>
+:root{
+  --navy:#0A1628;--navy-2:#13213D;--navy-3:#1A2C4F;
+  --brand:#00C896;--brand-2:#00A878;--brand-3:#00E5A8;
+  --gold:#FFB800;--gold-2:#F59E0B;
+  --coral:#FF6B6B;--coral-2:#E53E3E;
+  --blue:#3B82F6;--purple:#7C3AED;
+  --bg:#FAFBFC;--card:#FFFFFF;
+  --ink:#0F172A;--ink-2:#1E293B;--ink-3:#334155;
+  --muted:#64748B;--muted-2:#94A3B8;--muted-3:#CBD5E1;
+  --border:#E5E9F0;--border-2:#CBD5E1;
+  --soft:#F1F5F9;--soft-2:#F8FAFC;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#0A1628;font-family:'Inter','Helvetica Neue',-apple-system,'Segoe UI',system-ui,sans-serif;color:var(--ink);scroll-behavior:smooth;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{overflow-x:hidden}
+
+/* TYPOGRAPHY SYSTEM */
+.serif{font-family:'Georgia','Times New Roman',serif;font-feature-settings:"liga","kern"}
+.mono{font-family:'SF Mono','Consolas','Monaco',monospace;font-feature-settings:"tnum"}
+h1,h2,h3,h4{letter-spacing:-.02em;font-weight:700}
+
+/* SLIDE BASE */
+.slide{
+  width:100vw;height:100vh;min-height:720px;
+  display:flex;flex-direction:column;
+  padding:60px 80px 70px;
+  position:relative;overflow:hidden;
+  page-break-after:always;
+}
+.slide.dark{background:linear-gradient(135deg,#0A1628 0%,#13213D 70%,#1A2C4F 100%);color:#fff}
+.slide.light{background:var(--bg);color:var(--ink)}
+.slide.white{background:#FFFFFF;color:var(--ink)}
+
+/* NAVIGATION */
+.nav{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:100;display:flex;gap:6px;align-items:center;background:rgba(10,22,40,.92);padding:8px 14px;border-radius:999px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.08);box-shadow:0 12px 32px rgba(0,0,0,.25)}
+.nav button{background:rgba(255,255,255,.06);color:#fff;border:none;width:30px;height:30px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.nav button:hover{background:var(--brand);color:var(--navy)}
+.nav .counter{color:#fff;font-size:12px;font-weight:600;padding:0 8px;font-variant-numeric:tabular-nums;font-family:'SF Mono','Consolas',monospace}
+
+/* CHROME */
+.chrome{position:absolute;top:32px;left:80px;right:80px;display:flex;justify-content:space-between;align-items:center;z-index:5}
+.brand-mark{display:flex;align-items:center;gap:10px;font-weight:700;font-size:13px;letter-spacing:.02em}
+.brand-mark .dot{width:8px;height:8px;border-radius:2px;background:var(--brand)}
+.dark .brand-mark{color:rgba(255,255,255,.85)}
+.light .brand-mark,.white .brand-mark{color:var(--ink-2)}
+.pgnum{font-size:11px;letter-spacing:.18em;font-weight:600;font-family:'SF Mono',monospace}
+.dark .pgnum{color:rgba(255,255,255,.4)}
+.light .pgnum,.white .pgnum{color:var(--muted-2)}
+
+/* ICON SYSTEM */
+.icon{display:inline-block;flex-shrink:0;vertical-align:middle}
+
+/* TYPOGRAPHY */
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--brand);margin-bottom:18px}
+.eyebrow::before{content:"";display:block;width:24px;height:1px;background:var(--brand)}
+.dark .eyebrow{color:var(--brand-3)}
+.dark .eyebrow::before{background:var(--brand-3)}
+
+h1.display{font-size:78px;line-height:1.02;font-weight:800;letter-spacing:-.035em}
+h1.giant{font-size:124px;line-height:.92;font-weight:800;letter-spacing:-.04em}
+h2.large{font-size:54px;line-height:1.05;font-weight:800;letter-spacing:-.025em;margin-bottom:18px}
+h2.medium{font-size:40px;line-height:1.1;font-weight:800;letter-spacing:-.02em;margin-bottom:14px}
+h3{font-size:22px;font-weight:700;line-height:1.25}
+h4{font-size:16px;font-weight:700;line-height:1.3}
+.lede{font-size:20px;line-height:1.55;color:var(--muted);max-width:780px;font-weight:400}
+.dark .lede{color:rgba(255,255,255,.7)}
+
+/* COVER */
+.cover{justify-content:center;align-items:flex-start;background:radial-gradient(circle at 78% 22%,rgba(0,200,150,.16) 0%,transparent 50%),radial-gradient(circle at 8% 88%,rgba(255,184,0,.1) 0%,transparent 50%),linear-gradient(135deg,#0A1628 0%,#13213D 100%)}
+.cover-grid{position:absolute;inset:0;opacity:.05;background-image:linear-gradient(rgba(255,255,255,1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,1) 1px,transparent 1px);background-size:80px 80px;pointer-events:none}
+.cover h1{background:linear-gradient(180deg,#fff 30%,#A7F3D0 100%);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:28px;font-size:160px;line-height:.88}
+.cover .tagline{font-size:26px;color:#fff;max-width:820px;line-height:1.35;font-weight:300;margin-bottom:48px}
+.cover .tagline em{color:var(--brand);font-style:normal;font-weight:500}
+.cover-meta{display:flex;gap:32px;align-items:center;color:rgba(255,255,255,.45);font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;border-top:1px solid rgba(255,255,255,.08);padding-top:24px;max-width:600px}
+.cover-meta strong{color:#fff;font-weight:700}
+.cover-meta .sep{color:rgba(255,255,255,.2)}
+
+/* DECORATIVE */
+.blob{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none}
+
+/* GRID LAYOUTS */
+.split{display:grid;grid-template-columns:1fr 1.3fr;gap:60px;align-items:start;flex:1;margin-top:24px}
+.split-equal{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;flex:1;margin-top:24px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:32px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:32px}
+
+/* CARDS */
+.card{background:#fff;border-radius:12px;padding:24px;border:1px solid var(--border);transition:transform .15s}
+.dark .card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(8px)}
+.card .icon-circle{width:42px;height:42px;border-radius:10px;background:rgba(0,200,150,.1);color:var(--brand-2);display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.dark .card .icon-circle{background:rgba(0,200,150,.15)}
+.card.gold .icon-circle{background:rgba(255,184,0,.12);color:#B17800}
+.card.coral .icon-circle{background:rgba(255,107,107,.1);color:var(--coral-2)}
+.card.blue .icon-circle{background:rgba(59,130,246,.1);color:var(--blue)}
+.card.purple .icon-circle{background:rgba(124,58,237,.1);color:var(--purple)}
+.dark .card.gold .icon-circle{background:rgba(255,184,0,.15);color:var(--gold)}
+.dark .card.coral .icon-circle{background:rgba(255,107,107,.15);color:#FCA5A5}
+.dark .card.blue .icon-circle{background:rgba(59,130,246,.15);color:#93C5FD}
+.card h4{margin-bottom:6px;color:var(--ink)}
+.dark .card h4{color:#fff}
+.card p{font-size:14px;color:var(--muted);line-height:1.55}
+.dark .card p{color:rgba(255,255,255,.65)}
+
+/* PILLAR CARDS */
+.pillar{padding:28px 24px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;position:relative;overflow:hidden;transition:all .2s}
+.pillar:hover{background:rgba(255,255,255,.07);transform:translateY(-2px)}
+.pillar .pillar-icon{margin-bottom:18px;color:var(--brand-3)}
+.pillar .pillar-num{font-size:11px;color:var(--brand);font-weight:700;letter-spacing:.12em;margin-bottom:6px}
+.pillar h3{color:#fff;margin-bottom:10px}
+.pillar p{color:rgba(255,255,255,.6);font-size:13px;line-height:1.55}
+
+/* MOCKUP - REAL PRODUCT SCREENSHOT */
+.mockup{background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden;box-shadow:0 30px 60px -20px rgba(0,0,0,.18),0 12px 24px -8px rgba(0,0,0,.08);position:relative}
+.dark .mockup{box-shadow:0 30px 60px -20px rgba(0,0,0,.5),0 12px 24px -8px rgba(0,0,0,.3)}
+.mockup-bar{height:34px;background:#F8FAFC;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:6px;flex-shrink:0}
+.mockup-bar .d-r{width:10px;height:10px;border-radius:50%;background:#FF5F57}
+.mockup-bar .d-y{width:10px;height:10px;border-radius:50%;background:#FFBD2E}
+.mockup-bar .d-g{width:10px;height:10px;border-radius:50%;background:#28CA42}
+.mockup-bar .url{margin-left:14px;font-size:11px;color:var(--muted-2);font-family:'SF Mono','Consolas',monospace;background:#fff;padding:4px 10px;border-radius:6px;border:1px solid var(--border);flex:1;max-width:300px}
+.mockup-body{padding:0;background:#fff;min-height:340px;color:var(--ink)}
+
+/* APP MOCKUP - WITH SIDEBAR */
+.app-mock{display:flex;height:100%;min-height:380px}
+.app-mock-sidebar{width:120px;background:linear-gradient(180deg,#0A1628 0%,#13213D 100%);padding:14px 10px;display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.app-mock-sidebar .am-brand{display:flex;align-items:center;gap:6px;color:#fff;font-weight:800;font-size:11px;margin-bottom:14px;padding:6px}
+.app-mock-sidebar .am-brand .l{width:18px;height:18px;border-radius:5px;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:11px;color:#0a1628;font-weight:800}
+.app-mock-sidebar .ami{display:flex;align-items:center;gap:6px;padding:5px 6px;color:rgba(255,255,255,.55);font-size:10px;font-weight:500;border-radius:5px;border-left:2px solid transparent}
+.app-mock-sidebar .ami.on{color:#fff;background:rgba(0,200,150,.1);border-left-color:var(--brand)}
+.app-mock-sidebar .ami svg{width:11px;height:11px;flex-shrink:0}
+.app-mock-sidebar .grp{font-size:8px;text-transform:uppercase;color:rgba(255,255,255,.3);letter-spacing:.08em;padding:8px 6px 3px;font-weight:700}
+.app-mock-main{flex:1;display:flex;flex-direction:column;background:#F5F7FA;overflow:hidden}
+.app-mock-top{height:34px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;justify-content:space-between;flex-shrink:0}
+.app-mock-top .h-title{font-size:11px;font-weight:700;color:var(--ink)}
+.app-mock-top .h-bc{font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-bottom:1px}
+.app-mock-top .h-act{display:flex;gap:5px}
+.app-mock-top .h-act .b{padding:3px 8px;background:linear-gradient(135deg,#00C896,#00A878);color:#fff;border-radius:5px;font-size:9px;font-weight:700}
+.app-mock-content{padding:12px;overflow:hidden;flex:1}
+
+/* KPI MINI */
+.kpi-mini-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.kpi-mini{background:#fff;border-radius:6px;padding:8px;border:1px solid var(--border)}
+.kpi-mini .l{font-size:8px;text-transform:uppercase;color:var(--muted);font-weight:600;letter-spacing:.04em}
+.kpi-mini .v{font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-.02em;line-height:1;margin-top:2px}
+.kpi-mini .d{font-size:8px;font-weight:600;margin-top:2px;color:var(--brand-2)}
+.kpi-mini .d.dn{color:var(--coral)}
+
+/* MINI CHARTS */
+.mini-card{background:#fff;border-radius:6px;padding:10px;border:1px solid var(--border);margin-bottom:6px}
+.mini-card .ti{font-size:9px;font-weight:700;color:var(--ink);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.mini-card .ti span.sub{font-size:8px;color:var(--muted);font-weight:500}
+
+/* TABLE */
+.compare-table{width:100%;border-collapse:collapse;margin-top:24px;font-size:13px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,.06);border:1px solid var(--border)}
+.compare-table th,.compare-table td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--border)}
+.compare-table th{background:var(--navy);color:#fff;font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.compare-table th.us{background:linear-gradient(135deg,var(--brand) 0%,var(--brand-2) 100%)}
+.compare-table td:first-child{font-weight:600;color:var(--ink);background:var(--soft-2)}
+.compare-table td.us{background:rgba(0,200,150,.04);font-weight:600;color:var(--brand-2)}
+.compare-table td.no{color:var(--muted-3);text-align:center}
+.compare-table td.partial{color:var(--gold-2);text-align:center;font-weight:600}
+.compare-table td.yes{color:var(--brand-2);text-align:center;font-weight:700}
+.compare-table tbody tr:last-child td{border-bottom:none}
+
+/* STAT */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:40px;margin-top:48px}
+.stat .num{font-size:64px;font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,var(--brand),var(--brand-3));-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1;font-feature-settings:"tnum"}
+.stat .label{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.4}
+.dark .stat .label{color:rgba(255,255,255,.55)}
+
+/* FEATURE LIST */
+.feature-list{margin-top:24px}
+.feature-list .fl{padding:14px 0 14px 36px;position:relative;border-bottom:1px solid var(--border);font-size:14px;line-height:1.5;color:var(--ink-2)}
+.dark .feature-list .fl{border-bottom:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.8)}
+.feature-list .fl:last-child{border-bottom:none}
+.feature-list .fl::before{content:"";position:absolute;left:0;top:18px;width:18px;height:18px;border-radius:50%;background:rgba(0,200,150,.12);background-image:radial-gradient(circle,var(--brand) 0%,var(--brand) 40%,transparent 42%)}
+.feature-list .fl strong{color:var(--ink);font-weight:600}
+.dark .feature-list .fl strong{color:#fff}
+
+/* DIFFERENTIATORS */
+.diff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:32px}
+.diff{background:#fff;border-radius:14px;padding:26px;border:1px solid var(--border);border-top:3px solid var(--brand)}
+.diff:nth-child(2){border-top-color:var(--gold)}
+.diff:nth-child(3){border-top-color:var(--coral)}
+.diff:nth-child(4){border-top-color:var(--blue)}
+.diff:nth-child(5){border-top-color:var(--purple)}
+.diff:nth-child(6){border-top-color:var(--brand-2)}
+.diff .diff-icon{margin-bottom:16px;color:var(--brand-2)}
+.diff:nth-child(2) .diff-icon{color:var(--gold-2)}
+.diff:nth-child(3) .diff-icon{color:var(--coral-2)}
+.diff:nth-child(4) .diff-icon{color:var(--blue)}
+.diff:nth-child(5) .diff-icon{color:var(--purple)}
+.diff h4{font-size:17px;margin-bottom:10px}
+.diff p{font-size:14px;color:var(--muted);line-height:1.55}
+
+/* PROCESS FLOW */
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:36px;position:relative}
+.flow::before{content:"";position:absolute;top:32px;left:10%;right:10%;height:2px;background:linear-gradient(90deg,var(--brand),var(--gold),var(--coral));z-index:0}
+.flow-step{text-align:center;position:relative;z-index:1}
+.flow-step .num{width:64px;height:64px;border-radius:50%;background:#fff;border:2px solid var(--brand);color:var(--brand-2);display:inline-flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,200,150,.15)}
+.flow-step:nth-child(2) .num{border-color:var(--gold);color:var(--gold-2);box-shadow:0 4px 12px rgba(255,184,0,.15)}
+.flow-step:nth-child(3) .num{border-color:var(--coral);color:var(--coral-2);box-shadow:0 4px 12px rgba(255,107,107,.15)}
+.flow-step:nth-child(4) .num{border-color:var(--blue);color:var(--blue);box-shadow:0 4px 12px rgba(59,130,246,.15)}
+.flow-step:nth-child(5) .num{border-color:var(--purple);color:var(--purple);box-shadow:0 4px 12px rgba(124,58,237,.15)}
+.flow-step h4{font-size:14px;margin-bottom:6px}
+.flow-step p{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* ROADMAP */
+.roadmap{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:32px}
+.phase{background:#fff;border-radius:14px;padding:28px;border:1px solid var(--border);position:relative;overflow:hidden}
+.phase::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--brand)}
+.phase.p2::before{background:var(--gold)}
+.phase.p3::before{background:var(--coral)}
+.phase .badge{display:inline-block;padding:5px 11px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(0,200,150,.1);color:var(--brand-2);margin-bottom:14px}
+.phase.p2 .badge{background:rgba(255,184,0,.12);color:#B17800}
+.phase.p3 .badge{background:rgba(255,107,107,.12);color:var(--coral-2)}
+.phase h3{margin-bottom:6px;font-size:20px}
+.phase .duration{font-size:12px;color:var(--muted);margin-bottom:14px;font-weight:600}
+.phase ul{list-style:none}
+.phase ul li{padding:8px 0 8px 18px;font-size:13px;color:var(--ink-2);line-height:1.4;position:relative}
+.phase ul li:not(:last-child){border-bottom:1px solid #F1F5F9}
+.phase ul li::before{content:"";position:absolute;left:0;top:14px;width:6px;height:6px;background:var(--brand);border-radius:50%}
+.phase.p2 ul li::before{background:var(--gold)}
+.phase.p3 ul li::before{background:var(--coral)}
+
+/* TOUR SLIDE */
+.tour-header{display:flex;align-items:center;gap:16px;margin-bottom:8px}
+.tour-icon{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 8px 16px rgba(0,200,150,.25)}
+.tour-header.gold .tour-icon{background:linear-gradient(135deg,var(--gold),var(--gold-2));box-shadow:0 8px 16px rgba(255,184,0,.25)}
+.tour-header.coral .tour-icon{background:linear-gradient(135deg,var(--coral),var(--coral-2));box-shadow:0 8px 16px rgba(255,107,107,.25)}
+.tour-header.blue .tour-icon{background:linear-gradient(135deg,var(--blue),#1D4ED8);box-shadow:0 8px 16px rgba(59,130,246,.25)}
+.tour-header.purple .tour-icon{background:linear-gradient(135deg,var(--purple),#5B21B6);box-shadow:0 8px 16px rgba(124,58,237,.25)}
+.tour-header .info .module-num{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brand-2);margin-bottom:4px}
+.tour-header.gold .info .module-num{color:var(--gold-2)}
+.tour-header.coral .info .module-num{color:var(--coral-2)}
+.tour-header.blue .info .module-num{color:var(--blue)}
+.tour-header.purple .info .module-num{color:var(--purple)}
+.tour-header h2{font-size:34px;line-height:1.05;font-weight:800;letter-spacing:-.02em}
+
+/* HOW IT WORKS */
+.how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+.how-item{padding:14px;background:#fff;border-radius:10px;border:1px solid var(--border);position:relative}
+.dark .how-item{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)}
+.how-item .step-num{font-size:10px;font-weight:700;color:var(--brand-2);letter-spacing:.1em;margin-bottom:6px}
+.dark .how-item .step-num{color:var(--brand-3)}
+.how-item h4{font-size:13px;margin-bottom:4px}
+.dark .how-item h4{color:#fff}
+.how-item p{font-size:12px;color:var(--muted);line-height:1.5}
+.dark .how-item p{color:rgba(255,255,255,.6)}
+
+/* CTA AREA */
+.cta-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:40px}
+.cta-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:32px;backdrop-filter:blur(10px)}
+.cta-card h3{color:#fff;font-size:22px;margin-bottom:10px}
+.cta-card p{color:rgba(255,255,255,.7);font-size:14px;line-height:1.5}
+
+/* QUOTE */
+.quote{font-size:32px;font-weight:300;line-height:1.3;letter-spacing:-.02em;color:#fff;font-family:Georgia,serif;font-style:italic;max-width:780px}
+.quote-attr{margin-top:20px;font-size:14px;color:rgba(255,255,255,.55);font-style:normal;letter-spacing:.04em}
+
+/* PRINT — otimizado para exportação PDF */
+@page {
+  size: A4 landscape;
+  margin: 0;
+}
+@media print{
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important}
+  html,body{background:#fff !important;height:auto !important;overflow:visible !important}
+  .deck{height:auto !important;overflow:visible !important}
+  .nav{display:none !important}
+  .slide{width:297mm;height:210mm;min-height:210mm;page-break-after:always;break-after:page;display:flex;flex-direction:column;padding:14mm 18mm 16mm;overflow:hidden;scroll-snap-align:none}
+  .slide:last-child{page-break-after:auto}
+  .chrome{top:8mm;left:18mm;right:18mm}
+  .pgnum{position:static}
+  /* Reduzir levemente algumas fontes para garantir caber em A4 */
+  h1.giant{font-size:90px}
+  h1.display{font-size:60px}
+  h2.large{font-size:42px}
+  h2.medium{font-size:34px}
+  .cover h1{font-size:120px}
+  .stat .num{font-size:50px}
+  .stat-row{margin-top:28px;gap:28px}
+  .grid-4{margin-top:22px;gap:12px}
+  .card{padding:18px}
+  .lede{font-size:16px}
+  .feature-list .fl{padding:10px 0 10px 30px;font-size:13px}
+  .mockup-body{min-height:auto}
+  .app-mock{min-height:300px}
+}
+
+/* DESKTOP SCROLL SNAP */
+@media (min-width:1024px){
+  html,body{height:100vh;overflow:hidden}
+  .deck{height:100vh;overflow-y:scroll;scroll-snap-type:y mandatory}
+  .slide{scroll-snap-align:start}
+}
+</style>
+</head>
+<body>
+
+<!-- SVG ICON LIBRARY -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- LAYOUT/UI -->
+    <symbol id="i-dashboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6v15l6-3 6 3 6-3V3l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></symbol>
+    <symbol id="i-radar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M12 12L17 7"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="2"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="i-calc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="9" y2="10"/><line x1="12" y1="10" x2="13" y2="10"/><line x1="16" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="9" y2="14"/><line x1="12" y1="14" x2="13" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="9" y2="18"/><line x1="12" y1="18" x2="13" y2="18"/><line x1="16" y1="18" x2="16" y2="18"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8.5 8.5 0 0 1-8.5 8.5c-1.5 0-2.9-.4-4.2-1L3 21l1.5-5.2A8.5 8.5 0 1 1 21 12z"/></symbol>
+    <symbol id="i-ai" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="16" height="14" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/><circle cx="9" cy="13" r="1.5" fill="currentColor"/><circle cx="15" cy="13" r="1.5" fill="currentColor"/><line x1="9" y1="18" x2="15" y2="18"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.5" y2="16.5"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></symbol>
+    <!-- ACTION -->
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
+    <symbol id="i-trending-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></symbol>
+    <symbol id="i-trending-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 7 9 13 13 9 21 17"/><polyline points="14 17 21 17 21 10"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+    <!-- DOMAIN -->
+    <symbol id="i-vote" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><rect x="3" y="5" width="18" height="14" rx="2"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+    <symbol id="i-megaphone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a2 2 0 0 0 2 2h2v4a2 2 0 0 0 2 2v0a2 2 0 0 0 2-2v-4l8 4V5l-8 4H5a2 2 0 0 0-2 2z"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M17 6h2a2 2 0 0 1 2 2v0a4 4 0 0 1-4 4M7 6H5a2 2 0 0 0-2 2v0a4 4 0 0 0 4 4"/><path d="M10 15h4M12 15v3M9 18h6"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-lightbulb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.6.6 1 1.5 1 2.5h6c0-1 .4-1.9 1-2.5A6 6 0 0 0 12 3z"/></symbol>
+    <symbol id="i-brain" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 0 7 4.5v.07A2.5 2.5 0 0 0 4 7v.07A2.5 2.5 0 0 0 2 9.5v0A2.5 2.5 0 0 0 4 12v.07A2.5 2.5 0 0 0 6 14.5v.07A2.5 2.5 0 0 0 8 17v.07A2.5 2.5 0 0 0 10 19.5h0A2.5 2.5 0 0 0 12 22v-20z"/><path d="M14.5 2A2.5 2.5 0 0 1 17 4.5v.07A2.5 2.5 0 0 1 20 7v.07A2.5 2.5 0 0 1 22 9.5v0A2.5 2.5 0 0 1 20 12v.07A2.5 2.5 0 0 1 18 14.5v.07A2.5 2.5 0 0 1 16 17v.07A2.5 2.5 0 0 1 14 19.5h0A2.5 2.5 0 0 1 12 22"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a2 2 0 0 1 2 2v0H7v0a2 2 0 0 1 2-2z"/><rect x="5" y="4" width="14" height="18" rx="2"/></symbol>
+    <symbol id="i-database" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></symbol>
+    <symbol id="i-rocket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09zM12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2zM9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+    <symbol id="i-bar-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></symbol>
+    <symbol id="i-handshake" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-3 3a1.93 1.93 0 0 1-2.74-2.73L8 15l-2-2-2 2-1 1L1 14l4-4 4-1 4 4 3-3 4 4-4 4 1 1 2 2-2 2-3-3-3-3"/></symbol>
+    <symbol id="i-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol>
+    <symbol id="i-fire" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17c1.4 0 2.5-.7 2.5-2.5S12 11 12 11s-3.5 1-3.5 3.5zM12 21a8 8 0 0 0 8-8c0-2-1-4-1-4l-2 1-1-1c0-3-3-6-3-6s-1 5-3 7-3 4-3 5a6 6 0 0 0 6 6"/></symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.71"/></symbol>
+    <!-- Brand outline -->
+    <symbol id="i-instagram" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.4a4 4 0 1 1-7.9 1.1A4 4 0 0 1 16 11.4z"/><circle cx="17.5" cy="6.5" r=".7" fill="currentColor"/></symbol>
+    <symbol id="i-twitter" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></symbol>
+    <symbol id="i-facebook" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/></symbol>
+    <symbol id="i-tiktok" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.8 20.1a6.34 6.34 0 0 0 10.86-4.43V8.55a8.16 8.16 0 0 0 4.77 1.52V6.64a4.85 4.85 0 0 1-1.84-.05z"/></symbol>
+    <symbol id="i-youtube" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></symbol>
+    <symbol id="i-whatsapp" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></symbol>
+  </defs>
+</svg>
+
+<div class="deck" id="deck">
+
+<!-- ============ SLIDE 1: COVER ============ -->
+<section class="slide cover dark">
+  <div class="cover-grid"></div>
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">01 / 25</div>
+  </div>
+  <h1 class="giant">MOBILIZA</h1>
+  <p class="tagline">A primeira plataforma <em>completa de inteligência eleitoral</em> para candidatos que querem vencer com <em>dados, mobilização e ação coordenada</em>.</p>
+  <div class="cover-meta">
+    <span>Pitch executivo</span>
+    <span class="sep">/</span>
+    <span><strong>2026</strong></span>
+    <span class="sep">/</span>
+    <span>Plataforma SaaS Multi-nível</span>
+  </div>
+  <div class="blob" style="background:var(--brand);width:600px;height:600px;right:-200px;top:-200px;opacity:.18"></div>
+</section>
+
+<!-- ============ SLIDE 2: PROBLEM ============ -->
+<section class="slide light">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">02 / 26</div>
+  </div>
+  <div class="eyebrow">O Problema</div>
+  <h2 class="large">Campanhas eleitorais ainda são<br>analógicas, fragmentadas e cegas.</h2>
+  <p class="lede" style="margin-top:10px">Candidatos gastam milhões sem entender onde estão ganhando ou perdendo. Ferramentas existem — mas vivem em silos.</p>
+
+  <div class="grid-4" style="margin-top:60px">
+    <div class="card coral">
+      <div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-database"/></svg></div>
+      <h4>Dados em silos</h4>
+      <p>Pesquisa, redes, militância e financeiro em planilhas, grupos de WhatsApp e cabeças. Decisão por intuição.</p>
+    </div>
+    <div class="card coral">
+      <div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-eye"/></svg></div>
+      <h4>Sem visão de adversários</h4>
+      <p>Campanha "olha pra dentro" e só descobre que perdeu na boca de urna. Falta radar competitivo em tempo real.</p>
+    </div>
+    <div class="card coral">
+      <div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-megaphone"/></svg></div>
+      <h4>Comunicação amadora</h4>
+      <p>Disparos genéricos no WhatsApp, sem segmentação por bairro, perfil ou nível de apoio. ROI invisível.</p>
+    </div>
+    <div class="card coral">
+      <div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-clock"/></svg></div>
+      <h4>Tempo perdido</h4>
+      <p>Coordenador gasta 60% do dia conferindo listas em vez de executar estratégia.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 3: VISION ============ -->
+<section class="slide dark">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">03 / 26</div>
+  </div>
+  <div class="eyebrow">A Visão</div>
+  <h1 class="display" style="max-width:1100px;margin-top:20px">Uma sala de guerra digital<br>onde <span style="background:linear-gradient(135deg,var(--brand),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent">cada voto</span> é mapeado,<br>cada apoiador é mobilizado.</h1>
+  <p class="lede" style="margin-top:40px;color:rgba(255,255,255,.75);max-width:900px">
+    MOBILIZA reúne em uma única plataforma todos os módulos críticos da campanha — geointeligência, monitoramento social, gestão de militância, projeção de votos, comunicação massiva e IA estratégica — para que o candidato decida com base em <strong style="color:var(--brand);font-weight:600">fato, não em palpite</strong>.
+  </p>
+  <div class="blob" style="background:var(--brand);width:500px;height:500px;right:-150px;bottom:-150px;opacity:.18"></div>
+</section>
+
+<!-- ============ SLIDE 4: PILLARS ============ -->
+<section class="slide dark">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">04 / 26</div>
+  </div>
+  <div class="eyebrow">Os 4 Pilares</div>
+  <h2 class="medium" style="color:#fff">A arquitetura estratégica</h2>
+  <p class="lede" style="color:rgba(255,255,255,.7)">Cada módulo da plataforma se conecta a um destes quatro pilares.</p>
+
+  <div class="grid-4">
+    <div class="pillar">
+      <svg class="pillar-icon" width="32" height="32"><use href="#i-brain"/></svg>
+      <div class="pillar-num">01 — INTELIGÊNCIA</div>
+      <h3>Saber</h3>
+      <p>Mapa geográfico de eleitores, sentimento das redes, radar de adversários e projeção de votos com IA.</p>
+    </div>
+    <div class="pillar">
+      <svg class="pillar-icon" width="32" height="32"><use href="#i-handshake"/></svg>
+      <div class="pillar-num">02 — MOBILIZAÇÃO</div>
+      <h3>Engajar</h3>
+      <p>Cadastro de lideranças, militância por região, gamificação, metas por bairro e cálculo de potencial.</p>
+    </div>
+    <div class="pillar">
+      <svg class="pillar-icon" width="32" height="32"><use href="#i-megaphone"/></svg>
+      <div class="pillar-num">03 — COMUNICAÇÃO</div>
+      <h3>Falar</h3>
+      <p>Disparo segmentado de WhatsApp, e-mail, SMS, push e integração com redes sociais.</p>
+    </div>
+    <div class="pillar">
+      <svg class="pillar-icon" width="32" height="32"><use href="#i-zap"/></svg>
+      <div class="pillar-num">04 — EXECUÇÃO</div>
+      <h3>Agir</h3>
+      <p>Agenda do candidato, cronograma com pontuação, plano de ação gerado por IA, alertas e accountability.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 5: 8 MODULES OVERVIEW ============ -->
+<section class="slide white">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">05 / 26</div>
+  </div>
+  <div class="eyebrow">Arquitetura de Produto</div>
+  <h2 class="medium">8 módulos. Uma plataforma. Tudo conectado.</h2>
+  <p class="lede" style="margin-top:6px">Todos compartilham a <strong style="color:var(--brand-2)">mesma base unificada</strong> — o que entra em um aparece imediatamente nos outros.</p>
+
+  <div class="grid-4" style="margin-top:40px">
+    <div class="card"><div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-map"/></svg></div><h4>Dashboard Geo</h4><p>Visão por cidade, bairro e zona eleitoral.</p></div>
+    <div class="card gold"><div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-radar"/></svg></div><h4>Radar Social</h4><p>Sentimento em redes e mídia em tempo real.</p></div>
+    <div class="card coral"><div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-target"/></svg></div><h4>Radar Eleitoral</h4><p>Adversários, partidos e cenários.</p></div>
+    <div class="card blue"><div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-users"/></svg></div><h4>Militância</h4><p>Lideranças, equipes e regiões.</p></div>
+    <div class="card"><div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-calc"/></svg></div><h4>Projeção de Votos</h4><p>Cálculo automático por cenário.</p></div>
+    <div class="card gold"><div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-calendar"/></svg></div><h4>Agenda</h4><p>Compromissos com notificação multicanal.</p></div>
+    <div class="card coral"><div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-message"/></svg></div><h4>WhatsApp & Comm</h4><p>Disparo massivo segmentado e chatbot.</p></div>
+    <div class="card blue"><div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-ai"/></svg></div><h4>IA Estratégica</h4><p>Insights, pontuação e plano de ação.</p></div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 6: TOUR INTRO ============ -->
+<section class="slide dark">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">06 / 26</div>
+  </div>
+  <div class="eyebrow">Tour pelo Sistema</div>
+  <h1 class="display" style="max-width:900px;margin-top:20px">Como a plataforma<br>funciona <span style="background:linear-gradient(135deg,var(--brand),var(--brand-3));-webkit-background-clip:text;background-clip:text;color:transparent">na prática.</span></h1>
+  <p class="lede" style="color:rgba(255,255,255,.7);margin-top:32px;max-width:780px">
+    Nas próximas telas, mostramos cada área do sistema funcionando — do dashboard estratégico ao disparo de WhatsApp para o eleitor. Cada módulo foi pensado para que o candidato, o coordenador e a liderança de bairro encontrem em segundos o que precisam.
+  </p>
+  <div style="display:flex;gap:14px;margin-top:48px;color:rgba(255,255,255,.5);font-size:13px;font-weight:600;letter-spacing:.04em">
+    <span style="color:var(--brand);font-weight:700">9 telas</span>
+    <span>·</span>
+    <span>9 módulos</span>
+    <span>·</span>
+    <span>1 plataforma integrada</span>
+  </div>
+  <div class="blob" style="background:var(--brand);width:400px;height:400px;left:-150px;bottom:-150px;opacity:.15"></div>
+</section>
+
+<!-- ============ SLIDE 7: TOUR DASHBOARD ============ -->
+<section class="slide light">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">07 / 26</div>
+  </div>
+  <div class="tour-header">
+    <div class="tour-icon"><svg width="28" height="28"><use href="#i-dashboard"/></svg></div>
+    <div class="info">
+      <div class="module-num">Módulo 01 · Tour do Sistema</div>
+      <h2>Dashboard Estratégico</h2>
+    </div>
+  </div>
+  <p class="lede" style="font-size:16px;margin-top:8px;max-width:900px">A central de comando. KPIs vitais, gráfico de evolução de score, próximos compromissos e insights da IA — tudo na primeira tela.</p>
+
+  <div class="mockup" style="margin-top:24px;flex:1">
+    <div class="mockup-bar"><span class="d-r"></span><span class="d-y"></span><span class="d-g"></span><span class="url">mobiliza.app/dashboard</span></div>
+    <div class="mockup-body">
+      <div class="app-mock">
+        <div class="app-mock-sidebar">
+          <div class="am-brand"><div class="l">M</div>MOBILIZA</div>
+          <div class="grp">Inteligência</div>
+          <div class="ami on"><svg><use href="#i-dashboard"/></svg>Dashboard</div>
+          <div class="ami"><svg><use href="#i-map"/></svg>Geo</div>
+          <div class="ami"><svg><use href="#i-radar"/></svg>Social</div>
+          <div class="ami"><svg><use href="#i-target"/></svg>Eleitoral</div>
+          <div class="grp">Operação</div>
+          <div class="ami"><svg><use href="#i-users"/></svg>Militância</div>
+          <div class="ami"><svg><use href="#i-calc"/></svg>Votos</div>
+          <div class="ami"><svg><use href="#i-calendar"/></svg>Agenda</div>
+          <div class="ami"><svg><use href="#i-message"/></svg>WhatsApp</div>
+          <div class="grp">Estratégia</div>
+          <div class="ami"><svg><use href="#i-ai"/></svg>IA</div>
+        </div>
+        <div class="app-mock-main">
+          <div class="app-mock-top">
+            <div><div class="h-bc">Inteligência</div><div class="h-title">Dashboard</div></div>
+            <div class="h-act"><div class="b">+ Nova ação</div></div>
+          </div>
+          <div class="app-mock-content">
+            <div class="kpi-mini-row">
+              <div class="kpi-mini"><div class="l">Votos projetados</div><div class="v">37.215</div><div class="d">▲ 8,2%</div></div>
+              <div class="kpi-mini"><div class="l">Militantes</div><div class="v">3.247</div><div class="d">▲ 142</div></div>
+              <div class="kpi-mini"><div class="l">Score vitória</div><div class="v">62/100</div><div class="d">▲ 3pts</div></div>
+              <div class="kpi-mini"><div class="l">Alertas</div><div class="v" style="color:var(--coral)">3</div><div class="d dn">▲ 24h</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:6px;margin-bottom:6px">
+              <div class="mini-card" style="height:120px">
+                <div class="ti">Evolução do Score · 90 dias <span class="sub">+14pts</span></div>
+                <svg viewBox="0 0 240 80" preserveAspectRatio="none" style="width:100%;height:85%">
+                  <defs><linearGradient id="ga1" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#00C896" stop-opacity=".3"/><stop offset="100%" stop-color="#00C896" stop-opacity="0"/></linearGradient></defs>
+                  <path d="M0,58 L34,52 L68,46 L102,40 L136,32 L170,26 L204,20 L240,16" fill="none" stroke="#00C896" stroke-width="2.2"/>
+                  <path d="M0,58 L34,52 L68,46 L102,40 L136,32 L170,26 L204,20 L240,16 L240,80 L0,80 Z" fill="url(#ga1)"/>
+                  <line x1="0" y1="38" x2="240" y2="38" stroke="#FFB800" stroke-dasharray="3,3" stroke-width="1"/>
+                </svg>
+              </div>
+              <div class="mini-card" style="height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                <div class="ti" style="align-self:stretch">Probabilidade de Vitória</div>
+                <svg viewBox="0 0 100 60" style="width:90px;height:60px">
+                  <path d="M10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#E5E9F0" stroke-width="8" stroke-linecap="round"/>
+                  <path d="M10 50 A 40 40 0 0 1 75 18" fill="none" stroke="#00C896" stroke-width="8" stroke-linecap="round"/>
+                  <text x="50" y="46" text-anchor="middle" font-family="Inter" font-size="16" font-weight="800" fill="#00A878">62%</text>
+                </svg>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <div class="mini-card" style="height:80px">
+                <div class="ti">Próximos compromissos</div>
+                <div style="font-size:9px;line-height:1.4">
+                  <div style="display:flex;gap:6px;margin-bottom:2px"><strong style="width:30px">19h</strong><span style="color:var(--muted)">Comício Marco Zero</span></div>
+                  <div style="display:flex;gap:6px;margin-bottom:2px"><strong style="width:30px">10h</strong><span style="color:var(--muted)">Live Instagram</span></div>
+                </div>
+              </div>
+              <div class="mini-card" style="height:80px">
+                <div class="ti">IA Insights</div>
+                <div style="font-size:9px;line-height:1.4">
+                  <div style="display:flex;gap:6px;align-items:center;margin-bottom:2px"><span style="background:#00C896;color:#fff;padding:1px 4px;border-radius:2px;font-weight:700">+92</span><span>Mobilizar Olinda</span></div>
+                  <div style="display:flex;gap:6px;align-items:center"><span style="background:#FFB800;color:#fff;padding:1px 4px;border-radius:2px;font-weight:700">+88</span><span>Pauta saúde no Recife</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 8: TOUR GEO ============ -->
+<section class="slide light">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">08 / 26</div>
+  </div>
+  <div class="tour-header gold">
+    <div class="tour-icon"><svg width="28" height="28"><use href="#i-map"/></svg></div>
+    <div class="info">
+      <div class="module-num">Módulo 02 · Tour do Sistema</div>
+      <h2>Inteligência Territorial</h2>
+    </div>
+  </div>
+  <p class="lede" style="font-size:16px;margin-top:8px;max-width:900px">Heatmap por bairro, drill-down em 4 níveis (macrorregião → cidade → bairro → seção). Identifica zonas de oportunidade automaticamente.</p>
+
+  <div class="split" style="margin-top:24px;align-items:stretch">
+    <div>
+      <ul class="feature-list">
+        <li class="fl"><strong>Heatmap em 4 níveis</strong> — TSE + IBGE + pesquisas internas combinados</li>
+        <li class="fl"><strong>Filtros cruzados</strong> por idade, renda, escolaridade e religião</li>
+        <li class="fl"><strong>Comparativo histórico</strong> com eleições anteriores no mesmo território</li>
+        <li class="fl"><strong>Zonas de oportunidade</strong> identificadas automaticamente pela IA</li>
+      </ul>
+      <div class="how-grid" style="margin-top:28px">
+        <div class="how-item"><div class="step-num">PASSO 1</div><h4>Configure regiões</h4><p>Cadastre bairros e atribua eleitores.</p></div>
+        <div class="how-item"><div class="step-num">PASSO 2</div><h4>Visualize força</h4><p>Heatmap colorido por intensidade.</p></div>
+        <div class="how-item"><div class="step-num">PASSO 3</div><h4>Aja onde importa</h4><p>Recomendações no clique.</p></div>
+      </div>
+    </div>
+    <div class="mockup" style="height:fit-content">
+      <div class="mockup-bar"><span class="d-r"></span><span class="d-y"></span><span class="d-g"></span><span class="url">mobiliza.app/geo</span></div>
+      <div class="mockup-body" style="padding:14px;background:#F5F7FA">
+        <div style="background:linear-gradient(135deg,#0F172A,#1E293B);border-radius:10px;padding:14px;color:#fff;position:relative;height:280px;overflow:hidden">
+          <svg viewBox="0 0 320 220" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="rgs"><stop offset="0%" stop-color="#00C896" stop-opacity=".75"/><stop offset="100%" stop-color="#00C896" stop-opacity="0"/></radialGradient>
+              <radialGradient id="rgm"><stop offset="0%" stop-color="#FFB800" stop-opacity=".7"/><stop offset="100%" stop-color="#FFB800" stop-opacity="0"/></radialGradient>
+              <radialGradient id="rgw"><stop offset="0%" stop-color="#FF6B6B" stop-opacity=".7"/><stop offset="100%" stop-color="#FF6B6B" stop-opacity="0"/></radialGradient>
+            </defs>
+            <path d="M20,40 L80,30 L140,45 L200,30 L260,50 L300,90 L290,150 L240,180 L150,180 L80,170 L40,140 L20,90 Z" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+            <circle cx="70" cy="75" r="35" fill="url(#rgs)"/>
+            <circle cx="150" cy="80" r="42" fill="url(#rgs)"/>
+            <circle cx="230" cy="95" r="38" fill="url(#rgm)"/>
+            <circle cx="100" cy="140" r="32" fill="url(#rgm)"/>
+            <circle cx="200" cy="150" r="36" fill="url(#rgs)"/>
+            <circle cx="260" cy="145" r="28" fill="url(#rgw)"/>
+            <g font-family="Inter" font-size="9" font-weight="600" fill="#fff">
+              <text x="70" y="76" text-anchor="middle">Olinda</text>
+              <text x="150" y="81" text-anchor="middle">Recife</text>
+              <text x="230" y="96" text-anchor="middle">Paulista</text>
+              <text x="100" y="141" text-anchor="middle">Jaboatão</text>
+              <text x="200" y="151" text-anchor="middle">Camaragibe</text>
+              <text x="260" y="146" text-anchor="middle">Cabo de S.A.</text>
+            </g>
+            <circle cx="70" cy="75" r="2.5" fill="#00C896" stroke="#fff" stroke-width="1"/>
+            <circle cx="150" cy="80" r="2.5" fill="#00C896" stroke="#fff" stroke-width="1"/>
+            <circle cx="230" cy="95" r="2.5" fill="#FFB800" stroke="#fff" stroke-width="1"/>
+            <circle cx="100" cy="140" r="2.5" fill="#FFB800" stroke="#fff" stroke-width="1"/>
+            <circle cx="200" cy="150" r="2.5" fill="#00C896" stroke="#fff" stroke-width="1"/>
+            <circle cx="260" cy="145" r="2.5" fill="#FF6B6B" stroke="#fff" stroke-width="1"/>
+          </svg>
+          <div style="position:absolute;bottom:10px;left:10px;background:rgba(10,22,40,.85);padding:7px 10px;border-radius:6px;font-size:9px;border:1px solid rgba(255,255,255,.1)">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:9px;height:9px;background:#00C896;border-radius:2px"></div>Forte 62%</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:9px;height:9px;background:#FFB800;border-radius:2px"></div>Disputa 24%</div>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:9px;height:9px;background:#FF6B6B;border-radius:2px"></div>Adversário 14%</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">
+          <div class="kpi-mini"><div class="l">Bairros mapeados</div><div class="v">142</div></div>
+          <div class="kpi-mini"><div class="l">Cobertura</div><div class="v" style="color:var(--brand-2)">78%</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 9: TOUR SOCIAL ============ -->
+<section class="slide light">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">09 / 26</div>
+  </div>
+  <div class="tour-header coral">
+    <div class="tour-icon"><svg width="28" height="28"><use href="#i-radar"/></svg></div>
+    <div class="info">
+      <div class="module-num">Módulo 03 · Tour do Sistema</div>
+      <h2>Radar de Sentimento Social</h2>
+    </div>
+  </div>
+  <p class="lede" style="font-size:16px;margin-top:8px;max-width:900px">Monitora 24/7 redes, blogs e portais. Classifica automaticamente como positivo, neutro ou negativo — com geolocalização e alertas em tempo real.</p>
+
+  <div class="split" style="margin-top:24px;align-items:stretch">
+    <div>
+      <ul class="feature-list">
+        <li class="fl"><strong>Monitoramento contínuo</strong> em Instagram, X, Facebook, TikTok, YouTube, blogs</li>
+        <li class="fl"><strong>Classificação por IA</strong> com nível de viralidade e alcance</li>
+        <li class="fl"><strong>Ranking geolocalizado</strong> de onde a conversa está pegando fogo</li>
+        <li class="fl"><strong>Alertas de crise</strong> via push e WhatsApp quando volume negativo escala</li>
+      </ul>
+      <div class="how-grid" style="margin-top:28px">
+        <div class="how-item"><div class="step-num">PASSO 1</div><h4>Configure termos</h4><p>Nome, partido, adversários, temas.</p></div>
+        <div class="how-item"><div class="step-num">PASSO 2</div><h4>Sistema coleta</h4><p>Refresh a cada 15 min.</p></div>
+        <div class="how-item"><div class="step-num">PASSO 3</div><h4>Receba alertas</h4><p>Reaja antes da crise estourar.</p></div>
+      </div>
+    </div>
+    <div class="mockup" style="height:fit-content">
+      <div class="mockup-bar"><span class="d-r"></span><span class="d-y"></span><span class="d-g"></span><span class="url">mobiliza.app/social</span></div>
+      <div class="mockup-body" style="padding:14px;background:#F5F7FA">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">
+          <div class="kpi-mini" style="background:rgba(0,200,150,.06)"><div class="l" style="color:#00A878">Positivo</div><div class="v" style="color:#00A878">58%</div><div class="d">▲ 4,2pp</div></div>
+          <div class="kpi-mini"><div class="l">Neutro</div><div class="v">29%</div></div>
+          <div class="kpi-mini" style="background:rgba(255,107,107,.06)"><div class="l" style="color:var(--coral)">Negativo</div><div class="v" style="color:var(--coral)">13%</div><div class="d dn">▲ 1,4pp</div></div>
+        </div>
+        <div class="mini-card" style="height:90px">
+          <div class="ti">Volume de menções · 30 dias</div>
+          <svg viewBox="0 0 240 50" style="width:100%;height:75%">
+            <g>
+              <rect x="2" y="20" width="6" height="25" fill="#00C896"/>
+              <rect x="2" y="10" width="6" height="10" fill="#94A3B8"/>
+              <rect x="2" y="5" width="6" height="5" fill="#FF6B6B"/>
+              <rect x="14" y="18" width="6" height="27" fill="#00C896"/>
+              <rect x="14" y="9" width="6" height="9" fill="#94A3B8"/>
+              <rect x="14" y="5" width="6" height="4" fill="#FF6B6B"/>
+              <rect x="26" y="15" width="6" height="30" fill="#00C896"/>
+              <rect x="26" y="7" width="6" height="8" fill="#94A3B8"/>
+              <rect x="26" y="4" width="6" height="3" fill="#FF6B6B"/>
+              <rect x="38" y="12" width="6" height="33" fill="#00C896"/>
+              <rect x="38" y="5" width="6" height="7" fill="#94A3B8"/>
+              <rect x="38" y="2" width="6" height="3" fill="#FF6B6B"/>
+              <rect x="50" y="10" width="6" height="35" fill="#00C896"/>
+              <rect x="50" y="4" width="6" height="6" fill="#94A3B8"/>
+              <rect x="50" y="2" width="6" height="2" fill="#FF6B6B"/>
+              <rect x="62" y="8" width="6" height="37" fill="#00C896"/>
+              <rect x="62" y="3" width="6" height="5" fill="#94A3B8"/>
+              <rect x="62" y="1" width="6" height="2" fill="#FF6B6B"/>
+              <rect x="74" y="6" width="6" height="39" fill="#00C896"/>
+              <rect x="74" y="3" width="6" height="3" fill="#94A3B8"/>
+              <rect x="74" y="1" width="6" height="2" fill="#FF6B6B"/>
+            </g>
+          </svg>
+        </div>
+        <div style="background:#FFF3CD;border-left:3px solid #FFB800;border-radius:4px;padding:7px 10px;font-size:10px;color:#92400E;margin-top:6px;display:flex;align-items:center;gap:6px">
+          <svg width="11" height="11"><use href="#i-alert"/></svg>
+          <strong>Alerta:</strong> menção negativa subindo 340% em Jaboatão
+        </div>
+        <div style="margin-top:8px;font-size:10px;color:var(--muted);font-weight:600">TOP INFLUENCIADORES MONITORADOS</div>
+        <div style="display:flex;flex-direction:column;gap:3px;margin-top:4px">
+          <div style="display:flex;justify-content:space-between;font-size:10px;padding:4px 8px;background:#fff;border-radius:4px"><span><strong>@maria_silva_pe</strong> · 482k</span><span style="color:var(--brand-2);font-weight:700">+92</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;padding:4px 8px;background:#fff;border-radius:4px"><span><strong>@portalrecife</strong> · 215k</span><span style="color:var(--brand-2);font-weight:700">+74</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 10: TOUR COMPETITIVE ============ -->
+<section class="slide light">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">10 / 26</div>
+  </div>
+  <div class="tour-header blue">
+    <div class="tour-icon"><svg width="28" height="28"><use href="#i-target"/></svg></div>
+    <div class="info">
+      <div class="module-num">Módulo 04 · Tour do Sistema</div>
+      <h2>Radar Eleitoral Competitivo</h2>
+    </div>
+  </div>
+  <p class="lede" style="font-size:16px;margin-top:8px;max-width:900px">Você não disputa sozinho. Posicione cada adversário, simule cenários e veja em tempo real suas chances reais de vitória.</p>
+
+  <div class="split" style="margin-top:24px;align-items:stretch">
+    <div>
+      <ul class="feature-list">
+        <li class="fl"><strong>Filtros combinados</strong> por candidato, partido, coligação e região</li>
+        <li class="fl"><strong>Mapa de força por partido</strong> — histórico + tendência atual</li>
+        <li class="fl"><strong>Simulador de cenários</strong> — coligação, desistência, crise, evento externo</li>
+        <li class="fl"><strong>Score de vitória</strong> de 0-100 atualizado diariamente com IA</li>
+      </ul>
+      <div class="how-grid" style="margin-top:28px">
+        <div class="how-item"><div class="step-num">PASSO 1</div><h4>Cadastre adversários</h4><p>Nome, partido, percentual.</p></div>
+        <div class="how-item"><div class="step-num">PASSO 2</div><h4>Veja o cenário</h4><p>Comparativo em tempo real.</p></div>
+        <div class="how-item"><div class="step-num">PASSO 3</div><h4>Simule e decida</h4><p>"E se" com impacto visível.</p></div>
+      </div>
+    </div>
+    <div class="mockup" style="height:fit-content">
+      <div class="mockup-bar"><span class="d-r"></span><span class="d-y"></span><span class="d-g"></span><span class="url">mobiliza.app/competitive</span></div>
+      <div class="mockup-body" style="padding:14px;background:#F5F7FA">
+        <div class="mini-card">
+          <div class="ti">Probabilidade de Vitória — Comparativo</div>
+          <div style="display:flex;align-items:end;gap:12px;height:130px;padding-top:6px;border-bottom:1px solid var(--border);padding-bottom:4px;margin-top:6px">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+              <div style="font-size:13px;font-weight:800;color:var(--brand-2)">62%</div>
+              <div style="width:30px;height:88px;background:linear-gradient(180deg,#00C896,#00A878);border-radius:4px 4px 0 0"></div>
+              <div style="font-size:9px;font-weight:700;color:var(--ink)">VOCÊ</div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+              <div style="font-size:11px;font-weight:700;color:var(--muted)">24%</div>
+              <div style="width:30px;height:36px;background:#94A3B8;border-radius:4px 4px 0 0"></div>
+              <div style="font-size:9px;color:var(--muted)">Adv. A</div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+              <div style="font-size:11px;font-weight:700;color:var(--muted)">9%</div>
+              <div style="width:30px;height:16px;background:#CBD5E1;border-radius:4px 4px 0 0"></div>
+              <div style="font-size:9px;color:var(--muted)">Adv. B</div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+              <div style="font-size:11px;font-weight:700;color:var(--muted)">5%</div>
+              <div style="width:30px;height:10px;background:#E5E9F0;border-radius:4px 4px 0 0"></div>
+              <div style="font-size:9px;color:var(--muted)">Outros</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:6px;background:rgba(0,200,150,.05);border-left:3px solid var(--brand);padding:8px 10px;border-radius:4px;font-size:10px"><strong>Cenário base:</strong> Vitória em 1º turno · Tendência 30d: +8pp</div>
+        <div style="margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:4px">
+          <div style="background:#FEF3C7;padding:7px 9px;border-radius:4px;font-size:9px"><strong>+30% base</strong><br><span style="color:#92400E">→ 81% vitória</span></div>
+          <div style="background:#FEE2E2;padding:7px 9px;border-radius:4px;font-size:9px"><strong>Crise -15pp</strong><br><span style="color:var(--coral)">→ 38% vitória</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 11: TOUR MILITANCIA ============ -->
+<section class="slide light">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">11 / 26</div>
+  </div>
+  <div class="tour-header purple">
+    <div class="tour-icon"><svg width="28" height="28"><use href="#i-users"/></svg></div>
+    <div class="info">
+      <div class="module-num">Módulo 05 · Tour do Sistema</div>
+      <h2>Militância & Lideranças</h2>
+    </div>
+  </div>
+  <p class="lede" style="font-size:16px;margin-top:8px;max-width:900px">Hierarquia clara: candidato → coordenador → regional → bairro. Cada liderança com meta, território e accountability.</p>
+
+  <div class="split" style="margin-top:24px;align-items:stretch">
+    <div>
+      <ul class="feature-list">
+        <li class="fl"><strong>Cadastro em 60 segundos</strong> — nome, contato, bairro, disponibilidade</li>
+        <li class="fl"><strong>App mobile do militante</strong> com missões e check-in geolocalizado</li>
+        <li class="fl"><strong>Ranking semanal</strong> com gamificação e badges de performance</li>
+        <li class="fl"><strong>Mapa de cobertura</strong> — territórios sem liderança ficam vermelhos</li>
+      </ul>
+      <div class="how-grid" style="margin-top:28px">
+        <div class="how-item"><div class="step-num">PASSO 1</div><h4>Cadastre líderes</h4><p>3-5 por região como base.</p></div>
+        <div class="how-item"><div class="step-num">PASSO 2</div><h4>Defina metas</h4><p>Contatos por semana.</p></div>
+        <div class="how-item"><div class="step-num">PASSO 3</div><h4>Acompanhe ranking</h4><p>Gamificação semanal.</p></div>
+      </div>
+    </div>
+    <div class="mockup" style="height:fit-content">
+      <div class="mockup-bar"><span class="d-r"></span><span class="d-y"></span><span class="d-g"></span><span class="url">mobiliza.app/militancia</span></div>
+      <div class="mockup-body" style="padding:14px;background:#F5F7FA">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">
+          <div class="kpi-mini"><div class="l">Militantes</div><div class="v">3.247</div></div>
+          <div class="kpi-mini"><div class="l">Lideranças</div><div class="v">186</div></div>
+          <div class="kpi-mini"><div class="l">Cobertura</div><div class="v" style="color:var(--brand-2)">78%</div></div>
+        </div>
+        <div class="mini-card">
+          <div class="ti">🏆 Top lideranças da semana</div>
+          <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
+            <div style="display:flex;align-items:center;gap:7px;padding:6px 8px;background:#F8FAFC;border-radius:4px;font-size:10px">
+              <div style="width:18px;height:18px;border-radius:50%;background:#FFB800;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px">1</div>
+              <div style="flex:1"><strong>Carlos M.</strong> · Olinda</div>
+              <div style="font-weight:700;color:var(--brand-2)">487</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;padding:6px 8px;background:#F8FAFC;border-radius:4px;font-size:10px">
+              <div style="width:18px;height:18px;border-radius:50%;background:#94A3B8;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px">2</div>
+              <div style="flex:1"><strong>Ana R.</strong> · Recife</div>
+              <div style="font-weight:700;color:var(--brand-2)">412</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;padding:6px 8px;background:#F8FAFC;border-radius:4px;font-size:10px">
+              <div style="width:18px;height:18px;border-radius:50%;background:#CD7F32;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px">3</div>
+              <div style="flex:1"><strong>Pedro S.</strong> · Jaboatão</div>
+              <div style="font-weight:700;color:var(--brand-2)">368</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;padding:6px 8px;background:#F8FAFC;border-radius:4px;font-size:10px">
+              <div style="width:18px;height:18px;border-radius:50%;background:#CBD5E1;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px">4</div>
+              <div style="flex:1"><strong>Mariana L.</strong> · Paulista</div>
+              <div style="font-weight:700;color:var(--brand-2)">298</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 12: TOUR VOTOS ============ -->
+<section class="slide light">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">12 / 26</div>
+  </div>
+  <div class="tour-header">
+    <div class="tour-icon"><svg width="28" height="28"><use href="#i-calc"/></svg></div>
+    <div class="info">
+      <div class="module-num">Módulo 06 · Tour do Sistema</div>
+      <h2>Projeção de Votos</h2>
+    </div>
+  </div>
+  <p class="lede" style="font-size:16px;margin-top:8px;max-width:900px">Cada apoiador vira voto projetado. A IA aprende com histórico, base e engajamento real — e te diz exatamente quantos votos faltam para vencer.</p>
+
+  <div class="split" style="margin-top:24px;align-items:stretch">
+    <div>
+      <ul class="feature-list">
+        <li class="fl"><strong>Cálculo automático</strong> — apoiadores × influência média × conversão</li>
+        <li class="fl"><strong>Calibrado por região</strong> — fatores específicos para cada bairro/perfil</li>
+        <li class="fl"><strong>Gap em tempo real</strong> — "faltam 4.785 votos para vencer"</li>
+        <li class="fl"><strong>Sugestão automática</strong> — quantos militantes recrutar e onde</li>
+      </ul>
+      <div class="how-grid" style="margin-top:28px">
+        <div class="how-item"><div class="step-num">PASSO 1</div><h4>Defina meta</h4><p>Total de votos para vencer.</p></div>
+        <div class="how-item"><div class="step-num">PASSO 2</div><h4>Ajuste parâmetros</h4><p>Influência e conversão.</p></div>
+        <div class="how-item"><div class="step-num">PASSO 3</div><h4>Simule cenários</h4><p>Sliders em tempo real.</p></div>
+      </div>
+    </div>
+    <div class="mockup" style="height:fit-content">
+      <div class="mockup-bar"><span class="d-r"></span><span class="d-y"></span><span class="d-g"></span><span class="url">mobiliza.app/votos</span></div>
+      <div class="mockup-body" style="padding:14px;background:#F5F7FA">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border:1px solid var(--border);border-radius:6px;font-size:10px"><div style="width:18px;height:18px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px">1</div><div style="flex:1"><strong>Apoiadores</strong> · Lideranças + militantes</div><div style="font-weight:800;font-size:13px">12.480</div></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border:1px solid var(--border);border-radius:6px;font-size:10px"><div style="width:18px;height:18px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px">2</div><div style="flex:1"><strong>Influência</strong> · votos por apoiador</div><div style="font-weight:800;font-size:13px">× 4,2</div></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border:1px solid var(--border);border-radius:6px;font-size:10px"><div style="width:18px;height:18px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px">3</div><div style="flex:1"><strong>Potencial bruto</strong></div><div style="font-weight:800;font-size:13px">52.416</div></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border:1px solid var(--border);border-radius:6px;font-size:10px"><div style="width:18px;height:18px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px">4</div><div style="flex:1"><strong>Conversão</strong> · % real</div><div style="font-weight:800;font-size:13px">× 0,71</div></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(0,200,150,.1);border:1.5px solid var(--brand);border-radius:6px;font-size:10px"><div style="width:18px;height:18px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px">★</div><div style="flex:1"><strong style="color:var(--brand-2)">VOTOS PROJETADOS</strong></div><div style="font-weight:800;font-size:18px;color:var(--brand-2)">37.215</div></div>
+        </div>
+        <div style="margin-top:8px;padding:8px 10px;background:rgba(0,200,150,.06);border:1px dashed rgba(0,200,150,.3);border-radius:6px;font-size:10px;color:var(--ink-2);display:flex;align-items:center;gap:6px">
+          <svg width="11" height="11" style="color:var(--brand-2)"><use href="#i-lightbulb"/></svg>
+          Recrutar <strong>1.140 militantes</strong> em Jaboatão fecha o gap em 6 semanas.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 13: TOUR AGENDA ============ -->
+<section class="slide light">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">13 / 26</div>
+  </div>
+  <div class="tour-header gold">
+    <div class="tour-icon"><svg width="28" height="28"><use href="#i-calendar"/></svg></div>
+    <div class="info">
+      <div class="module-num">Módulo 07 · Tour do Sistema</div>
+      <h2>Agenda do Candidato</h2>
+    </div>
+  </div>
+  <p class="lede" style="font-size:16px;margin-top:8px;max-width:900px">Toda agenda integrada à equipe, à comunicação e ao território. Notificações automáticas onde o candidato estiver.</p>
+
+  <div class="split" style="margin-top:24px;align-items:stretch">
+    <div>
+      <ul class="feature-list">
+        <li class="fl"><strong>Compartilhada</strong> entre candidato, assessores, segurança, motorista e comunicação</li>
+        <li class="fl"><strong>Multi-canal</strong> — e-mail + SMS + push + WhatsApp em 24h, 1h e 15min</li>
+        <li class="fl"><strong>Briefing automático</strong> 2h antes — público, temas locais, perguntas previstas</li>
+        <li class="fl"><strong>Pós-evento</strong> — presença, fotos e impacto medido nas redes</li>
+      </ul>
+      <div class="how-grid" style="margin-top:28px">
+        <div class="how-item"><div class="step-num">PASSO 1</div><h4>Crie compromisso</h4><p>Título, data, local, tipo.</p></div>
+        <div class="how-item"><div class="step-num">PASSO 2</div><h4>Defina notificação</h4><p>Quem recebe e quando.</p></div>
+        <div class="how-item"><div class="step-num">PASSO 3</div><h4>Receba briefing</h4><p>2h antes do evento.</p></div>
+      </div>
+    </div>
+    <div class="mockup" style="height:fit-content">
+      <div class="mockup-bar"><span class="d-r"></span><span class="d-y"></span><span class="d-g"></span><span class="url">mobiliza.app/agenda</span></div>
+      <div class="mockup-body" style="padding:14px;background:#F5F7FA">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 2px"><div style="font-size:11px;font-weight:700">Hoje · Quarta, 21 maio</div><div style="font-size:10px;color:var(--muted)">4 compromissos</div></div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;gap:8px;padding:8px 10px;background:#fff;border-radius:6px;border-left:3px solid var(--brand);font-size:10px"><div style="font-weight:700;width:34px">08:00</div><div style="flex:1"><strong>Café com lideranças</strong><br><span style="color:var(--muted);font-size:9px">Olinda · 12 confirmados</span></div><div style="color:var(--brand-2);font-weight:700">✓ enviado</div></div>
+          <div style="display:flex;gap:8px;padding:8px 10px;background:#fff;border-radius:6px;border-left:3px solid var(--gold);font-size:10px"><div style="font-weight:700;width:34px">10:30</div><div style="flex:1"><strong>Entrevista Rádio Jornal</strong><br><span style="color:var(--muted);font-size:9px">⚠ briefing pronto · alcance 80k</span></div></div>
+          <div style="display:flex;gap:8px;padding:8px 10px;background:#fff;border-radius:6px;border-left:3px solid var(--brand);font-size:10px"><div style="font-weight:700;width:34px">14:00</div><div style="flex:1"><strong>Visita Hospital da Restauração</strong><br><span style="color:var(--muted);font-size:9px">Recife · imprensa convidada</span></div></div>
+          <div style="display:flex;gap:8px;padding:8px 10px;background:#fff;border-radius:6px;border-left:3px solid var(--brand);font-size:10px"><div style="font-weight:700;width:34px">19:00</div><div style="flex:1"><strong>Comício Marco Zero</strong><br><span style="color:var(--muted);font-size:9px">800+ confirmados · som ok</span></div></div>
+        </div>
+        <div style="margin-top:8px;padding:8px 10px;background:rgba(255,184,0,.08);border-radius:6px;border:1px dashed rgba(255,184,0,.3);font-size:10px;color:#92400E;display:flex;align-items:center;gap:6px">
+          <svg width="11" height="11"><use href="#i-bell"/></svg>
+          Notificação enviada para 12 destinatários via WhatsApp + SMS
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 14: TOUR WHATSAPP ============ -->
+<section class="slide light">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">14 / 26</div>
+  </div>
+  <div class="tour-header coral">
+    <div class="tour-icon"><svg width="28" height="28"><use href="#i-whatsapp"/></svg></div>
+    <div class="info">
+      <div class="module-num">Módulo 08 · Tour do Sistema</div>
+      <h2>WhatsApp & Comunicação</h2>
+    </div>
+  </div>
+  <p class="lede" style="font-size:16px;margin-top:8px;max-width:900px">Disparo segmentado, chatbot eleitoral, automação de respostas. Dentro da política da Meta e do TSE.</p>
+
+  <div class="split" style="margin-top:24px;align-items:stretch">
+    <div>
+      <ul class="feature-list">
+        <li class="fl"><strong>API oficial Meta</strong> com templates aprovados e número verificado</li>
+        <li class="fl"><strong>Segmentação cirúrgica</strong> — só apoiadores indecisos do bairro X com 40+</li>
+        <li class="fl"><strong>Chatbot eleitoral</strong> respondendo dúvidas, propostas e onde votar</li>
+        <li class="fl"><strong>Rastreio de entrega, leitura e resposta</strong> — ROI real por campanha</li>
+      </ul>
+      <div class="how-grid" style="margin-top:28px">
+        <div class="how-item"><div class="step-num">PASSO 1</div><h4>Escolha template</h4><p>Aprovado pela Meta.</p></div>
+        <div class="how-item"><div class="step-num">PASSO 2</div><h4>Segmente público</h4><p>Bairro, perfil, status.</p></div>
+        <div class="how-item"><div class="step-num">PASSO 3</div><h4>Dispare e meça</h4><p>Resposta em tempo real.</p></div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:center;align-items:flex-start">
+      <div style="background:#0a1628;border-radius:24px;padding:14px;box-shadow:0 30px 60px -12px rgba(0,0,0,.4);width:280px">
+        <div style="background:#075E54;border-radius:14px 14px 0 0;padding:10px 14px;color:#fff;display:flex;align-items:center;gap:10px;margin:-14px -14px 0">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;color:#0a1628">M</div>
+          <div><div style="font-size:13px;font-weight:700">Campanha MOBILIZA</div><div style="font-size:10px;opacity:.75">conta oficial · online</div></div>
+        </div>
+        <div style="background:#ECE5DD;padding:16px;min-height:380px;margin:0 -14px -14px;border-radius:0 0 14px 14px">
+          <div style="background:#DCF8C6;border-radius:8px;padding:9px 12px;font-size:12px;color:#222;max-width:90%;margin-left:auto;margin-bottom:6px;line-height:1.45;box-shadow:0 1px 1px rgba(0,0,0,.06)">Olá Maria! 👋<br><br>Hoje às 19h temos comício no Marco Zero — fácil de chegar de Olinda.<br><br>Confirma presença respondendo SIM 🟢<div style="font-size:9px;color:#888;text-align:right;margin-top:3px">10:42 ✓✓</div></div>
+          <div style="background:#fff;border-radius:8px;padding:9px 12px;font-size:12px;max-width:90%;margin-bottom:6px;line-height:1.45;box-shadow:0 1px 1px rgba(0,0,0,.06)">SIM! Posso levar meu marido?<div style="font-size:9px;color:#888;text-align:right;margin-top:3px">10:44</div></div>
+          <div style="background:#DCF8C6;border-radius:8px;padding:9px 12px;font-size:12px;color:#222;max-width:90%;margin-left:auto;margin-bottom:6px;line-height:1.45;box-shadow:0 1px 1px rgba(0,0,0,.06)">Claro! Já contei vocês 2 ✅<br><br>Te mando o endereço exato 15min antes.<div style="font-size:9px;color:#888;text-align:right;margin-top:3px">10:44 ✓✓</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 15: TOUR IA ============ -->
+<section class="slide dark">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">15 / 26</div>
+  </div>
+  <div class="tour-header">
+    <div class="tour-icon" style="background:linear-gradient(135deg,var(--purple),#5B21B6)"><svg width="28" height="28"><use href="#i-ai"/></svg></div>
+    <div class="info">
+      <div class="module-num" style="color:var(--purple)">Módulo 09 · Tour do Sistema</div>
+      <h2 style="color:#fff">IA Estratégica</h2>
+    </div>
+  </div>
+  <p class="lede" style="font-size:16px;margin-top:8px;color:rgba(255,255,255,.7);max-width:900px">A IA observa todos os módulos e gera <strong style="color:var(--brand);font-weight:600">recomendações priorizadas com pontuação e cronograma</strong>. O candidato acorda sabendo o que fazer.</p>
+
+  <div class="grid-3" style="margin-top:36px">
+    <div style="background:rgba(0,200,150,.08);border:1px solid rgba(0,200,150,.25);border-radius:14px;padding:24px;border-left:4px solid var(--brand)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="background:var(--brand);color:#0A1628;padding:4px 11px;border-radius:6px;font-weight:800;font-size:13px">+92</span>
+        <span style="font-size:10px;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Alto impacto · Esta semana</span>
+      </div>
+      <h4 style="color:#fff;margin-bottom:10px;font-size:17px">Mobilizar Olinda</h4>
+      <p style="color:rgba(255,255,255,.7);font-size:13px;line-height:1.55;margin-bottom:14px">+18% de intenção mas só 2 lideranças. Recrutar 4 lideranças em 7 dias projeta +1.200 votos.</p>
+      <div style="border-top:1px dashed rgba(255,255,255,.1);padding-top:10px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--brand-3);font-weight:600">
+        <svg width="12" height="12"><use href="#i-arrow-right"/></svg>
+        Plano em 5 etapas pronto
+      </div>
+    </div>
+
+    <div style="background:rgba(255,184,0,.08);border:1px solid rgba(255,184,0,.25);border-radius:14px;padding:24px;border-left:4px solid var(--gold)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="background:var(--gold);color:#0A1628;padding:4px 11px;border-radius:6px;font-weight:800;font-size:13px">+74</span>
+        <span style="font-size:10px;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Médio · Próximos 14 dias</span>
+      </div>
+      <h4 style="color:#fff;margin-bottom:10px;font-size:17px">Responder pauta de saúde</h4>
+      <p style="color:rgba(255,255,255,.7);font-size:13px;line-height:1.55;margin-bottom:14px">Tema com +340% de menções negativas em Jaboatão. Live, post e visita ao hospital ajustam narrativa.</p>
+      <div style="border-top:1px dashed rgba(255,255,255,.1);padding-top:10px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--gold);font-weight:600">
+        <svg width="12" height="12"><use href="#i-arrow-right"/></svg>
+        Roteiro sugerido pela IA
+      </div>
+    </div>
+
+    <div style="background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.25);border-radius:14px;padding:24px;border-left:4px solid var(--coral)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="background:var(--coral);color:#fff;padding:4px 11px;border-radius:6px;font-weight:800;font-size:13px">+68</span>
+        <span style="font-size:10px;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Crise iminente · 48h</span>
+      </div>
+      <h4 style="color:#fff;margin-bottom:10px;font-size:17px">Conter narrativa @blog_x</h4>
+      <p style="color:rgba(255,255,255,.7);font-size:13px;line-height:1.55;margin-bottom:14px">Influenciador local com 80k seguidores publicou crítica. Engajamento dobrou em 6h. Direito de resposta.</p>
+      <div style="border-top:1px dashed rgba(255,255,255,.1);padding-top:10px;display:flex;align-items:center;gap:6px;font-size:11px;color:#FCA5A5;font-weight:600">
+        <svg width="12" height="12"><use href="#i-arrow-right"/></svg>
+        Resposta sugerida + abordagem
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 16: FLUXO PONTA A PONTA ============ -->
+<section class="slide white">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">16 / 26</div>
+  </div>
+  <div class="eyebrow">Fluxo Ponta a Ponta</div>
+  <h2 class="medium">De insight a voto, em 5 passos</h2>
+  <p class="lede" style="margin-top:6px;max-width:780px">Como a plataforma transforma dado em ação — e ação em resultado eleitoral.</p>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="num">1</div>
+      <h4>Capta sinais</h4>
+      <p>Coleta dados de redes sociais, militância e pesquisas em tempo real.</p>
+    </div>
+    <div class="flow-step">
+      <div class="num">2</div>
+      <h4>Identifica oportunidade</h4>
+      <p>IA detecta padrões e classifica regiões com maior potencial.</p>
+    </div>
+    <div class="flow-step">
+      <div class="num">3</div>
+      <h4>Sugere ação</h4>
+      <p>Plano com cronograma, pontuação de impacto e responsável.</p>
+    </div>
+    <div class="flow-step">
+      <div class="num">4</div>
+      <h4>Executa</h4>
+      <p>Agenda, WhatsApp, militância mobilizada simultaneamente.</p>
+    </div>
+    <div class="flow-step">
+      <div class="num">5</div>
+      <h4>Mede resultado</h4>
+      <p>Score de vitória recalcula. Próximo ciclo começa.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:60px;padding:24px 32px;background:#F8FAFC;border-radius:14px;border:1px solid var(--border);display:flex;align-items:center;gap:24px">
+    <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="24" height="24"><use href="#i-zap"/></svg>
+    </div>
+    <div>
+      <h4 style="font-size:15px;margin-bottom:4px">Ciclo se repete a cada 24h</h4>
+      <p style="font-size:13px;color:var(--muted);line-height:1.5">Quanto mais a plataforma roda, mais inteligente fica. Os modelos preditivos aprendem com cada eleição e cada interação.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 17: BENCHMARK ============ -->
+<section class="slide white">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">17 / 26</div>
+  </div>
+  <div class="eyebrow">Benchmark Competitivo</div>
+  <h2 class="medium">Como nos comparamos ao mercado</h2>
+
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th style="width:22%">Capacidade</th>
+        <th>NationBuilder<br><small style="font-weight:400;opacity:.65">EUA</small></th>
+        <th>Ecanvasser<br><small style="font-weight:400;opacity:.65">IRL</small></th>
+        <th>Qomon<br><small style="font-weight:400;opacity:.65">FRA</small></th>
+        <th>NGP VAN<br><small style="font-weight:400;opacity:.65">EUA</small></th>
+        <th>BR (Elegis, LideraAI)<br><small style="font-weight:400;opacity:.65">CRM BR</small></th>
+        <th class="us">MOBILIZA<br><small style="font-weight:400;opacity:.85">BR · 2026</small></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Dashboard geo (cidade/bairro/seção)</td><td class="yes"><svg width="14" height="14" style="color:var(--brand-2)"><use href="#i-check"/></svg></td><td class="yes"><svg width="14" height="14" style="color:var(--brand-2)"><use href="#i-check"/></svg></td><td class="yes"><svg width="14" height="14" style="color:var(--brand-2)"><use href="#i-check"/></svg></td><td class="yes"><svg width="14" height="14" style="color:var(--brand-2)"><use href="#i-check"/></svg></td><td class="partial">parcial</td><td class="us">TSE + IBGE</td></tr>
+      <tr><td>Radar de sentimento social com IA</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="partial">básico</td><td class="us">Tempo real</td></tr>
+      <tr><td>Radar competitivo (adversários)</td><td class="no">—</td><td class="no">—</td><td class="partial">parcial</td><td class="partial">parcial</td><td class="no">—</td><td class="us">Score vitória</td></tr>
+      <tr><td>Gestão de militância & lideranças</td><td class="yes"><svg width="14" height="14" style="color:var(--brand-2)"><use href="#i-check"/></svg></td><td class="yes"><svg width="14" height="14" style="color:var(--brand-2)"><use href="#i-check"/></svg></td><td class="yes"><svg width="14" height="14" style="color:var(--brand-2)"><use href="#i-check"/></svg></td><td class="yes"><svg width="14" height="14" style="color:var(--brand-2)"><use href="#i-check"/></svg></td><td class="yes"><svg width="14" height="14" style="color:var(--brand-2)"><use href="#i-check"/></svg></td><td class="us">+ app militante</td></tr>
+      <tr><td>Projeção de votos com IA</td><td class="partial">manual</td><td class="no">—</td><td class="partial">parcial</td><td class="yes"><svg width="14" height="14" style="color:var(--brand-2)"><use href="#i-check"/></svg></td><td class="partial">parcial</td><td class="us">Modelo preditivo</td></tr>
+      <tr><td>WhatsApp Business oficial</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes"><svg width="14" height="14" style="color:var(--brand-2)"><use href="#i-check"/></svg></td><td class="us">+ chatbot eleitoral</td></tr>
+      <tr><td>IA estratégica (plano de ação)</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="partial">básico</td><td class="us">Insights priorizados</td></tr>
+      <tr><td>Compliance TSE / LGPD nativo</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes"><svg width="14" height="14" style="color:var(--brand-2)"><use href="#i-check"/></svg></td><td class="us">Justiça Eleitoral</td></tr>
+      <tr><td>Interface em português + suporte BR</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes"><svg width="14" height="14" style="color:var(--brand-2)"><use href="#i-check"/></svg></td><td class="us">Nativo</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:20px;color:var(--muted);font-size:13px"><strong style="color:var(--ink)">Insight:</strong> nenhuma plataforma do mercado reúne <em>todos</em> esses módulos. MOBILIZA é a primeira solução end-to-end pensada para o ecossistema eleitoral brasileiro.</p>
+</section>
+
+<!-- ============ SLIDE 18: DIFFERENTIATORS ============ -->
+<section class="slide light">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">18 / 26</div>
+  </div>
+  <div class="eyebrow">Diferenciais</div>
+  <h2 class="medium">O que só a MOBILIZA entrega</h2>
+  <p class="lede" style="margin-top:6px">Seis capacidades exclusivas que nenhum concorrente nacional ou global oferece de forma integrada.</p>
+
+  <div class="diff-grid">
+    <div class="diff">
+      <svg class="diff-icon" width="32" height="32"><use href="#i-database"/></svg>
+      <h4>Cérebro unificado de dados</h4>
+      <p>Único banco com TSE, IBGE, pesquisas, militância, redes e CRM. Sem integração. Sem planilha.</p>
+    </div>
+    <div class="diff">
+      <svg class="diff-icon" width="32" height="32"><use href="#i-brain"/></svg>
+      <h4>IA Preditiva calibrada para BR</h4>
+      <p>Modelos treinados com dados reais de eleições brasileiras — não só genéricos.</p>
+    </div>
+    <div class="diff">
+      <svg class="diff-icon" width="32" height="32"><use href="#i-shield"/></svg>
+      <h4>Compliance TSE & LGPD nativos</h4>
+      <p>Auditoria de gastos, prestação de contas, opt-in — tudo seguindo a Justiça Eleitoral.</p>
+    </div>
+    <div class="diff">
+      <svg class="diff-icon" width="32" height="32"><use href="#i-trophy"/></svg>
+      <h4>App militante com gamificação</h4>
+      <p>Ranking, badges, missões, check-in geolocalizado. Engajamento mensurável da base.</p>
+    </div>
+    <div class="diff">
+      <svg class="diff-icon" width="32" height="32"><use href="#i-message"/></svg>
+      <h4>WhatsApp + Chatbot eleitoral</h4>
+      <p>API oficial Meta, templates aprovados, segmentação cirúrgica e resposta automática.</p>
+    </div>
+    <div class="diff">
+      <svg class="diff-icon" width="32" height="32"><use href="#i-target"/></svg>
+      <h4>Score diário de vitória</h4>
+      <p>Probabilidade 0-100 atualizada todo dia, com explicação do que mover para subir.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 19: ADDITIONAL ============ -->
+<section class="slide white">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">19 / 26</div>
+  </div>
+  <div class="eyebrow">Roadmap de Expansão</div>
+  <h2 class="medium">Funcionalidades complementares (Fase 2+)</h2>
+  <p class="lede" style="margin-top:6px">Alto valor estratégico, viáveis a partir do segundo ciclo de desenvolvimento.</p>
+
+  <div class="grid-3" style="margin-top:36px">
+    <div class="card"><div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-money"/></svg></div><h4>Fundraising integrado</h4><p>Captação online via Pix e cartão, prestação de contas automatizada para TSE.</p></div>
+    <div class="card gold"><div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-pen"/></svg></div><h4>Estúdio de mídia & HGPE</h4><p>Banco de imagens, gerador de cards, agendamento de posts, controle de horário gratuito.</p></div>
+    <div class="card coral"><div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-megaphone"/></svg></div><h4>Treinamento por IA</h4><p>Simulador de debate, análise de tom de voz, sugestões de melhoria oratória.</p></div>
+    <div class="card blue"><div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-bar-chart"/></svg></div><h4>Pesquisa eleitoral interna</h4><p>Crie e dispare pesquisas próprias via WhatsApp ou campo, resultados geolocalizados.</p></div>
+    <div class="card"><div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-shield"/></svg></div><h4>Anti-fake news</h4><p>Detecção de boatos virais sobre o candidato com sugestão de resposta e amplificação.</p></div>
+    <div class="card purple"><div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-handshake"/></svg></div><h4>Painel pós-eleição</h4><p>Transforma a base em CRM de mandato. Apoiadores viram canal por 4 anos.</p></div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 20: ARCHITECTURE ============ -->
+<section class="slide light">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">20 / 26</div>
+  </div>
+  <div class="eyebrow">Arquitetura Técnica</div>
+  <h2 class="medium">Cloud-native, multi-tenant e seguro</h2>
+
+  <div class="grid-4" style="margin-top:36px">
+    <div class="card blue">
+      <div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-globe"/></svg></div>
+      <h4>Frontend</h4>
+      <p>Web app (Next.js), mobile apps (React Native), painel de TV para sala de guerra.</p>
+    </div>
+    <div class="card blue">
+      <div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-cpu"/></svg></div>
+      <h4>Backend</h4>
+      <p>API REST/GraphQL, microsserviços Node.js/Python, Kafka, PostgreSQL + Redis + pgvector.</p>
+    </div>
+    <div class="card blue">
+      <div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-ai"/></svg></div>
+      <h4>Camada de IA</h4>
+      <p>Sentiment analysis, modelos preditivos, LLM para insights — treinados em dados BR.</p>
+    </div>
+    <div class="card blue">
+      <div class="icon-circle"><svg class="icon" width="22" height="22"><use href="#i-link"/></svg></div>
+      <h4>Integrações</h4>
+      <p>TSE, IBGE, Meta WhatsApp Business, Instagram, X, TikTok, Google Maps, ASAAS/Pix.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:40px;background:#fff;border-radius:14px;padding:28px;border:1px solid var(--border)">
+    <h4 style="margin-bottom:18px;display:flex;align-items:center;gap:10px"><svg width="20" height="20" style="color:var(--brand-2)"><use href="#i-lock"/></svg>Segurança e compliance prioritários</h4>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px">
+      <div><strong style="font-size:14px;display:block;margin-bottom:4px">LGPD nativo</strong><p style="font-size:12px;color:var(--muted);line-height:1.5">Consentimento, exclusão, portabilidade</p></div>
+      <div><strong style="font-size:14px;display:block;margin-bottom:4px">Auditoria TSE</strong><p style="font-size:12px;color:var(--muted);line-height:1.5">Logs imutáveis de gastos e disparos</p></div>
+      <div><strong style="font-size:14px;display:block;margin-bottom:4px">Criptografia E2E</strong><p style="font-size:12px;color:var(--muted);line-height:1.5">Dados sensíveis em repouso e trânsito</p></div>
+      <div><strong style="font-size:14px;display:block;margin-bottom:4px">Hospedagem BR</strong><p style="font-size:12px;color:var(--muted);line-height:1.5">AWS/GCP região São Paulo + DR</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 21: ROADMAP ============ -->
+<section class="slide white">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">21 / 26</div>
+  </div>
+  <div class="eyebrow">Roadmap</div>
+  <h2 class="medium">Construímos em 3 fases</h2>
+
+  <div class="roadmap">
+    <div class="phase">
+      <span class="badge">Fase 1 · MVP</span>
+      <h3>Fundação</h3>
+      <p class="duration">Meses 1 a 4</p>
+      <ul>
+        <li>Dashboard Geo + militância</li>
+        <li>Projeção básica de votos</li>
+        <li>Agenda multicanal</li>
+        <li>WhatsApp Business + chatbot v1</li>
+        <li>Painel admin & multi-tenant</li>
+      </ul>
+    </div>
+    <div class="phase p2">
+      <span class="badge">Fase 2 · V1.0</span>
+      <h3>Inteligência</h3>
+      <p class="duration">Meses 5 a 9</p>
+      <ul>
+        <li>Radar de sentimento social IA</li>
+        <li>Radar eleitoral competitivo</li>
+        <li>IA de insights & plano de ação</li>
+        <li>App mobile do militante</li>
+        <li>Score de vitória diário</li>
+      </ul>
+    </div>
+    <div class="phase p3">
+      <span class="badge">Fase 3 · V2.0</span>
+      <h3>Expansão</h3>
+      <p class="duration">Meses 10 a 14</p>
+      <ul>
+        <li>Fundraising integrado + Pix</li>
+        <li>Estúdio de mídia & HGPE</li>
+        <li>Pesquisa eleitoral interna</li>
+        <li>Anti-fake news + treinamento IA</li>
+        <li>Painel pós-eleição (mandato)</li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top:36px;color:var(--muted);font-size:13px"><strong style="color:var(--ink)">14 meses</strong> do MVP à plataforma completa, com entregas incrementais a cada ciclo.</p>
+</section>
+
+<!-- ============ SLIDE 22: MARKET ============ -->
+<section class="slide dark">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">22 / 26</div>
+  </div>
+  <div class="eyebrow">Mercado Endereçável</div>
+  <h2 class="medium" style="color:#fff">Brasil tem 500 mil candidatos por ciclo</h2>
+
+  <div class="stat-row">
+    <div class="stat">
+      <div class="num">5.570</div>
+      <div class="label">Municípios — eleições 2028</div>
+    </div>
+    <div class="stat">
+      <div class="num">+500k</div>
+      <div class="label">Candidatos potenciais por ciclo eleitoral (vereador a senador)</div>
+    </div>
+    <div class="stat">
+      <div class="num">R$ 5,7B</div>
+      <div class="label">Fundo eleitoral 2024 — mercado endereçável</div>
+    </div>
+    <div class="stat">
+      <div class="num">3</div>
+      <div class="label">Ciclos eleitorais nos próximos 5 anos</div>
+    </div>
+  </div>
+
+  <div style="margin-top:60px;padding:28px 32px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:18px;display:flex;align-items:center;gap:24px;backdrop-filter:blur(10px)">
+    <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--gold),var(--gold-2));color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="24" height="24"><use href="#i-trending-up"/></svg>
+    </div>
+    <div style="flex:1">
+      <h4 style="color:#fff;font-size:17px;margin-bottom:4px">Mercado em transformação digital acelerada</h4>
+      <p style="color:rgba(255,255,255,.7);font-size:13px;line-height:1.5">Reforma eleitoral 2024 + popularização da IA + crescimento do WhatsApp como canal político criam janela única de oportunidade para uma plataforma nativa brasileira.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 23: QUOTE ============ -->
+<section class="slide dark" style="display:flex;align-items:center">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">23 / 25</div>
+  </div>
+  <div style="max-width:900px">
+    <div class="eyebrow">Por que agora</div>
+    <p class="quote">"A campanha que vencer 2026 será aquela que conseguir transformar dado em ação no menor ciclo possível. Não há mais espaço para campanhas analógicas em uma eleição decidida por décimos de pontos."</p>
+    <p class="quote-attr">— Consenso de especialistas em marketing político · 2025</p>
+  </div>
+  <div class="blob" style="background:var(--brand);width:500px;height:500px;right:-200px;top:-100px;opacity:.15"></div>
+  <div class="blob" style="background:var(--gold);width:300px;height:300px;left:-100px;bottom:-100px;opacity:.12"></div>
+</section>
+
+<!-- ============ SLIDE 24: NEXT STEPS ============ -->
+<section class="slide dark">
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">24 / 25</div>
+  </div>
+  <div class="eyebrow">Próximos Passos</div>
+  <h1 class="display" style="margin-top:20px;max-width:900px">Vamos construir<br>a <span style="background:linear-gradient(135deg,var(--brand),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent">sala de guerra</span><br>da próxima campanha.</h1>
+  <p class="lede" style="color:rgba(255,255,255,.75);max-width:780px;margin-top:32px">Estamos prontos para iniciar o desenho detalhado do MVP em <strong style="color:#fff;font-weight:600">30 dias</strong> e entregar a Fase 1 funcional antes do início oficial da campanha 2026.</p>
+
+  <div class="cta-grid">
+    <div class="cta-card">
+      <div style="width:44px;height:44px;border-radius:12px;background:rgba(0,200,150,.15);color:var(--brand);display:flex;align-items:center;justify-content:center;margin-bottom:14px">
+        <svg width="22" height="22"><use href="#i-handshake"/></svg>
+      </div>
+      <h3>Reunião de discovery</h3>
+      <p>90 minutos para entender contexto, candidato, recursos e ajustar escopo do MVP.</p>
+    </div>
+    <div class="cta-card">
+      <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,184,0,.15);color:var(--gold);display:flex;align-items:center;justify-content:center;margin-bottom:14px">
+        <svg width="22" height="22"><use href="#i-pen"/></svg>
+      </div>
+      <h3>Protótipo navegável</h3>
+      <p>3 semanas após discovery. Tela por tela aprovada antes do desenvolvimento iniciar.</p>
+    </div>
+  </div>
+
+  <div class="blob" style="background:var(--brand);width:500px;height:500px;right:-150px;top:-150px;opacity:.18"></div>
+</section>
+
+<!-- ============ SLIDE 25: END ============ -->
+<section class="slide dark cover">
+  <div class="cover-grid"></div>
+  <div class="chrome">
+    <div class="brand-mark"><span class="dot"></span> MOBILIZA</div>
+    <div class="pgnum">25 / 25</div>
+  </div>
+  <h1 class="giant" style="background:linear-gradient(180deg,#fff 30%,#00C896 100%);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:32px">Obrigado.</h1>
+  <p class="tagline" style="font-size:24px;color:rgba(255,255,255,.7);max-width:700px">Vamos transformar a próxima eleição em vitória — com inteligência, mobilização e ação coordenada.</p>
+  <div class="cover-meta" style="margin-top:60px">
+    <span>MOBILIZA</span>
+    <span class="sep">/</span>
+    <span><strong>Plataforma Estratégica</strong></span>
+    <span class="sep">/</span>
+    <span>Inteligência Eleitoral · 2026</span>
+  </div>
+  <div class="blob" style="background:var(--brand);width:600px;height:600px;left:-200px;bottom:-200px;opacity:.2"></div>
+</section>
+
+</div>
+
+<!-- NAVIGATION -->
+<div class="nav">
+  <button id="prev">‹</button>
+  <span class="counter"><span id="cur">1</span> / 25</span>
+  <button id="next">›</button>
+  <button id="print" title="Imprimir / PDF">⎙</button>
+</div>
+
+<script>
+var slides = document.querySelectorAll('.slide');
+var total = slides.length;
+var cur = 0;
+var counter = document.getElementById('cur');
+var deck = document.getElementById('deck');
+
+function go(i){
+  cur = Math.max(0, Math.min(total-1, i));
+  slides[cur].scrollIntoView({behavior:'smooth', block:'start'});
+  counter.textContent = cur + 1;
+}
+
+document.getElementById('next').onclick = function(){ go(cur+1); };
+document.getElementById('prev').onclick = function(){ go(cur-1); };
+document.getElementById('print').onclick = function(){ window.print(); };
+
+document.addEventListener('keydown', function(e){
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){ e.preventDefault(); go(cur+1); }
+  if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); go(cur-1); }
+  if(e.key==='Home'){ e.preventDefault(); go(0); }
+  if(e.key==='End'){ e.preventDefault(); go(total-1); }
+});
+
+if(window.matchMedia('(min-width:1024px)').matches){
+  deck.addEventListener('scroll', function(){
+    var idx = Math.round(deck.scrollTop / window.innerHeight);
+    if(idx !== cur){ cur = idx; counter.textContent = cur + 1; }
+  });
+}
+</script>
+</body>
+</html>

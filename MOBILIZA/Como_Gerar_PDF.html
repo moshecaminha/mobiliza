@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Como gerar o PDF do deck MOBILIZA</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',-apple-system,'Segoe UI',system-ui,sans-serif}
+body{background:#F5F7FA;color:#0F172A;padding:40px 20px;line-height:1.55}
+.container{max-width:760px;margin:0 auto;background:#fff;border-radius:16px;padding:40px;box-shadow:0 4px 12px rgba(0,0,0,.06)}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.brand .logo{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#00C896,#00A878);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+.brand h1{font-size:20px;font-weight:800;letter-spacing:-.02em}
+h2{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+.lede{font-size:16px;color:#64748B;margin-bottom:30px}
+.step{display:flex;gap:18px;padding:20px;background:#F8FAFC;border-radius:12px;margin-bottom:12px;border-left:4px solid #00C896}
+.step .n{width:36px;height:36px;border-radius:50%;background:#00C896;color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step .body h3{font-size:16px;font-weight:700;margin-bottom:6px}
+.step .body p{font-size:14px;color:#475569}
+.step .body kbd{background:#1E293B;color:#fff;padding:3px 8px;border-radius:4px;font-family:'SF Mono',monospace;font-size:12px;font-weight:600;margin:0 2px}
+.cta{margin-top:30px;padding:24px;background:linear-gradient(135deg,#0A1628,#162447);border-radius:14px;color:#fff;text-align:center}
+.cta a{display:inline-block;margin-top:14px;background:linear-gradient(135deg,#00C896,#00A878);color:#fff;padding:14px 28px;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 4px 12px rgba(0,200,150,.4)}
+.cta p{color:rgba(255,255,255,.75);font-size:14px}
+.warn{margin-top:20px;padding:14px 18px;background:#FFF8E1;border-left:4px solid #FFB800;border-radius:8px;font-size:13px;color:#92400E}
+.warn strong{color:#78350F}
+ul.checklist{list-style:none;margin-top:14px}
+ul.checklist li{padding:6px 0 6px 26px;position:relative;font-size:14px;color:#334155}
+ul.checklist li:before{content:"✓";position:absolute;left:0;color:#00A878;font-weight:800}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="brand">
+    <div class="logo">M</div>
+    <h1>MOBILIZA</h1>
+  </div>
+  <h2>Como gerar o PDF do deck em 4 passos</h2>
+  <p class="lede">Leva menos de 1 minuto. Sem instalar nada.</p>
+
+  <div class="step">
+    <div class="n">1</div>
+    <div class="body">
+      <h3>Abra o arquivo do deck</h3>
+      <p>Dê duplo clique em <strong>MOBILIZA_Pitch_Deck.html</strong> no seu computador. Ele abre no Chrome, Edge ou Firefox.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="n">2</div>
+    <div class="body">
+      <h3>Aperte <kbd>Ctrl</kbd> + <kbd>P</kbd> (Windows) ou <kbd>Cmd</kbd> + <kbd>P</kbd> (Mac)</h3>
+      <p>Abre a janela de impressão do navegador.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="n">3</div>
+    <div class="body">
+      <h3>Configure assim (importante!)</h3>
+      <ul class="checklist">
+        <li><strong>Destino:</strong> Salvar como PDF</li>
+        <li><strong>Layout:</strong> Paisagem (horizontal)</li>
+        <li><strong>Páginas:</strong> Todas</li>
+        <li><strong>Margens:</strong> Nenhuma (ou Mínima)</li>
+        <li><strong>Mais configurações → Gráficos de fundo:</strong> <em>ATIVADO</em> (sem isso o deck fica branco!)</li>
+        <li><strong>Escala:</strong> Padrão (100%)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="n">4</div>
+    <div class="body">
+      <h3>Clique em "Salvar"</h3>
+      <p>Escolha onde salvar e pronto — você terá <strong>MOBILIZA_Pitch_Deck.pdf</strong> com as 25 páginas do deck completo, no formato A4 paisagem.</p>
+    </div>
+  </div>
+
+  <div class="warn">
+    ⚠️ <strong>Atenção:</strong> a opção <strong>"Gráficos de fundo" / "Background graphics"</strong> precisa estar ATIVADA (em "Mais configurações"). Sem isso, o PDF sai sem cores nem gradientes — só texto preto no branco.
+  </div>
+
+  <div class="cta">
+    <h3 style="font-size:20px;font-weight:800;margin-bottom:6px">Pronto para gerar?</h3>
+    <p>Abra o deck e siga os passos acima.</p>
+    <a href="MOBILIZA_Pitch_Deck.html" target="_blank">📄 Abrir o deck agora</a>
+  </div>
+
+  <p style="text-align:center;margin-top:30px;color:#94A3B8;font-size:12px">MOBILIZA · plataforma estratégica de inteligência eleitoral · 2026</p>
+</div>
+</body>
+</html>

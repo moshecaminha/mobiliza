@@ -1,0 +1,68 @@
+version: '3.9'
+
+# Stack completa para rodar MOBILIZA localmente
+# Uso:
+#   1. cp .env.example .env  (e preencher)
+#   2. docker-compose up -d
+#   3. Acesse:
+#      - Backend: http://localhost:3001
+#      - Postgres: localhost:5432 (user: mobiliza, senha: ver POSTGRES_PASSWORD)
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: mobiliza-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mobiliza
+      POSTGRES_USER: mobiliza
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production}
+    ports:
+      - "5432:5432"
+    volumes:
+      - mobiliza-pgdata:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mobiliza -d mobiliza"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    container_name: mobiliza-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgres://mobiliza:${POSTGRES_PASSWORD:-changeme_in_production}@db:5432/mobiliza
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3001
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-*}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+      TWITTER_BEARER_TOKEN: ${TWITTER_BEARER_TOKEN:-}
+      META_ACCESS_TOKEN: ${META_ACCESS_TOKEN:-}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@mobiliza.app}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Frontend estático (opcional - geralmente fica em CDN como Vercel/Netlify)
+  # Descomente se quiser servir o HTML pelo mesmo host
+  # web:
+  #   image: nginx:alpine
+  #   container_name: mobiliza-web
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8080:80"
+  #   volumes:
+  #     - ../MOBILIZA_App.html:/usr/share/nginx/html/index.html:ro
+
+volumes:
+  mobiliza-pgdata:
