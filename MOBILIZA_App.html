@@ -1437,6 +1437,10 @@ function mobAfterAuth(){
       if(list) list.innerHTML='<div class="lede">Sua conta ainda não está vinculada a nenhuma campanha.<br>Peça ao administrador para adicionar seu e-mail à equipe do candidato.</div>';
       return;
     }
+    // Link direto por candidato: mobilizza.org/?c=<id> abre aquela campanha sem seletor
+    var urlC = new URLSearchParams(location.search).get('c');
+    var forced = urlC && _mobCands.find(function(c){return c.id===urlC;});
+    if(forced){ mobOpenCandidate(forced); return; }
     var saved=null; try{ saved=localStorage.getItem('mob_cur_candidate'); }catch(e){}
     var pref = saved && _mobCands.find(function(c){return c.id===saved;});
     if(_mobCands.length===1){ mobOpenCandidate(_mobCands[0]); return; }
@@ -5324,15 +5328,114 @@ async function evtRenderList(host, cands, sess){
     host.innerHTML = evtHead()+'<div class="card">Escolha a campanha: '+picker+'</div>';
     return;
   }
+  var sub = window._evtSub || 'eventos';
+  var tabBtn = function(k,label){ return '<button onclick="evtSub(\''+k+'\')" style="padding:7px 14px;border-radius:8px;font-weight:700;font-size:12px;border:none;cursor:pointer;background:'+(sub===k?'var(--brand)':'transparent')+';color:'+(sub===k?'#fff':'var(--muted)')+'">'+label+'</button>'; };
   host.innerHTML = evtHead()
     +'<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">'
       +'<div style="font-size:13px;color:var(--muted)">Campanha: <strong style="color:var(--ink)">'+esc(cand.name)+'</strong> · <span style="font-size:11px">'+esc(sess.user.email)+'</span></div>'
-      +'<div style="display:flex;gap:8px;align-items:center">'+picker+'<button class="btn-primary" onclick="evtModal()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Novo evento</button><button class="btn-ghost" onclick="evtLogout()">Sair</button></div>'
+      +'<div style="display:flex;gap:8px;align-items:center">'
+        +'<div style="display:flex;background:var(--soft-2);border:1px solid var(--border);border-radius:9px;padding:3px">'+tabBtn('eventos','Eventos')+tabBtn('participantes','Participantes')+'</div>'
+        +picker
+        +(sub==='eventos'?'<button class="btn-primary" onclick="evtModal()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Novo evento</button>':'')
+        +'<button class="btn-ghost" onclick="evtLogout()">Sair</button>'
+      +'</div>'
     +'</div>'
-    +'<div id="evt-list" class="card"><div class="sub">Carregando eventos…</div></div>';
-  await evtLoadList();
+    +'<div id="evt-content"></div>';
+  if(sub==='participantes'){ evtRenderParticipantes(); }
+  else {
+    document.getElementById('evt-content').innerHTML = '<div id="evt-list" class="card"><div class="sub">Carregando eventos…</div></div>';
+    await evtLoadList();
+  }
 }
+window.evtSub = function(k){ window._evtSub = k; renderEventos(); };
 window.evtPickCand = function(id){ var c=null; try{ evtRpc('mob_my_candidates').then(function(cs){ c=cs.find(function(x){return x.id===id}); window._evtCand=c; renderEventos(); }); }catch(e){} };
+
+// ---- PARTICIPANTES DE EVENTOS (lista + filtros + disparo, tudo no banco) ----
+window._evtLeads = []; window._evtSel = {};
+function evtWaDigits(p){ var d=(p||'').replace(/\D/g,''); if(d.length>=10 && d.slice(0,2)!=='55') d='55'+d; return d; }
+window.evtWaOpen = function(phone, name){
+  var msg = encodeURIComponent('Olá '+((name||'').split(' ')[0]||'')+'! Aqui é da campanha de '+((window._evtCand&&window._evtCand.name)||'')+'.');
+  window.open('https://wa.me/'+evtWaDigits(phone)+'?text='+msg, '_blank');
+};
+async function evtRenderParticipantes(){
+  var box = document.getElementById('evt-content'); if(!box) return;
+  box.innerHTML = '<div class="card"><div class="sub">Carregando participantes…</div></div>';
+  try { window._evtLeads = await evtRpc('mob_leads_list', { p_candidate: window._evtCand.id }); }
+  catch(e){ box.innerHTML='<div class="card" style="color:var(--coral)">'+esc(e.message)+'</div>'; return; }
+  window._evtSel = {};
+  evtDrawParticipantes();
+}
+window.evtDrawParticipantes = function(){
+  var box = document.getElementById('evt-content'); if(!box) return;
+  var leads = window._evtLeads||[];
+  var fB = (document.getElementById('pa-bairro')||{}).value || '';
+  var fC = (document.getElementById('pa-city')||{}).value || '';
+  var fQ = ((document.getElementById('pa-q')||{}).value || '').toLowerCase();
+  var bairros = {}, cidades = {};
+  leads.forEach(function(l){ if(l.bairro) bairros[l.bairro]=1; if(l.city) cidades[l.city]=1; });
+  var filtered = leads.filter(function(l){
+    if(fB && l.bairro!==fB) return false;
+    if(fC && l.city!==fC) return false;
+    if(fQ && (l.name||'').toLowerCase().indexOf(fQ)<0 && (l.phone||'').indexOf(fQ)<0) return false;
+    return true;
+  });
+  var selCount = filtered.filter(function(l){return window._evtSel[l.id];}).length;
+  var opt = function(o){ return Object.keys(o).sort().map(function(k){return '<option>'+esc(k)+'</option>';}).join(''); };
+  var h = '<div class="card">'
+    +'<div class="card-head"><div><div class="card-title">Participantes de eventos</div><div class="card-sub">'+leads.length+' pessoa(s) na base · '+filtered.length+' no filtro</div></div>'
+      +'<button class="btn-primary" onclick="evtBulk()"'+(selCount?'':' disabled style="opacity:.5"')+'><svg class="icon" width="13" height="13"><use href="#i-message"/></svg>Enviar em bloco ('+selCount+')</button></div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px">'
+      +'<select id="pa-bairro" onchange="evtDrawParticipantes()" style="max-width:180px"><option value="">Todos os bairros</option>'+opt(bairros)+'</select>'
+      +'<select id="pa-city" onchange="evtDrawParticipantes()" style="max-width:180px"><option value="">Todas as cidades</option>'+opt(cidades)+'</select>'
+      +'<input id="pa-q" oninput="evtDrawParticipantes()" placeholder="Buscar nome ou telefone…" style="max-width:220px">'
+      +'<button class="btn-ghost" onclick="evtSelAll()">Selecionar filtro</button>'
+    +'</div>';
+  if(!filtered.length){ h += '<div style="text-align:center;padding:26px;color:var(--muted)">Nenhum participante '+(leads.length?'com esse filtro':'ainda — os cadastros via QR aparecem aqui')+'.</div>'; }
+  else {
+    h += '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th></th><th>Nome</th><th>Telefone</th><th>Bairro / Cidade</th><th>Nº</th><th>Eventos</th><th>Rede</th><th></th></tr></thead><tbody>';
+    filtered.forEach(function(l){
+      h += '<tr><td><input type="checkbox" '+(window._evtSel[l.id]?'checked':'')+' onclick="evtToggleSel(\''+l.id+'\')"></td>'
+        +'<td><strong>'+esc(l.name)+'</strong></td><td>'+esc(l.phone||'')+'</td>'
+        +'<td style="font-size:12px">'+esc(l.bairro||'—')+(l.city?'<br><small style="color:var(--muted)">'+esc(l.city)+(l.uf?'/'+esc(l.uf):'')+'</small>':'')+'</td>'
+        +'<td>'+esc(l.number||'')+'</td>'
+        +'<td style="text-align:center">'+(l.events_count||0)+'</td>'
+        +'<td>'+(l.shared?'<span class="badge success">compartilhou</span>':'—')+'</td>'
+        +'<td class="actions"><button class="btn-ghost" style="padding:5px 10px;font-size:12px;color:#128C4B" onclick="evtWaOpen(\''+esc(l.phone||'').replace(/\x27/g,"")+'\',\''+esc(l.name).replace(/\x27/g,"")+'\')" title="Enviar WhatsApp"><svg class="icon" width="13" height="13" style="margin-right:3px"><use href="#i-whatsapp"/></svg>Mensagem</button></td></tr>';
+    });
+    h += '</tbody></table></div>';
+  }
+  h += '</div>';
+  box.innerHTML = h;
+};
+window.evtToggleSel = function(id){ if(window._evtSel[id]) delete window._evtSel[id]; else window._evtSel[id]=1; evtDrawParticipantes(); };
+window.evtSelAll = function(){
+  var leads = window._evtLeads||[];
+  var fB=(document.getElementById('pa-bairro')||{}).value||'', fC=(document.getElementById('pa-city')||{}).value||'', fQ=((document.getElementById('pa-q')||{}).value||'').toLowerCase();
+  leads.forEach(function(l){
+    var ok=true; if(fB&&l.bairro!==fB)ok=false; if(fC&&l.city!==fC)ok=false; if(fQ&&(l.name||'').toLowerCase().indexOf(fQ)<0&&(l.phone||'').indexOf(fQ)<0)ok=false;
+    if(ok) window._evtSel[l.id]=1;
+  });
+  evtDrawParticipantes();
+};
+window.evtBulk = function(){
+  var ids = Object.keys(window._evtSel);
+  if(!ids.length){ toast('Selecione ao menos um participante','warn'); return; }
+  showModalHtml('<h3>Enviar mensagem em bloco</h3><div class="sub">'+ids.length+' participante(s) selecionado(s). O disparo fica registrado no banco; o envio real usa a conexão do WhatsApp (Meta).</div>'
+    +'<label>Nome do disparo</label><input id="bulk-name" value="Divulgação · '+esc((window._evtCand&&window._evtCand.name)||'')+'">'
+    +'<label>Mensagem</label><textarea id="bulk-msg" rows="4" placeholder="Olá! Convido você para…">Olá! Aqui é da campanha de '+esc((window._evtCand&&window._evtCand.name)||'')+'. Obrigado por estar com a gente!</textarea>'
+    +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="evtBulkSave()">Registrar disparo</button></div>', 'evtbulk');
+};
+window.evtBulkSave = async function(){
+  var ids = Object.keys(window._evtSel);
+  var name=(document.getElementById('bulk-name').value||'').trim();
+  var msg=(document.getElementById('bulk-msg').value||'').trim();
+  if(!msg){ toast('Escreva a mensagem','warn'); return; }
+  try{
+    var r = await evtRpc('mob_leads_campaign', { p_candidate:window._evtCand.id, p_name:name, p_message:msg, p_lead_ids:ids });
+    closeModal();
+    toast('Disparo registrado no banco · '+r.reach+' destinatário(s) · R$ '+(r.reach*0.40).toFixed(2).replace('.',','));
+  }catch(e){ toast(e.message,'err'); }
+};
 
 async function evtLoadList(){
   var box = document.getElementById('evt-list'); if(!box) return;
@@ -5351,9 +5454,9 @@ async function evtLoadList(){
       +'<td style="font-size:12px">'+esc(e.location||e.bairro||'—')+(e.city?'<br><small style="color:var(--muted)">'+esc(e.city)+(e.uf?'/'+esc(e.uf):'')+'</small>':'')+'</td>'
       +'<td style="text-align:right;font-weight:700">'+(e.checkins||0)+'</td>'
       +'<td style="text-align:right;color:var(--brand-2);font-weight:700">'+(e.shared||0)+'</td>'
-      +'<td class="actions" style="white-space:nowrap">'
-        +'<button onclick="evtQR(\''+e.id+'\')" title="QR de cadastro" style="color:var(--brand-2)"><svg class="icon" width="14" height="14"><use href="#i-hashtag"/></svg></button>'
-        +'<button onclick="evtLeads(\''+e.id+'\',\''+esc(e.title).replace(/\x27/g,"")+'\')" title="Ver leads"><svg class="icon" width="14" height="14"><use href="#i-users"/></svg></button>'
+      +'<td class="actions" style="white-space:nowrap;text-align:right">'
+        +'<button class="btn-primary" style="padding:6px 12px;font-size:12px;margin-right:6px" onclick="evtQR(\''+e.id+'\')" title="Abrir o QR e o link deste evento"><svg class="icon" width="13" height="13" style="margin-right:4px"><use href="#i-hashtag"/></svg>Ver QR</button>'
+        +'<button class="btn-ghost" style="padding:6px 10px;font-size:12px;margin-right:6px" onclick="evtLeads(\''+e.id+'\',\''+esc(e.title).replace(/\x27/g,"")+'\')" title="Ver leads"><svg class="icon" width="13" height="13" style="margin-right:3px"><use href="#i-users"/></svg>Leads</button>'
         +'<button onclick="evtModal(\''+e.id+'\')" title="Editar"><svg class="icon" width="14" height="14"><use href="#i-edit"/></svg></button>'
         +'<button class="danger" onclick="evtDelete(\''+e.id+'\')" title="Excluir"><svg class="icon" width="14" height="14"><use href="#i-trash"/></svg></button>'
       +'</td></tr>';
@@ -5397,11 +5500,21 @@ window.evtQR = function(id){
     +'<div class="sub" style="margin-bottom:16px">Imprima ou projete este QR no evento. Quem ler se cadastra na base da campanha.</div>'
     +'<div style="display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start">'
       +'<div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center"><img src="'+qrImageUrl(url)+'" alt="QR" style="width:100%;height:auto;border-radius:8px"><div style="margin-top:8px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Aponte a câmera</div></div>'
-      +'<div><label>Link público</label><div style="display:flex;gap:6px;margin-top:4px"><input readonly value="'+esc(url)+'" style="font-size:12px"><button class="btn-ghost" onclick="copyText(\''+esc(url).replace(/\x27/g,"")+'\')">Copiar</button></div>'
-        +'<div style="margin-top:14px"><a href="'+qrImageUrl(url,600)+'" download="qr-evento.png" class="btn-ghost" style="text-decoration:none;justify-content:center"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg>Baixar QR (600×600)</a></div>'
-        +'<div class="sub" style="margin-top:14px;line-height:1.5">No cadastro o eleitor informa nome, telefone e endereço pelo CEP (com número obrigatório). Se o telefone já existir, ele recebe boas-vindas e a opção de compartilhar nas redes.</div>'
+      +'<div>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'
+          +'<button class="btn-primary" style="flex:1" onclick="window.open(\''+(location.origin||"")+'/qr.html?e='+encodeURIComponent(e.qr_token)+'\',\'_blank\')"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg>Imprimir cartaz</button>'
+          +'<button class="btn-ghost" style="flex:1" onclick="evtShare(\''+esc(url).replace(/\x27/g,"")+'\',\''+esc(e.title).replace(/\x27/g,"")+'\')"><svg class="icon" width="14" height="14"><use href="#i-arrow-right"/></svg>Compartilhar</button>'
+        +'</div>'
+        +'<label>Link público (o que o QR abre)</label><div style="display:flex;gap:6px;margin-top:4px"><input readonly value="'+esc(url)+'" style="font-size:12px"><button class="btn-ghost" onclick="copyText(\''+esc(url).replace(/\x27/g,"")+'\')">Copiar</button></div>'
+        +'<div style="margin-top:10px"><a href="'+qrImageUrl(url,600)+'" download="qr-evento.png" class="btn-ghost" style="text-decoration:none;justify-content:center"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg>Baixar só o QR (PNG)</a></div>'
+        +'<div class="sub" style="margin-top:14px;line-height:1.5">O <strong>cartaz</strong> sai com o nome do candidato, do evento, local e horário — pronto para imprimir ou compartilhar. No cadastro o eleitor informa nome, telefone e CEP (com número obrigatório).</div>'
       +'</div>'
     +'</div><div class="actions"><button class="btn-ghost" onclick="closeModal()">Fechar</button></div>', 'evtqr-'+id);
+};
+window.evtShare = async function(url, title){
+  var txt = 'Cadastre-se no evento: '+(title||'');
+  if(navigator.share){ try{ await navigator.share({ title:title||'Evento', text:txt, url:url }); return; }catch(e){ return; } }
+  try{ await navigator.clipboard.writeText(url); toast('Link copiado!'); }catch(e){ prompt('Copie o link:', url); }
 };
 window.evtLeads = async function(id, title){
   showModalHtml('<h3>Leads · '+esc(title)+'</h3><div class="sub">Carregando…</div>', 'evtleads-'+id);
@@ -7755,6 +7868,22 @@ window.submitJoin = function(){
     } else if(offline && pEl){
       pEl.innerHTML = 'Cadastro registrado. Estamos sem conexão no momento — seus dados foram salvos e serão enviados assim que a rede voltar. Você foi vinculado à base de <strong style="color:var(--ink)">'+esc(displayLeaderName)+'</strong>.';
     }
+    // Botão de confirmação por WhatsApp (a pessoa recebe nome + cidade na própria conversa)
+    try {
+      var candNameW = (state.candidate && state.candidate.name) || '';
+      var waDigits = (phone||'').replace(/\D/g,''); if(waDigits.length<=11) waDigits='55'+waDigits;
+      var waLines = ['✅ Cadastro confirmado — '+(candNameW||'campanha'), '👤 Nome: '+name];
+      if(addrCity) waLines.push('🏙️ Cidade: '+addrCity);
+      waLines.push('', 'Confira se seus dados estão certos e guarde esta confirmação. 💚');
+      var waHref = 'https://wa.me/'+waDigits+'?text='+encodeURIComponent(waLines.join('\n'));
+      var oldW = document.getElementById('join-wa-confirm'); if(oldW) oldW.remove();
+      var aW = document.createElement('a');
+      aW.id='join-wa-confirm'; aW.href=waHref; aW.target='_blank'; aW.rel='noopener';
+      aW.style.cssText='display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;text-decoration:none;padding:14px;border-radius:11px;font-size:15px;font-weight:700;margin-top:18px';
+      aW.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.2-.7-2.7-1.1-4.4-3.9-4.6-4.1-.1-.2-1-1.4-1-2.6s.6-1.8.9-2.1c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.5c-.2.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.2.1.4.1.6-.1l.7-.9c.2-.2.4-.2.6-.1l1.9.9c.3.1.4.2.5.3.1.3.1.7-.1 1.3Z"/></svg>Confirmar por WhatsApp';
+      var tail = successBox.querySelector('div[style*="margin-top:20px"]');
+      if(tail) successBox.insertBefore(aW, tail); else successBox.appendChild(aW);
+    } catch(e){}
   };
 
   sbRpc('mob_join', rpcArgs)

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR do evento · MOBILIZZA.ORG</title>
+<style>
+:root{--brand:#00A878;--ink:#0F172A;--muted:#64748B;--border:#E2E8F0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:#EEF1F5;color:var(--ink);display:flex;flex-direction:column;align-items:center;padding:20px;min-height:100vh}
+.bar{width:100%;max-width:600px;display:flex;gap:10px;margin-bottom:16px}
+.btn{flex:1;background:var(--brand);color:#fff;border:none;padding:14px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--border)}
+.poster{width:600px;max-width:100%;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px -20px rgba(0,0,0,.3)}
+.top{background:linear-gradient(135deg,var(--brand),#0b4f7a);color:#fff;padding:28px;display:flex;align-items:center;gap:18px}
+.photo{width:96px;height:96px;border-radius:18px;background:rgba(255,255,255,.2);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:800}
+.photo img{width:100%;height:100%;object-fit:cover}
+.cname{font-size:30px;font-weight:800;line-height:1.1}
+.coffice{font-size:15px;opacity:.92;margin-top:4px}
+.mid{padding:28px;text-align:center}
+.evtlabel{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700}
+.evttitle{font-size:26px;font-weight:800;margin:6px 0 4px}
+.evtinfo{font-size:15px;color:var(--muted)}
+.qrbox{margin:22px auto 10px;width:300px;max-width:80%;background:#fff;padding:14px;border:1px solid var(--border);border-radius:16px}
+.qrbox img{width:100%;height:auto;display:block}
+.cta{font-size:17px;font-weight:800;color:var(--brand);margin-top:6px}
+.ctasub{font-size:13px;color:var(--muted);margin-top:2px}
+.foot{background:#0A1628;color:#fff;text-align:center;padding:12px;font-size:13px;font-weight:700;letter-spacing:.02em}
+.foot span{opacity:.55;font-weight:500}
+.load{padding:60px;text-align:center;color:var(--muted)}
+@media print{
+  body{background:#fff;padding:0}
+  .bar{display:none}
+  .poster{box-shadow:none;border-radius:0;width:100%}
+}
+</style>
+</head>
+<body>
+<div class="bar" id="bar" style="display:none">
+  <button class="btn" onclick="window.print()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir</button>
+  <button class="btn ghost" onclick="shareIt()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Compartilhar</button>
+</div>
+
+<div class="poster" id="poster"><div class="load">Carregando o cartaz do evento…</div></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const SUPABASE_URL='https://dhxizqszipfnlpojzpbc.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRoeGl6cXN6aXBmbmxwb2p6cGJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NDgyNzYsImV4cCI6MjA5ODMyNDI3Nn0.Mb8IKH9MKumo4H4bag5iAjD7IXS8ogg9skKrCdvqV1M';
+const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
+const esc=s=>(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const OFFICES={deputado_estadual:'Deputado Estadual',deputado_federal:'Deputado Federal',prefeito:'Prefeito',vereador:'Vereador',governador:'Governador',senador:'Senador',presidente:'Presidente'};
+const TOKEN=new URLSearchParams(location.search).get('e');
+// A URL de cadastro (o que o QR abre) fica sempre no domínio oficial:
+const CAPTURE=location.origin+'/evento.html?e='+encodeURIComponent(TOKEN||'');
+window._captureUrl = CAPTURE;
+window._evtTitle = '';
+
+function qrImg(data,size){ return 'https://api.qrserver.com/v1/create-qr-code/?size='+size+'x'+size+'&margin=10&data='+encodeURIComponent(data); }
+
+window.shareIt = async function(){
+  const url = window._captureUrl;
+  const txt = 'Cadastre-se no evento: '+(window._evtTitle||'');
+  if(navigator.share){ try{ await navigator.share({ title: window._evtTitle||'Evento', text: txt, url }); return; }catch(e){ return; } }
+  try{ await navigator.clipboard.writeText(url); alert('Link do cadastro copiado!'); }catch(e){ prompt('Copie o link:', url); }
+};
+
+(async()=>{
+  const p=document.getElementById('poster');
+  if(!TOKEN){ p.innerHTML='<div class="load" style="color:#DC2626">Link inválido — falta o código do evento.</div>'; return; }
+  let r;
+  try{ const res=await sb.rpc('mob_event_public',{p_qr_token:TOKEN}); r=res.data; }
+  catch(e){ p.innerHTML='<div class="load" style="color:#DC2626">Erro ao carregar.</div>'; return; }
+  if(!r||!r.ok){ p.innerHTML='<div class="load" style="color:#DC2626">Evento não encontrado.</div>'; return; }
+  const ev=r.event, c=r.candidate;
+  window._evtTitle = ev.title||'';
+  const color=c.theme_color||'#00A878';
+  document.documentElement.style.setProperty('--brand', color);
+  const d = ev.date ? new Date(ev.date+'T00:00:00').toLocaleDateString('pt-BR') : '';
+  const info = [ [d, ev.time].filter(Boolean).join(' · '), [ev.location, ev.bairro, ev.city].filter(Boolean).join(' · ') ].filter(Boolean).join('  |  ');
+  p.innerHTML =
+    '<div class="top" style="background:linear-gradient(135deg,'+esc(color)+',#0b3d5c)">'
+      +'<div class="photo">'+(c.photo_url?'<img src="'+esc(c.photo_url)+'">':esc((c.name||'M').slice(0,1).toUpperCase()))+'</div>'
+      +'<div><div class="cname">'+esc(c.name||'')+'</div><div class="coffice">'+(OFFICES[c.office]||esc(c.office||''))+(c.party_number?' · '+esc(c.party_number):'')+'</div></div>'
+    +'</div>'
+    +'<div class="mid">'
+      +'<div class="evtlabel">Evento</div>'
+      +'<div class="evttitle">'+esc(ev.title||'')+'</div>'
+      +(info?'<div class="evtinfo">'+esc(info)+'</div>':'')
+      +'<div class="qrbox"><img src="'+qrImg(CAPTURE,320)+'" alt="QR do evento"></div>'
+      +'<div class="cta">Aponte a câmera do celular</div>'
+      +'<div class="ctasub">e faça seu cadastro em 30 segundos</div>'
+    +'</div>'
+    +'<div class="foot">MOBILIZZA<span>.org</span></div>';
+  document.getElementById('bar').style.display='flex';
+})();
+</script>
+</body>
+</html>
