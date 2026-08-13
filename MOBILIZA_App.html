@@ -7271,6 +7271,13 @@ function renderSettings(){
     +'<div style="margin-top:12px"><button class="btn-primary" onclick="saveElection()">Salvar</button></div></div>';
   html += '</div>';
 
+  // ===== Conectar WhatsApp (disparo oficial · Meta Cloud API) =====
+  html += '<div class="config-section" style="border:1px solid rgba(0,168,120,.35);background:linear-gradient(135deg,rgba(0,168,120,.06),transparent)">'
+    +'<h3><svg class="icon" width="15" height="15" style="color:#128C4B"><use href="#i-whatsapp"/></svg> Conectar WhatsApp <span style="font-size:11px;font-weight:700;color:#128C4B;background:#DCFCE7;padding:2px 8px;border-radius:999px;margin-left:6px">disparo oficial</span></h3>'
+    +'<div class="sub">Conecte o número Business (Meta Cloud API) para enviar mensagens em massa pela plataforma. Isto é diferente do WhatsApp pessoal de compartilhamento acima.</div>'
+    +'<div id="wa-connect-box" style="margin-top:8px"><div style="color:var(--muted);font-size:13px;padding:10px 0">Carregando status…</div></div>'
+    +'</div>';
+
   html += '<div class="config-section"><h3><svg class="icon" width="15" height="15"><use href="#i-pin"/></svg> Regiões ('+activeOnly(state.regions).length+')</h3>';
   if(activeOnly(state.regions).length===0) html += '<div style="text-align:center;padding:18px;color:var(--muted);font-size:13px">Nenhuma região</div>';
   else activeOnly(state.regions).forEach(function(r){
@@ -7367,7 +7374,55 @@ function renderSettings(){
   html += '<div class="config-section"><h3 style="color:var(--danger)"><svg class="icon" width="15" height="15"><use href="#i-alert"/></svg> Zona de risco</h3><div class="sub">Operações irreversíveis</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="loadDemoMinas()"><svg class="icon" width="13" height="13"><use href="#i-refresh"/></svg>Carregar demo Minas Gerais</button><button class="btn-ghost" onclick="loadDemoPernambuco()"><svg class="icon" width="13" height="13"><use href="#i-refresh"/></svg>Carregar demo Pernambuco</button><button class="btn-danger" onclick="resetApp()"><svg class="icon" width="14" height="14"><use href="#i-trash"/></svg>Apagar tudo</button></div></div>';
 
   document.getElementById('view-settings').innerHTML = html;
+  try{ if(typeof waLoadConfig==='function') waLoadConfig(); }catch(e){}
 }
+// ===== WhatsApp Business — conectar / status / desconectar =====
+window.waLoadConfig = function(){
+  var box = document.getElementById('wa-connect-box'); if(!box) return;
+  if(!window._mobCandId || !window.MOB_RPC){ box.innerHTML = waConnectFormHtml({}); return; }
+  window.MOB_RPC('mob_wa_config_get',{p_candidate:window._mobCandId}).then(function(cfg){
+    box.innerHTML = (cfg && cfg.connected) ? waConnectedHtml(cfg) : waConnectFormHtml(cfg||{});
+  }).catch(function(){ box.innerHTML = waConnectFormHtml({}); });
+};
+function waConnectedHtml(cfg){
+  return '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:16px;border:1px solid rgba(0,168,120,.4);border-radius:12px;background:rgba(0,168,120,.07)">'
+    +'<div style="display:flex;align-items:center;gap:12px">'
+      +'<div style="width:44px;height:44px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.2-.7-2.7-1.1-4.4-3.9-4.6-4.1-.1-.2-1-1.4-1-2.6s.6-1.8.9-2.1c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.5c-.2.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.2.1.4.1.6-.1l.7-.9c.2-.2.4-.2.6-.1l1.9.9c.3.1.4.2.5.3.1.3.1.7-.1 1.3Z"/></svg></div>'
+      +'<div><div style="font-weight:800;font-size:15px;display:flex;align-items:center;flex-wrap:wrap;gap:8px">'+esc(cfg.display_number||'Número conectado')+'<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:#0B7A46;background:#DCFCE7;padding:3px 10px;border-radius:999px"><span style="width:7px;height:7px;border-radius:50%;background:#16A34A;display:inline-block"></span>LIGADO</span></div>'
+      +'<div style="font-size:12px;color:var(--muted);margin-top:3px">Phone ID: '+esc(cfg.phone_number_id||'—')+(cfg.waba_id?' · WABA: '+esc(cfg.waba_id):'')+(cfg.has_token?' · token ✓':' · token pendente')+'</div></div>'
+    +'</div>'
+    +'<button class="btn-danger" onclick="waDisconnect()"><svg class="icon" width="13" height="13"><use href="#i-x-close"/></svg> Desconectar</button>'
+  +'</div>'
+  +'<div style="margin-top:8px;font-size:12px;color:var(--muted)">Número conectado e pronto para disparo — não é preciso mexer. Para trocar o número, desconecte primeiro.</div>';
+}
+function waConnectFormHtml(cfg){
+  cfg = cfg||{};
+  return '<div style="padding:16px;border:1px dashed var(--border);border-radius:12px">'
+    +'<div style="font-size:13px;color:var(--ink-2);margin-bottom:12px;line-height:1.5">Crie a <strong>WABA + número + token</strong> no painel da Meta (passo a passo no manual de endpoints) e cole os identificadores abaixo.</div>'
+    +'<label>Número (com DDI/DDD, como será exibido)</label><input id="wa-num" value="'+esc(cfg.display_number||'')+'" placeholder="+55 81 99999-9999">'
+    +'<div class="form-row"><div><label>Phone Number ID *</label><input id="wa-pnid" value="'+esc(cfg.phone_number_id||'')+'" placeholder="Ex: 123456789012345"></div><div><label>WABA ID</label><input id="wa-waba" value="'+esc(cfg.waba_id||'')+'" placeholder="Ex: 987654321098765"></div></div>'
+    +'<label>Token permanente (System User)'+(cfg.has_token?' <span style="color:var(--brand-2);font-weight:600;text-transform:none;letter-spacing:0">· já salvo — deixe em branco para manter</span>':'')+'</label><input id="wa-token" type="password" placeholder="EAAG..." style="font-family:monospace;font-size:12px" autocomplete="off">'
+    +'<div style="margin-top:6px;font-size:11px;color:var(--muted)">O token é guardado no servidor e nunca é exibido de volta por segurança.</div>'
+    +'<div style="margin-top:14px"><button class="btn-primary" onclick="waConnect()"><svg class="icon" width="14" height="14"><use href="#i-whatsapp"/></svg> Conectar agora</button></div>'
+  +'</div>';
+}
+window.waConnect = function(){
+  var g=function(x){var el=document.getElementById(x);return el?el.value.trim():'';};
+  var data={ display_number:g('wa-num'), phone_number_id:g('wa-pnid'), waba_id:g('wa-waba'), access_token:g('wa-token') };
+  if(!data.display_number || !data.phone_number_id){ toast('Informe ao menos o número e o Phone Number ID','warn'); return; }
+  if(!window._mobCandId){ toast('Abra uma campanha primeiro','warn'); return; }
+  window.MOB_RPC('mob_wa_config_save',{p_candidate:window._mobCandId, p_data:data}).then(function(r){
+    if(r && r.ok){ toast('WhatsApp conectado'); waLoadConfig(); }
+    else toast((r&&r.error)||'Erro ao conectar','err');
+  }).catch(function(e){ toast(e.message||'Erro','err'); });
+};
+window.waDisconnect = function(){
+  if(!confirm('Desconectar o WhatsApp desta campanha? O disparo oficial ficará indisponível até reconectar.')) return;
+  window.MOB_RPC('mob_wa_config_disconnect',{p_candidate:window._mobCandId}).then(function(r){
+    if(r && r.ok){ toast('WhatsApp desconectado'); waLoadConfig(); }
+    else toast((r&&r.error)||'Erro','err');
+  }).catch(function(e){ toast(e.message||'Erro','err'); });
+};
 window.saveCandidate = function(){
   state.candidate.name = document.getElementById('s-name').value.trim();
   state.candidate.party = document.getElementById('s-party').value.trim();
@@ -7391,7 +7446,7 @@ window.saveElection = function(){
     state.candidate = state.candidate || {};
     state.candidate.whatsapp = (wEl.value||'').trim();
     // Persistir também no cadastro do candidato (para a automação de disparo)
-    try{ if(window._mobCandId && typeof sbRpc==='function') sbRpc('mob_update_candidate_self',{p_id:window._mobCandId,p_data:{whatsapp:state.candidate.whatsapp}}); }catch(e){}
+    try{ if(window._mobCandId && window.MOB_RPC) window.MOB_RPC('mob_update_candidate_self',{p_id:window._mobCandId,p_data:{whatsapp:state.candidate.whatsapp}}).catch(function(){}); }catch(e){}
   }
   saveState(); bootApp(); renderSettings(); toast('Eleição atualizada');
 };
