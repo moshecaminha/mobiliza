@@ -1056,6 +1056,68 @@ window.loadPopulationForCity = async function(municipioId){
   }
 };
 
+// ===== UF/Cidade em cascata — reutilizável em TODOS os formulários =====
+// Regra: escolhe a UF (lista fixa) → cidades são listadas automaticamente pelo IBGE.
+window.mobUFOptions = function(sel){
+  sel = (sel||'').toUpperCase();
+  return '<option value="">— UF —</option>' + BR_STATES.map(function(s){
+    return '<option value="'+s.uf+'"'+(sel===s.uf?' selected':'')+'>'+s.uf+' — '+s.nome+'</option>';
+  }).join('');
+};
+// Popula um <select> de cidade a partir da UF (IBGE, com cache). Pré-seleciona 'preselect'.
+window.mobFillCities = function(uf, citySelId, preselect){
+  var citySel = document.getElementById(citySelId);
+  if(!citySel) return Promise.resolve();
+  uf = (uf||'').toUpperCase();
+  citySel.setAttribute('data-init','1');
+  if(!uf){ citySel.innerHTML='<option value="">— selecione a UF —</option>'; citySel.disabled=true; return Promise.resolve(); }
+  citySel.disabled=true; citySel.innerHTML='<option value="">carregando…</option>';
+  return loadCitiesForState(uf).then(function(cities){
+    var opts = (cities||[]).map(function(m){ return '<option value="'+esc(m.nome)+'" data-ibge="'+m.id+'">'+esc(m.nome)+'</option>'; }).join('');
+    citySel.innerHTML = '<option value="">— Selecione a cidade —</option>' + opts;
+    citySel.disabled=false;
+    if(preselect){
+      for(var i=0;i<citySel.options.length;i++){ if(citySel.options[i].value.toLowerCase()===String(preselect).toLowerCase()){ citySel.selectedIndex=i; break; } }
+    }
+  }).catch(function(){ citySel.innerHTML='<option value="">falha ao carregar</option>'; citySel.disabled=false; });
+};
+// HTML de um par UF+Cidade (dois <div> para caber num .form-row). UF primeiro.
+window.mobUFCityPair = function(ufId, cityId, ufVal, cityVal){
+  ufVal = ufVal||''; cityVal = cityVal||'';
+  return '<div><label>UF</label><select id="'+ufId+'" class="mob-uf" onchange="mobFillCities(this.value,\''+cityId+'\')">'+mobUFOptions(ufVal)+'</select></div>'
+       + '<div><label>Cidade</label><select id="'+cityId+'" class="mob-city" data-uf="'+esc(ufVal)+'" data-city="'+esc(cityVal)+'" data-init="0" disabled>'
+       + '<option value="'+esc(cityVal)+'"'+(cityVal?' selected':'')+'>'+(cityVal?esc(cityVal):'— selecione a UF —')+'</option></select></div>';
+};
+// Observador: inicializa automaticamente qualquer par UF/cidade recém-inserido no DOM.
+(function(){
+  function initOne(sel){
+    if(!sel || sel.getAttribute('data-init')==='1') return;
+    var uf = sel.getAttribute('data-uf')||'';
+    var cv = sel.getAttribute('data-city')||'';
+    sel.setAttribute('data-init','1');
+    if(uf){ mobFillCities(uf, sel.id, cv); }
+  }
+  window.mobScanUFCity = function(root){
+    (root||document).querySelectorAll('select.mob-city[data-init="0"]').forEach(initOne);
+  };
+  try{
+    var mo = new MutationObserver(function(muts){
+      for(var i=0;i<muts.length;i++){
+        var an = muts[i].addedNodes;
+        for(var j=0;j<an.length;j++){
+          var n = an[j];
+          if(n.nodeType!==1) continue;
+          if(n.matches && n.matches('select.mob-city[data-init="0"]')) initOne(n);
+          if(n.querySelectorAll) n.querySelectorAll('select.mob-city[data-init="0"]').forEach(initOne);
+        }
+      }
+    });
+    document.addEventListener('DOMContentLoaded', function(){
+      try{ mo.observe(document.body, {childList:true, subtree:true}); mobScanUFCity(document); }catch(e){}
+    });
+  }catch(e){}
+})();
+
 // Fator eleitores aptos sobre população total (Brasil ~70-72%)
 function estimateVotersFromPopulation(pop){ return Math.round(pop*0.71); }
 
@@ -2891,11 +2953,14 @@ window.filterToCity = function(cityName){
 };
 
 // ============ RELATÓRIO EXECUTIVO EXPORTÁVEL ============
-window.openExportReport = function(){
+window.openExportReport = async function(){
   var cities = getCitiesWithBase();
   var leaders = activeOnly(state.leaders);
   var militants = activeOnly(state.militants);
   var p = calcProjection();
+  // Eventos e leads da base (por candidato) para a seção Eventos & Leads
+  var evRows=[], leadRows=[];
+  try{ if(window._mobCandId && window.MOB_RPC){ evRows=(await window.MOB_RPC('mob_events_list',{p_candidate:window._mobCandId}))||[]; leadRows=(await window.MOB_RPC('mob_leads_list',{p_candidate:window._mobCandId}))||[]; } }catch(e){}
   var totalPromised = leaders.reduce(function(s,l){return s+(+l.votesPromised||0)},0) + militants.reduce(function(s,m){return s+(+m.votesPromised||0)},0);
   var totalEstimated = leaders.reduce(function(s,l){return s+(+l.votesEstimated||0)},0) + militants.reduce(function(s,m){return s+(+m.votesEstimated||0)},0);
   var totalDelivered = leaders.reduce(function(s,l){return s+(+l.votesDelivered||0)},0) + militants.reduce(function(s,m){return s+(+m.votesDelivered||0)},0);
@@ -2972,6 +3037,7 @@ window.openExportReport = function(){
     +'<tr><td><strong>Entregue</strong></td><td style="text-align:right">'+(totalDelivered>0?totalDelivered.toLocaleString('pt-BR'):'—')+'</td><td style="text-align:right">'+(totalDelivered>0 && p.target?Math.round(totalDelivered/p.target*100):0)+'%</td></tr>'
     +'</tbody></table>'
 
+    + mobEventsLeadsReportSection(evRows, leadRows)
     +'<div class="footer">Relatório gerado pela plataforma MOBILIZA · dados protegidos LGPD · uso interno da campanha</div>'
     +'</body></html>';
 
@@ -2982,6 +3048,37 @@ window.openExportReport = function(){
   setTimeout(function(){ try{ w.print(); }catch(e){} }, 800);
   toast('Relatório aberto em nova aba · use Ctrl+P para salvar como PDF');
 };
+// Seção Eventos & Leads do relatório executivo (por candidato)
+function mobEventsLeadsReportSection(evRows, leadRows){
+  evRows = evRows||[]; leadRows = leadRows||[];
+  if(!evRows.length && !leadRows.length) return '';
+  var totalCheckins = evRows.reduce(function(s,e){return s+(+e.checkins||0)},0);
+  var totalShared = evRows.reduce(function(s,e){return s+(+e.shared||0)},0);
+  var leadsByCity = {};
+  leadRows.forEach(function(l){ var k=(l.city||'—')+(l.uf?'/'+l.uf:''); leadsByCity[k]=(leadsByCity[k]||0)+1; });
+  var cityKeys = Object.keys(leadsByCity).sort(function(a,b){return leadsByCity[b]-leadsByCity[a]});
+  var out = '<h2>Eventos &amp; Leads</h2>'
+    +'<div class="kpis">'
+      +'<div class="kpi"><div class="lbl">Eventos</div><div class="v">'+evRows.length+'</div></div>'
+      +'<div class="kpi"><div class="lbl">Check-ins</div><div class="v">'+totalCheckins.toLocaleString('pt-BR')+'</div></div>'
+      +'<div class="kpi"><div class="lbl">Leads na base</div><div class="v">'+leadRows.length.toLocaleString('pt-BR')+'</div></div>'
+      +'<div class="kpi"><div class="lbl">Compartilharam</div><div class="v">'+totalShared.toLocaleString('pt-BR')+'</div></div>'
+    +'</div>';
+  if(evRows.length){
+    out += '<h3>Eventos</h3><table><thead><tr><th>Evento</th><th>Data</th><th>Local</th><th style="text-align:right">Check-ins</th><th style="text-align:right">Compart.</th></tr></thead><tbody>'
+      + evRows.map(function(e){
+          var d = e.date ? new Date(e.date+'T00:00:00').toLocaleDateString('pt-BR') : '—';
+          return '<tr><td><strong>'+esc(e.title||'')+'</strong></td><td>'+d+(e.time?' · '+esc(e.time):'')+'</td><td>'+esc([e.location,e.bairro,e.city].filter(Boolean).join(' · '))+'</td><td style="text-align:right;font-weight:700">'+(+e.checkins||0)+'</td><td style="text-align:right">'+(+e.shared||0)+'</td></tr>';
+        }).join('')
+      + '</tbody></table>';
+  }
+  if(cityKeys.length){
+    out += '<h3>Leads por cidade</h3><table><thead><tr><th>Cidade</th><th style="text-align:right">Leads</th></tr></thead><tbody>'
+      + cityKeys.map(function(k){ return '<tr><td>'+esc(k)+'</td><td style="text-align:right;font-weight:700">'+leadsByCity[k]+'</td></tr>'; }).join('')
+      + '</tbody></table>';
+  }
+  return out;
+}
 
 function addPeopleMarkers(cities, m){
   var markersAdded = 0;
@@ -5472,8 +5569,8 @@ window.evtModal = function(id){
     +'<label>Título *</label><input id="ev-title" value="'+esc(e.title||'')+'" placeholder="Ex: Caminhada na Savassi">'
     +'<div class="form-row"><div><label>Data</label><input id="ev-date" type="date" value="'+esc((e.date||'').slice(0,10))+'"></div><div><label>Hora</label><input id="ev-time" value="'+esc(e.time||'')+'" placeholder="18:00"></div></div>'
     +'<label>Local (nome)</label><input id="ev-loc" value="'+esc(e.location||'')+'" placeholder="Praça da Savassi">'
-    +'<div class="form-row"><div><label>Bairro</label><input id="ev-bairro" value="'+esc(e.bairro||'')+'"></div><div><label>Cidade</label><input id="ev-city" value="'+esc(e.city||(window._evtCand&&window._evtCand.city)||'')+'"></div></div>'
-    +'<div class="form-row"><div><label>UF</label><input id="ev-uf" maxlength="2" style="text-transform:uppercase" value="'+esc(e.uf||(window._evtCand&&window._evtCand.uf)||'')+'"></div><div><label>CEP</label><input id="ev-cep" value="'+esc(e.cep||'')+'" placeholder="00000-000"></div></div>'
+    +'<div class="form-row">'+mobUFCityPair('ev-uf','ev-city',(e.uf||(window._evtCand&&window._evtCand.uf)||''),(e.city||(window._evtCand&&window._evtCand.city)||''))+'</div>'
+    +'<div class="form-row"><div><label>Bairro</label><input id="ev-bairro" value="'+esc(e.bairro||'')+'"></div><div><label>CEP</label><input id="ev-cep" value="'+esc(e.cep||'')+'" placeholder="00000-000"></div></div>'
     +'<label>Descrição</label><textarea id="ev-desc" rows="2">'+esc(e.description||'')+'</textarea>'
     +'<div class="actions">'+(id?'<button class="btn-danger" onclick="evtDelete(\''+id+'\');closeModal()">Excluir</button>':'')+'<button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="evtSave(\''+(id||'')+'\')">Salvar</button></div>',
     'evt-'+(id||'new'));
@@ -5503,8 +5600,10 @@ window.evtQR = function(id){
       +'<div>'
         +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'
           +'<button class="btn-primary" style="flex:1" onclick="window.open(\''+(location.origin||"")+'/qr.html?e='+encodeURIComponent(e.qr_token)+'\',\'_blank\')"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg>Imprimir cartaz</button>'
+          +'<button class="btn-ghost" style="flex:1;color:#128C4B" onclick="evtWaShare(\''+esc(url).replace(/\x27/g,"")+'\',\''+esc(e.title).replace(/\x27/g,"")+'\')"><svg class="icon" width="14" height="14"><use href="#i-whatsapp"/></svg>WhatsApp</button>'
           +'<button class="btn-ghost" style="flex:1" onclick="evtShare(\''+esc(url).replace(/\x27/g,"")+'\',\''+esc(e.title).replace(/\x27/g,"")+'\')"><svg class="icon" width="14" height="14"><use href="#i-arrow-right"/></svg>Compartilhar</button>'
         +'</div>'
+        +(((window._evtCand&&window._evtCand.whatsapp)||(state.candidate&&state.candidate.whatsapp))?'<button class="btn-ghost" style="width:100%;color:#128C4B;margin-bottom:12px" onclick="evtWaToCandidate(\''+esc(url).replace(/\x27/g,"")+'\',\''+esc(e.title).replace(/\x27/g,"")+'\')"><svg class="icon" width="14" height="14"><use href="#i-whatsapp"/></svg>Enviar este evento ao WhatsApp do candidato</button>':'')
         +'<label>Link público (o que o QR abre)</label><div style="display:flex;gap:6px;margin-top:4px"><input readonly value="'+esc(url)+'" style="font-size:12px"><button class="btn-ghost" onclick="copyText(\''+esc(url).replace(/\x27/g,"")+'\')">Copiar</button></div>'
         +'<div style="margin-top:10px"><a href="'+qrImageUrl(url,600)+'" download="qr-evento.png" class="btn-ghost" style="text-decoration:none;justify-content:center"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg>Baixar só o QR (PNG)</a></div>'
         +'<div class="sub" style="margin-top:14px;line-height:1.5">O <strong>cartaz</strong> sai com o nome do candidato, do evento, local e horário — pronto para imprimir ou compartilhar. No cadastro o eleitor informa nome, telefone e CEP (com número obrigatório).</div>'
@@ -5515,6 +5614,21 @@ window.evtShare = async function(url, title){
   var txt = 'Cadastre-se no evento: '+(title||'');
   if(navigator.share){ try{ await navigator.share({ title:title||'Evento', text:txt, url:url }); return; }catch(e){ return; } }
   try{ await navigator.clipboard.writeText(url); toast('Link copiado!'); }catch(e){ prompt('Copie o link:', url); }
+};
+// Número no formato E.164 sem "+": prefixa 55 se vier só com DDD
+function mobWaDigits(phone){ var d=(phone||'').replace(/\D/g,''); if(d && d.length<=11) d='55'+d; return d; }
+// Compartilhar o evento pelo WhatsApp (abre o seletor de contatos do WhatsApp)
+window.evtWaShare = function(url, title){
+  var candName = (window._evtCand&&window._evtCand.name)||(state.candidate&&state.candidate.name)||'';
+  var msg = 'Participe do evento '+(title||'')+' da campanha de '+candName+'! Cadastre sua presença: '+url;
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+};
+// Enviar o evento direto para o WhatsApp do candidato cadastrado
+window.evtWaToCandidate = function(url, title){
+  var num = mobWaDigits((window._evtCand&&window._evtCand.whatsapp)||(state.candidate&&state.candidate.whatsapp));
+  if(!num){ toast('Cadastre o WhatsApp do candidato em Configurações','warn'); return; }
+  var msg = '📣 Evento da campanha: '+(title||'')+'\nLink de cadastro: '+url;
+  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg),'_blank');
 };
 window.evtLeads = async function(id, title){
   showModalHtml('<h3>Leads · '+esc(title)+'</h3><div class="sub">Carregando…</div>', 'evtleads-'+id);
@@ -6250,8 +6364,11 @@ window.cepAutocomplete = function(el, fieldPrefix){
     var est  = (data && data.uf) || (b && b.state) || '';
     if(addr && !addr.value && logr){ addr.value = logr; }
     if(bairro){ bairro.value = bar; }
-    if(city){ city.value = cid; }
     if(uf){ uf.value = est; }
+    if(city){
+      if(city.tagName==='SELECT' && typeof mobFillCities==='function'){ mobFillCities(est, fieldPrefix+'city', cid); }
+      else { city.value = cid; }
+    }
     if(region && !region.value){ region.value = (bar?bar+' · ':'')+cid; }
     // Guardar lat/lng em inputs hidden (se existirem)
     var latEl = $('lat'), lngEl = $('lng');
@@ -6723,8 +6840,8 @@ window.modalCommittee = function(id){
     +'<label>Responsável</label><input id="cm-resp" type="text" value="'+esc(c.responsible||'')+'" placeholder="Nome do coordenador">'
     +'<div class="form-row"><div><label>CEP <span style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">(preenche o endereço)</span></label><input id="cm-cep" type="text" value="'+esc(c.cep||'')+'" placeholder="00000-000" maxlength="9" inputmode="numeric" oninput="cepAutocomplete(this, \'cm-\')" style="padding-right:36px"></div><div><label>Telefone</label><input id="cm-phone" type="text" inputmode="tel" value="'+esc(c.phone||'')+'" placeholder="(00) 0000-0000"></div></div>'
     +'<label>Endereço · rua e número</label><input id="cm-address" type="text" value="'+esc(c.address||'')+'" placeholder="Rua, número, complemento">'
-    +'<div class="form-row"><div><label>Bairro</label><input id="cm-bairro" type="text" value="'+esc(c.bairro||'')+'"></div><div><label>Cidade</label><input id="cm-city" type="text" value="'+esc(c.city||state.election.city||'')+'"></div></div>'
-    +'<div class="form-row"><div><label>UF</label><input id="cm-uf" type="text" maxlength="2" value="'+esc(c.uf||state.election.state||'')+'" style="text-transform:uppercase"></div><div><label>Região política (opcional)</label><input id="cm-region" type="text" value="'+esc(c.region||'')+'" placeholder="Grupo interno"></div></div>'
+    +'<div class="form-row">'+mobUFCityPair('cm-uf','cm-city',(c.uf||state.election.state||''),(c.city||state.election.city||''))+'</div>'
+    +'<div class="form-row"><div><label>Bairro</label><input id="cm-bairro" type="text" value="'+esc(c.bairro||'')+'"></div><div><label>Região política (opcional)</label><input id="cm-region" type="text" value="'+esc(c.region||'')+'" placeholder="Grupo interno"></div></div>'
     +'<label>Notas</label><textarea id="cm-notes">'+esc(c.notes||'')+'</textarea>'
     +'<div class="actions">'+(id?'<button class="btn-danger" onclick="rmCommittee(\''+id+'\');closeModal()">Mover p/ lixeira</button>':'')+'<button class="btn-ghost" onclick="closeModal()">Cancelar</button><button type="button" class="btn-primary" onclick="saveCommittee(\''+(id||'')+'\')">Salvar</button></div>',
     id?'committee-'+id:'committee-new');
@@ -7146,7 +7263,8 @@ function renderSettings(){
     +'<div style="margin-top:12px"><button class="btn-primary" onclick="saveCandidate()">Salvar</button></div></div>';
   html += '<div class="config-section"><h3><svg class="icon" width="15" height="15"><use href="#i-vote"/></svg> Eleição</h3><div class="sub">Contexto e meta</div>'
     +'<label>Cargo</label><input id="s-pos" value="'+esc(state.election.position)+'">'
-    +'<div class="form-row"><div><label>Cidade</label><input id="s-city" value="'+esc(state.election.city)+'"></div><div><label>UF</label><input id="s-state" value="'+esc(state.election.state)+'" maxlength="2"></div></div>'
+    +'<div class="form-row">'+mobUFCityPair('s-state','s-city',state.election.state,state.election.city)+'</div>'
+    +'<label>WhatsApp do candidato <span style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">(recebe o compartilhamento de eventos e de novas lideranças)</span></label><input id="s-whats" type="tel" inputmode="tel" value="'+esc((state.candidate&&state.candidate.whatsapp)||'')+'" placeholder="(81) 99999-9999">'
     +'<div class="form-row"><div><label>Data</label><input type="date" id="s-date" value="'+esc(state.election.date||'')+'"></div><div><label>Eleitores</label><input type="number" id="s-voters" value="'+(state.election.voterCount||'')+'"></div></div>'
     +'<label>Meta de votos</label><input type="number" id="s-target" value="'+(state.election.victoryTarget||'')+'">'
     +'<div class="form-row"><div><label>Influência</label><input type="number" step="0.1" id="s-mult" value="'+state.parameters.multiplier+'"></div><div><label>Conversão %</label><input type="number" id="s-conv" value="'+Math.round(state.parameters.conversion*100)+'"></div></div>'
@@ -7268,6 +7386,13 @@ window.saveElection = function(){
   state.election.victoryTarget = +document.getElementById('s-target').value||0;
   state.parameters.multiplier = +document.getElementById('s-mult').value||4.2;
   state.parameters.conversion = (+document.getElementById('s-conv').value||71)/100;
+  var wEl = document.getElementById('s-whats');
+  if(wEl){
+    state.candidate = state.candidate || {};
+    state.candidate.whatsapp = (wEl.value||'').trim();
+    // Persistir também no cadastro do candidato (para a automação de disparo)
+    try{ if(window._mobCandId && typeof sbRpc==='function') sbRpc('mob_update_candidate_self',{p_id:window._mobCandId,p_data:{whatsapp:state.candidate.whatsapp}}); }catch(e){}
+  }
   saveState(); bootApp(); renderSettings(); toast('Eleição atualizada');
 };
 
@@ -7402,7 +7527,7 @@ window.modalLeader = function(id){
     // Seção 2: Localização
     +sec('Localização (CEP preenche endereço)','i-pin','var(--brand-2)')
     +'<div class="form-row"><div><label>CEP</label><input id="ml-cep" type="text" value="'+esc(l.cep||'')+'" placeholder="00000-000" maxlength="9" inputmode="numeric" oninput="cepAutocomplete(this, \'ml-\')" style="padding-right:36px"></div><div><label>Bairro</label><input id="ml-bairro" type="text" value="'+esc(l.bairro||'')+'"></div></div>'
-    +'<div class="form-row"><div><label>Cidade</label><input id="ml-city" type="text" value="'+esc(l.city||state.election.city||'')+'"></div><div><label>UF</label><input id="ml-uf" type="text" maxlength="2" value="'+esc(l.uf||state.election.state||'')+'" style="text-transform:uppercase"></div></div>'
+    +'<div class="form-row">'+mobUFCityPair('ml-uf','ml-city',(l.uf||state.election.state||''),(l.city||state.election.city||''))+'</div>'
     +'<input type="hidden" id="ml-lat" value="'+esc(l.lat||'')+'"><input type="hidden" id="ml-lng" value="'+esc(l.lng||'')+'">'
     +'<label>Região política · agrupamento interno</label><select id="ml-region"><option value="">— Selecione uma região —</option>'+regions+'</select>'
     +'<div style="margin-top:4px;font-size:11px;color:var(--muted)">Use as regiões cadastradas para agrupar lideranças (ex: Zona Sul, RMR).</div>'
@@ -7470,6 +7595,8 @@ window.saveLeader = function(id){
     if(id){var idx = state.leaders.findIndex(function(l){return l.id===id});state.leaders[idx] = Object.assign(state.leaders[idx],data); savedLeader = state.leaders[idx]; logAction('edit','leader',state.leaders[idx]); clearDraft('leader-'+id);}
     else { var newItem = Object.assign({id:genId(),createdAt:Date.now()},data); state.leaders.push(newItem); savedLeader = newItem; logAction('create','leader',newItem); clearDraft('leader-new'); }
     saveState(); closeModal(); renderMilitancia(); updateSidebarCounters(); toast(id?'Liderança atualizada':'Liderança '+savedLeader.name+' cadastrada');
+    // Nova liderança → avisar o candidato no WhatsApp cadastrado (compartilhamento)
+    try { if(!id && typeof notifyCandidateNewLeader==='function') notifyCandidateNewLeader(savedLeader); } catch(e){}
     // Push ao Supabase em background (torna o QR funcional em qualquer celular)
     try { if(typeof pushLeaderToBackend==='function') pushLeaderToBackend(savedLeader); } catch(e){}
     // Geocodifica automaticamente pelo bairro → aparece no mapa na hora
@@ -7483,6 +7610,18 @@ window.saveLeader = function(id){
   }
 };
 window.rmLeader = function(id){ if(!confirm('Mover para lixeira? (pode restaurar em Configurações)'))return; var item=softDelete(state.leaders,id); logAction('delete','leader',item); saveState(); renderMilitancia(); toast('Movido para lixeira'); };
+// Avisa o candidato (WhatsApp cadastrado) sobre uma nova liderança
+window.notifyCandidateNewLeader = function(leader){
+  var num = (typeof mobWaDigits==='function') ? mobWaDigits(state.candidate&&state.candidate.whatsapp) : '';
+  if(!num || !leader) return;
+  var linhas = ['🤝 Nova liderança cadastrada — '+((state.candidate&&state.candidate.name)||'campanha'),
+    '👤 '+(leader.name||''),
+    leader.role ? ('Papel: '+(typeof leaderRoleFull==='function'?leaderRoleFull(leader.role):leader.role)) : '',
+    (leader.city||leader.uf) ? ('Local: '+[leader.city,leader.uf].filter(Boolean).join('/')) : '',
+    leader.phone ? ('WhatsApp: '+leader.phone) : ''
+  ].filter(Boolean);
+  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(linhas.join('\n')),'_blank');
+};
 
 // ============ QR / Link de convite por liderança ============
 function baseUrl(){
@@ -7975,7 +8114,7 @@ window.modalMilitant = function(id){
     // Seção 2: Localização (CEP autocomplete)
     +sec('Localização (CEP preenche endereço)','i-pin','var(--brand-2)')
     +'<div class="form-row"><div><label>CEP</label><input id="mm-cep" type="text" value="'+esc(m.cep||'')+'" placeholder="00000-000" maxlength="9" inputmode="numeric" oninput="cepAutocomplete(this, \'mm-\')" style="padding-right:36px"></div><div><label>Bairro</label><input id="mm-bairro" type="text" value="'+esc(m.bairro||'')+'"></div></div>'
-    +'<div class="form-row"><div><label>Cidade</label><input id="mm-city" type="text" value="'+esc(m.city||state.election.city||'')+'"></div><div><label>UF</label><input id="mm-uf" type="text" maxlength="2" value="'+esc(m.uf||state.election.state||'')+'" style="text-transform:uppercase"></div></div>'
+    +'<div class="form-row">'+mobUFCityPair('mm-uf','mm-city',(m.uf||state.election.state||''),(m.city||state.election.city||''))+'</div>'
     +'<input type="hidden" id="mm-lat" value="'+esc(m.lat||'')+'"><input type="hidden" id="mm-lng" value="'+esc(m.lng||'')+'">'
     +'<label>Região política · agrupamento interno</label><select id="mm-region"><option value="">— sem região específica —</option>'+regions+'</select>'
     // Seção 3: Perfil e Indicação

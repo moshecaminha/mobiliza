@@ -201,6 +201,25 @@ window.viewData = async function(id){
   try{
     const data = await rpc('mob_admin_candidate_data',{ p_id:id });
     const c = CACHE.candidates.find(x=>x.id===id)||{};
+    // Relatório resumido (KPIs + distribuição por cidade)
+    let repBlock='';
+    try{
+      const rep = await rpc('mob_candidate_report',{ p_candidate:id });
+      if(rep && rep.ok){
+        const box=(l,v)=>'<div style="flex:1;min-width:104px;padding:10px;background:#F1F5F9;border-radius:8px;border-left:3px solid #00A878"><div style="font-size:10px;text-transform:uppercase;color:#64748B;font-weight:700;letter-spacing:.04em">'+l+'</div><div style="font-size:19px;font-weight:800">'+v+'</div></div>';
+        const cityTbl=(t,arr,valk)=>{ arr=arr||[]; if(!arr.length) return ''; return '<div style="margin-top:12px"><strong>'+t+'</strong><div style="overflow-x:auto;margin-top:6px"><table><thead><tr><th>Cidade</th><th>UF</th><th style="text-align:right">'+valk.toUpperCase()+'</th></tr></thead><tbody>'+arr.map(function(x){return '<tr><td>'+esc(x.city||'—')+'</td><td>'+esc(x.uf||'')+'</td><td style="text-align:right">'+(x[valk]||0)+'</td></tr>';}).join('')+'</tbody></table></div></div>'; };
+        repBlock='<div style="margin-bottom:6px"><strong>Relatório resumido</strong></div>'
+          +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
+            +box('Lideranças',rep.leaders)+box('Militância',rep.militants)+box('Leads',rep.leads)
+            +box('Eventos',rep.events)+box('Check-ins',rep.checkins)+box('Compart.',rep.checkins_shared)
+            +box('Votos est.',(rep.votes_estimated||0).toLocaleString('pt-BR'))
+            +box('Custo camp.','R$ '+(rep.campaigns_cost||0))
+          +'</div>'
+          +cityTbl('Leads por cidade',rep.leads_by_city,'leads')
+          +cityTbl('Base (lideranças + militância) por cidade',rep.people_by_city,'total')
+          +'<div style="height:14px;border-bottom:1px solid var(--border);margin-bottom:6px"></div>';
+      }
+    }catch(e){}
     const sec=(t,arr,cols)=>{
       arr=arr||[];
       if(!arr.length) return '<div style="margin-top:14px"><strong>'+t+'</strong> <span class="sub">— vazio</span></div>';
@@ -209,6 +228,7 @@ window.viewData = async function(id){
       return '<div style="margin-top:16px"><strong>'+t+' ('+arr.length+')</strong><div style="overflow-x:auto;margin-top:6px"><table><thead><tr>'+head+'</tr></thead><tbody>'+rows+'</tbody></table></div></div>';
     };
     showModal('<h3>Dados · '+esc(c.name)+'</h3><div class="sub">Somente leitura. Bases isoladas deste candidato.</div>'
+      +repBlock
       +sec('Lideranças',data.leaders,['name','role','bairro','city','uf','last_election_votes'])
       +sec('Militantes',data.militants,['name','phone','bairro','city','source'])
       +sec('Leads (eventos)',data.leads,['name','phone','bairro','city','number','status'])
