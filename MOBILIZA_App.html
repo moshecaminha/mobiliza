@@ -5726,11 +5726,31 @@ function leadsDraw(){
   }
   box.innerHTML = html;
 }
+// Envia pela API oficial do candidato (Edge Function mob-wa-send). Registra em Conversas.
+window.waPlatformSend = function(args){
+  if(!window.MOB_SB || !window.MOB_SB.functions){ return Promise.reject(new Error('Sessão não iniciada')); }
+  args = args || {}; args.candidateId = window._mobCandId;
+  return window.MOB_SB.functions.invoke('mob-wa-send', { body: args }).then(function(res){
+    if(res.error) throw new Error((res.error && res.error.message) || 'Falha no envio');
+    return res.data || {};
+  });
+};
 window.leadWa = function(phone, name){
-  var d=(phone||'').replace(/\D/g,''); if(d.length<=11) d='55'+d;
+  window._leadCompose = { phone:phone, name:name };
   var cand=(state.candidate&&state.candidate.name)||'';
-  var msg='Olá '+((name||'').split(' ')[0]||'')+'! Aqui é da campanha de '+cand+'.';
-  window.open('https://wa.me/'+d+'?text='+encodeURIComponent(msg),'_blank');
+  var def='Olá '+((name||'').split(' ')[0]||'')+'! Aqui é da campanha de '+cand+'.';
+  showModalHtml('<h3>Mensagem para '+esc(name||phone)+'</h3><div class="sub">Enviada pelo número oficial da campanha (WhatsApp conectado). A conversa fica registrada em Conversas.</div>'
+    +'<label>Mensagem</label><textarea id="lw-msg" rows="4">'+esc(def)+'</textarea>'
+    +'<div class="actions"><a class="btn-ghost" style="text-decoration:none" href="tel:'+(phone||'').replace(/\D/g,'')+'"><svg class="icon" width="13" height="13"><use href="#i-phone"/></svg> Ligar</a><button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="leadWaSend()">Enviar pela plataforma</button></div>','leadwa');
+};
+window.leadWaSend = function(){
+  var el=document.getElementById('lw-msg'); var txt=el?(el.value||'').trim():''; var c=window._leadCompose||{};
+  if(!txt){ toast('Escreva a mensagem','warn'); return; }
+  waPlatformSend({phone:c.phone, name:c.name, text:txt}).then(function(d){
+    closeModal();
+    if(d && d.sent){ toast('Mensagem enviada pelo número oficial'); }
+    else { toast((d && d.results && d.results[0] && d.results[0].error) || 'Não enviada — fora da janela de 24h pode exigir template aprovado','warn'); }
+  }).catch(function(e){ toast(e.message||'Erro','err'); });
 };
 window.leadsBulk = function(){
   var filtered = leadsFiltered();
@@ -5742,10 +5762,19 @@ window.leadsBulk = function(){
     +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="leadsBulkSend()">Registrar disparo</button></div>', 'leadsbulk');
 };
 window.leadsBulkSend = function(){
-  var el=document.getElementById('lb-msg'); var msg=el?el.value:''; var ids=window._leadsBulkIds||[];
-  if(!ids.length){ closeModal(); return; }
-  window.MOB_RPC('mob_leads_campaign',{p_candidate:window._mobCandId, p_name:'Leads · '+new Date().toLocaleDateString('pt-BR'), p_message:msg, p_lead_ids:ids}).then(function(){
-    closeModal(); toast('Disparo registrado para '+ids.length+' leads');
+  var el=document.getElementById('lb-msg'); var msg=el?(el.value||''):''; var ids=window._leadsBulkIds||[];
+  var filtered = leadsFiltered();
+  if(!filtered.length || !msg.trim()){ toast('Mensagem vazia','warn'); return; }
+  var recipients = filtered.map(function(l){
+    var t = msg.replace(/\{nome\}/g,(l.name||'').split(' ')[0]||'').replace(/\{cidade\}/g,l.city||'').replace(/\{bairro\}/g,l.bairro||'');
+    return { phone:l.phone, name:l.name, text:t };
+  });
+  toast('Enviando '+recipients.length+' pelo número oficial…');
+  waPlatformSend({recipients:recipients}).then(function(d){
+    closeModal();
+    try{ window.MOB_RPC('mob_leads_campaign',{p_candidate:window._mobCandId, p_name:'Leads · '+new Date().toLocaleDateString('pt-BR'), p_message:msg, p_lead_ids:ids}).catch(function(){}); }catch(e){}
+    toast('Enviadas '+(d.sent||0)+' de '+recipients.length+((d.failed)?' · '+d.failed+' falharam (podem exigir template)':''));
+    if(typeof convLoad==='function'){ /* nada */ }
   }).catch(function(e){ toast(e.message||'Erro','err'); });
 };
 
@@ -5798,12 +5827,12 @@ window.convOpen = function(phone, name){
 window.convSend = function(){
   var inp=document.getElementById('conv-reply'); if(!inp||!window._convActive) return;
   var txt=(inp.value||'').trim(); if(!txt) return;
-  var a=window._convActive;
-  window.MOB_RPC('mob_wa_reply',{p_candidate:window._mobCandId,p_phone:a.phone,p_text:txt}).then(function(){
-    var d=(a.phone||'').replace(/\D/g,'');
-    window.open('https://wa.me/'+d+'?text='+encodeURIComponent(txt),'_blank'); // envia de fato pelo WhatsApp
-    convOpen(a.phone, a.name);
-  }).catch(function(e){ toast(e.message||'Erro','err'); });
+  var a=window._convActive; inp.disabled=true;
+  waPlatformSend({phone:a.phone, name:a.name, text:txt}).then(function(d){
+    inp.disabled=false;
+    if(d && d.sent){ inp.value=''; convOpen(a.phone, a.name); }
+    else { toast((d && d.results && d.results[0] && d.results[0].error) || 'Não enviada — a Meta exige janela de 24h ou template aprovado','warn'); convOpen(a.phone, a.name); }
+  }).catch(function(e){ inp.disabled=false; toast(e.message||'Erro','err'); });
 };
 
 // ============ WHATSAPP / COMUNICAÇÃO ============
