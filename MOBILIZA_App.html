@@ -719,7 +719,9 @@ input,select,textarea{font-family:inherit;outline:none;color:var(--ink)}
       <div class="nav-item" data-view="votos" onclick="setView('votos')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-calc"/></svg>Projeção<kbd class="nav-kbd">6</kbd></div>
       <div class="nav-item" data-view="agenda" onclick="setView('agenda')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-calendar"/></svg>Agenda<kbd class="nav-kbd">7</kbd></div>
       <div class="nav-item" data-view="eventos" onclick="setView('eventos')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-hashtag"/></svg>Eventos & QR<kbd class="nav-kbd">V</kbd></div>
+      <div class="nav-item" data-view="leads" onclick="setView('leads')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-users"/></svg>Leads<kbd class="nav-kbd">B</kbd></div>
       <div class="nav-item" data-view="whatsapp" onclick="setView('whatsapp')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-message"/></svg>Comunicação<kbd class="nav-kbd">8</kbd></div>
+      <div class="nav-item" data-view="conversas" onclick="setView('conversas')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-message"/></svg>Conversas<kbd class="nav-kbd">C</kbd></div>
       <div class="nav-label">Gestão</div>
       <div class="nav-item" data-view="logistica" onclick="setView('logistica')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-download"/></svg>Logística<kbd class="nav-kbd">L</kbd></div>
       <div class="nav-item" data-view="financeiro" onclick="setView('financeiro')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-calc"/></svg>Financeiro<kbd class="nav-kbd">F</kbd></div>
@@ -784,7 +786,9 @@ input,select,textarea{font-family:inherit;outline:none;color:var(--ink)}
       <div class="view" id="view-votos"></div>
       <div class="view" id="view-agenda"></div>
       <div class="view" id="view-eventos"></div>
+      <div class="view" id="view-leads"></div>
       <div class="view" id="view-whatsapp"></div>
+      <div class="view" id="view-conversas"></div>
       <div class="view" id="view-logistica"></div>
       <div class="view" id="view-financeiro"></div>
       <div class="view" id="view-trends"></div>
@@ -2303,12 +2307,32 @@ function finishWiz(){
   saveState(); showApp();
   toast('Plataforma configurada · bem-vindo!');
 }
-function seedDefaultTemplatesIfEmpty(){
-  if(activeOnly(state.templates).length>0) return;
-  state.templates = [
-    {id:genId(),name:'Convite evento',preview:'{nome}, hoje às {hora}…',content:'Olá, {nome}.\n\nHoje às {hora} teremos {evento}.\n\nConfirme presença respondendo SIM.\n\n— '+state.candidate.name},
-    {id:genId(),name:'Boas-vindas',preview:'Bem-vindo à campanha…',content:'Olá, {nome}.\n\nBem-vindo à campanha. Você receberá atualizações sobre as próximas ações.\n\n— '+state.candidate.name}
+function standardTemplates(){
+  var cand = (state.candidate && state.candidate.name) || 'a campanha';
+  return [
+    {name:'Boas-vindas ao apoiador', preview:'Bem-vindo à campanha…', content:'Olá, {nome}! 👋\n\nQue bom ter você com a gente na campanha de '+cand+'. Vamos te manter por dentro das ações no seu bairro.\n\nConte com a gente!'},
+    {name:'Convite para evento', preview:'{nome}, participe do evento…', content:'Olá, {nome}!\n\nHoje às {hora} teremos {evento} em {bairro}. Sua presença faz diferença.\n\nPosso confirmar você? Responda SIM. 💚'},
+    {name:'Confirmação de cadastro', preview:'Cadastro confirmado…', content:'Olá, {nome}! Seu cadastro na campanha de '+cand+' está confirmado. Em breve falamos como você pode ajudar na sua região ({cidade}).'},
+    {name:'Lembrete de evento (véspera)', preview:'É amanhã!…', content:'Oi, {nome}! Passando para lembrar: amanhã às {hora} tem {evento} em {bairro}. Te espero lá! 🙌'},
+    {name:'Agradecimento pós-evento', preview:'Obrigado pela presença…', content:'{nome}, obrigado por estar com a gente em {evento}! Sua presença fortalece a campanha de '+cand+'. Bora seguir juntos.'},
+    {name:'Mobilização de véspera', preview:'Amanhã é dia…', content:'{nome}, amanhã é o dia! Conto com o seu voto e o da sua família. Peça votos para '+cand+' no seu bairro. Juntos vamos vencer! 💪'},
+    {name:'Chamado para voluntários', preview:'Some com a gente…', content:'Olá, {nome}! Estamos formando o time de voluntários em {bairro}. Topa ajudar algumas horas por semana? Responda que eu te explico como.'},
+    {name:'Pesquisa rápida', preview:'Sua opinião importa…', content:'Oi, {nome}! Em uma palavra: qual o maior problema do seu bairro hoje? Sua resposta ajuda a campanha de '+cand+' a priorizar o que importa.'}
   ];
+}
+function seedDefaultTemplatesIfEmpty(){
+  state.templates = state.templates || [];
+  var std = standardTemplates();
+  if(activeOnly(state.templates).length===0){
+    state.templates = std.map(function(s){ return {id:genId(),name:s.name,preview:s.preview,content:s.content}; });
+    return;
+  }
+  // Top-up único: adiciona os padrões que faltam sem apagar os personalizados
+  if(!state._stdTplTopup){
+    var names={}; activeOnly(state.templates).forEach(function(t){ names[(t.name||'').toLowerCase()]=1; });
+    std.forEach(function(s){ if(!names[s.name.toLowerCase()]) state.templates.push({id:genId(),name:s.name,preview:s.preview,content:s.content}); });
+    state._stdTplTopup = true;
+  }
 }
 function seedDefaultInsightsIfEmpty(){
   if(state.insights.length>0) return;
@@ -2324,7 +2348,8 @@ var VIEW_LABELS = {
   dashboard:['Inteligência','Dashboard'], geo:['Inteligência','Inteligência Territorial'],
   social:['Inteligência','Radar Social'], competitive:['Inteligência','Radar Eleitoral'],
   militancia:['Operação','Equipe da Campanha'], votos:['Operação','Projeção de Votos'],
-  agenda:['Operação','Agenda'], eventos:['Operação','Eventos & QR'], whatsapp:['Operação','Comunicação'],
+  agenda:['Operação','Agenda'], eventos:['Operação','Eventos & QR'],
+  leads:['Operação','Leads'], conversas:['Operação','Conversas'], whatsapp:['Operação','Comunicação'],
   logistica:['Gestão','Logística'], financeiro:['Gestão','Financeiro'],
   trends:['Estratégia','Mapa de Tendência'],
   ia:['Estratégia','IA Insights'], settings:['Estratégia','Configurações']
@@ -2381,6 +2406,8 @@ function renderView(v){
   else if(v==='votos') renderVotos();
   else if(v==='agenda') renderAgenda();
   else if(v==='eventos') renderEventos();
+  else if(v==='leads') renderLeads();
+  else if(v==='conversas') renderConversas();
   else if(v==='whatsapp') renderWhatsapp();
   else if(v==='logistica') renderLogistica();
   else if(v==='financeiro') renderFinanceiro();
@@ -5642,6 +5669,143 @@ window.evtLeads = async function(id, title){
   } catch(e){ showModalHtml('<h3>Erro</h3><div style="color:var(--coral)">'+esc(e.message)+'</div><div class="actions"><button class="btn-ghost" onclick="closeModal()">Fechar</button></div>','evtleads-'+id); }
 };
 
+// ============ LEADS (base de eventos, por candidato) ============
+window._leadsCache = [];
+window._leadsFilter = {bairro:'',cidade:'',q:''};
+window.renderLeads = function(){
+  var el = document.getElementById('view-leads');
+  el.innerHTML = '<div class="page-head"><div><h2>Leads</h2><div class="sub">Pessoas captadas pelos QR dos eventos. Ainda não são militância — recebem notícias e convites.</div></div></div>'
+    + '<div id="leads-box"><div style="padding:20px;color:var(--muted)">Carregando…</div></div>';
+  leadsLoad();
+};
+function leadsLoad(){
+  var box = document.getElementById('leads-box'); if(!box) return;
+  if(!window._mobCandId || !window.MOB_RPC){ box.innerHTML='<div style="padding:16px;color:var(--muted)">Faça login para ver os leads.</div>'; return; }
+  window.MOB_RPC('mob_leads_list',{p_candidate:window._mobCandId}).then(function(rows){
+    window._leadsCache = rows||[]; leadsDraw();
+  }).catch(function(e){ box.innerHTML='<div style="padding:16px;color:var(--coral)">'+esc(e.message||'Erro')+'</div>'; });
+}
+function leadsFiltered(){
+  var f=window._leadsFilter;
+  return (window._leadsCache||[]).filter(function(l){
+    if(f.bairro && (l.bairro||'')!==f.bairro) return false;
+    if(f.cidade && (l.city||'')!==f.cidade) return false;
+    if(f.q){ var q=f.q.toLowerCase(); if(((l.name||'')+' '+(l.phone||'')).toLowerCase().indexOf(q)<0) return false; }
+    return true;
+  });
+}
+function leadsDraw(){
+  var box = document.getElementById('leads-box'); if(!box) return;
+  var rows = window._leadsCache||[]; var f=window._leadsFilter;
+  var bairros={}, cidades={};
+  rows.forEach(function(l){ if(l.bairro) bairros[l.bairro]=1; if(l.city) cidades[l.city]=1; });
+  var filtered = leadsFiltered();
+  var bOpts = '<option value="">Todos os bairros</option>'+Object.keys(bairros).sort().map(function(b){return '<option value="'+esc(b)+'"'+(f.bairro===b?' selected':'')+'>'+esc(b)+'</option>';}).join('');
+  var cOpts = '<option value="">Todas as cidades</option>'+Object.keys(cidades).sort().map(function(c){return '<option value="'+esc(c)+'"'+(f.cidade===c?' selected':'')+'>'+esc(c)+'</option>';}).join('');
+  var html = '<div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">'
+    +'<div style="padding:14px 18px;background:var(--soft-2);border-radius:12px;border:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700">Leads na base</div><div style="font-size:24px;font-weight:800">'+rows.length+'</div></div>'
+    +'<div style="padding:14px 18px;background:var(--soft-2);border-radius:12px;border:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700">Filtrados</div><div style="font-size:24px;font-weight:800;color:var(--brand-2)">'+filtered.length+'</div></div></div>';
+  html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end">'
+    +'<div><label style="font-size:11px;color:var(--muted);font-weight:700">Cidade</label><br><select onchange="window._leadsFilter.cidade=this.value;leadsDraw()">'+cOpts+'</select></div>'
+    +'<div><label style="font-size:11px;color:var(--muted);font-weight:700">Bairro</label><br><select onchange="window._leadsFilter.bairro=this.value;leadsDraw()">'+bOpts+'</select></div>'
+    +'<div style="flex:1;min-width:180px"><label style="font-size:11px;color:var(--muted);font-weight:700">Buscar</label><br><input value="'+esc(f.q)+'" oninput="window._leadsFilter.q=this.value;clearTimeout(window._ldT);window._ldT=setTimeout(leadsDraw,250)" placeholder="Nome ou telefone" style="width:100%"></div>'
+    +'<button class="btn-primary" onclick="leadsBulk()"'+(filtered.length?'':' disabled style="opacity:.5"')+'><svg class="icon" width="13" height="13"><use href="#i-message"/></svg>Enviar aos '+filtered.length+' filtrados</button>'
+    +'</div>';
+  if(!filtered.length){ html += '<div style="padding:26px;text-align:center;color:var(--muted);border:1px dashed var(--border);border-radius:12px">Nenhum lead'+(rows.length?' com esse filtro':' ainda — eles chegam pelos QR dos eventos')+'.</div>'; }
+  else {
+    html += '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Nome</th><th>Telefone</th><th>Bairro/Cidade</th><th>Nº</th><th style="text-align:right">Ações</th></tr></thead><tbody>';
+    html += filtered.map(function(l){
+      var ph=(l.phone||'').replace(/\x27/g,''); var nm=(l.name||'').replace(/\x27/g,'');
+      return '<tr><td><strong>'+esc(l.name||'')+'</strong></td><td>'+esc(l.phone||'')+'</td><td style="font-size:12px">'+esc(l.bairro||'')+(l.city?' · '+esc(l.city):'')+'</td><td>'+esc(l.number||'')+'</td>'
+        +'<td style="text-align:right;white-space:nowrap">'
+          +'<button class="btn-ghost" style="padding:5px 10px;font-size:12px;color:#128C4B;margin-right:5px" onclick="leadWa(\''+ph+'\',\''+esc(nm)+'\')"><svg class="icon" width="13" height="13"><use href="#i-message"/></svg>Mensagem</button>'
+          +'<a class="btn-ghost" style="padding:5px 10px;font-size:12px;text-decoration:none" href="tel:'+ph.replace(/\D/g,'')+'"><svg class="icon" width="13" height="13"><use href="#i-phone"/></svg>Ligar</a>'
+        +'</td></tr>';
+    }).join('');
+    html += '</tbody></table></div>';
+  }
+  box.innerHTML = html;
+}
+window.leadWa = function(phone, name){
+  var d=(phone||'').replace(/\D/g,''); if(d.length<=11) d='55'+d;
+  var cand=(state.candidate&&state.candidate.name)||'';
+  var msg='Olá '+((name||'').split(' ')[0]||'')+'! Aqui é da campanha de '+cand+'.';
+  window.open('https://wa.me/'+d+'?text='+encodeURIComponent(msg),'_blank');
+};
+window.leadsBulk = function(){
+  var filtered = leadsFiltered();
+  if(!filtered.length){ toast('Nenhum lead filtrado','warn'); return; }
+  window._leadsBulkIds = filtered.map(function(l){return l.id;}).filter(Boolean);
+  var defMsg = 'Olá {nome}! Novidades da campanha de '+((state.candidate&&state.candidate.name)||'')+'.';
+  showModalHtml('<h3>Enviar para '+filtered.length+' leads</h3><div class="sub">Usa o filtro atual (cidade/bairro/busca). Registra a campanha na base para acompanhamento.</div>'
+    +'<label>Mensagem</label><textarea id="lb-msg" rows="4">'+esc(defMsg)+'</textarea>'
+    +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="leadsBulkSend()">Registrar disparo</button></div>', 'leadsbulk');
+};
+window.leadsBulkSend = function(){
+  var el=document.getElementById('lb-msg'); var msg=el?el.value:''; var ids=window._leadsBulkIds||[];
+  if(!ids.length){ closeModal(); return; }
+  window.MOB_RPC('mob_leads_campaign',{p_candidate:window._mobCandId, p_name:'Leads · '+new Date().toLocaleDateString('pt-BR'), p_message:msg, p_lead_ids:ids}).then(function(){
+    closeModal(); toast('Disparo registrado para '+ids.length+' leads');
+  }).catch(function(e){ toast(e.message||'Erro','err'); });
+};
+
+// ============ CONVERSAS (inbox WhatsApp, por candidato) ============
+window._convActive = null;
+window.renderConversas = function(){
+  var el = document.getElementById('view-conversas');
+  el.innerHTML = '<div class="page-head"><div><h2>Conversas</h2><div class="sub">Mensagens recebidas no WhatsApp oficial da campanha. Leia, responda ou ligue.</div></div><div><button class="btn-ghost" onclick="convLoad()"><svg class="icon" width="14" height="14"><use href="#i-refresh"/></svg> Atualizar</button></div></div>'
+    +'<div style="display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start">'
+      +'<div id="conv-list" style="border:1px solid var(--border);border-radius:12px;max-height:70vh;overflow:auto"><div style="padding:16px;color:var(--muted)">Carregando…</div></div>'
+      +'<div id="conv-thread" style="border:1px solid var(--border);border-radius:12px;min-height:320px;display:flex;align-items:center;justify-content:center;color:var(--muted)">Selecione uma conversa à esquerda.</div>'
+    +'</div>';
+  convLoad();
+};
+function convLoad(){
+  var list=document.getElementById('conv-list'); if(!list) return;
+  if(!window._mobCandId||!window.MOB_RPC){ list.innerHTML='<div style="padding:16px;color:var(--muted)">Faça login.</div>'; return; }
+  window.MOB_RPC('mob_wa_conversations',{p_candidate:window._mobCandId}).then(function(r){
+    var convs=(r&&r.conversations)||[];
+    if(!convs.length){ list.innerHTML='<div style="padding:18px;color:var(--muted);font-size:13px">Nenhuma conversa ainda. Quando alguém escrever no seu WhatsApp oficial conectado, aparece aqui.</div>'; return; }
+    list.innerHTML = convs.map(function(c){
+      var when = c.last_at? new Date(c.last_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+      var unread = (c.unread>0) ? '<span style="background:var(--coral);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:9px;margin-left:6px">'+c.unread+'</span>':'';
+      return '<div onclick="convOpen(\''+esc((c.contact_phone||'')).replace(/\x27/g,'')+'\',\''+esc((c.contact_name||'').replace(/\x27/g,''))+'\')" style="padding:12px 14px;border-bottom:1px solid #F1F5F9;cursor:pointer">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><strong style="font-size:14px">'+esc(c.contact_name||c.contact_phone)+unread+'</strong><span style="font-size:10px;color:var(--muted);flex-shrink:0">'+when+'</span></div>'
+        +'<div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(c.last_dir==='out'?'Você: ':'')+esc(c.last_body||'')+'</div></div>';
+    }).join('');
+  }).catch(function(e){ list.innerHTML='<div style="padding:16px;color:var(--coral)">'+esc(e.message||'Erro')+'</div>'; });
+}
+window.convOpen = function(phone, name){
+  window._convActive = {phone:phone, name:name};
+  var th=document.getElementById('conv-thread'); if(!th) return;
+  th.style.display='block'; th.style.alignItems='stretch'; th.style.justifyContent='flex-start';
+  th.innerHTML='<div style="padding:16px;color:var(--muted)">Carregando…</div>';
+  window.MOB_RPC('mob_wa_mark_read',{p_candidate:window._mobCandId,p_phone:phone}).then(function(){ convLoad(); }).catch(function(){});
+  window.MOB_RPC('mob_wa_thread',{p_candidate:window._mobCandId,p_phone:phone}).then(function(r){
+    var msgs=(r&&r.messages)||[]; var d=(phone||'').replace(/\D/g,'');
+    var head='<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border)"><div><strong>'+esc(name||phone)+'</strong><div style="font-size:11px;color:var(--muted)">'+esc(phone)+'</div></div>'
+      +'<a class="btn-ghost" style="padding:6px 12px;font-size:12px;text-decoration:none" href="tel:'+d+'"><svg class="icon" width="13" height="13"><use href="#i-phone"/></svg>Ligar</a></div>';
+    var body='<div style="padding:14px;max-height:50vh;overflow:auto;display:flex;flex-direction:column;gap:8px">'
+      + (msgs.length? msgs.map(function(m){
+          var out=m.direction==='out';
+          return '<div style="align-self:'+(out?'flex-end':'flex-start')+';max-width:75%;background:'+(out?'#DCF8C6':'#F1F5F9')+';padding:8px 12px;border-radius:12px;font-size:13px">'+esc(m.body||'')+'<div style="font-size:9px;color:#64748B;text-align:right;margin-top:2px">'+(m.created_at?new Date(m.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'')+'</div></div>';
+        }).join('') : '<div style="color:var(--muted);text-align:center;padding:20px">Sem mensagens.</div>')
+      +'</div>';
+    var reply='<div style="display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--border)"><input id="conv-reply" placeholder="Escreva uma resposta…" style="flex:1" onkeydown="if(event.key===\'Enter\')convSend()"><button class="btn-primary" onclick="convSend()">Enviar</button></div>';
+    th.innerHTML = head+body+reply;
+  }).catch(function(e){ th.innerHTML='<div style="padding:16px;color:var(--coral)">'+esc(e.message||'Erro')+'</div>'; });
+};
+window.convSend = function(){
+  var inp=document.getElementById('conv-reply'); if(!inp||!window._convActive) return;
+  var txt=(inp.value||'').trim(); if(!txt) return;
+  var a=window._convActive;
+  window.MOB_RPC('mob_wa_reply',{p_candidate:window._mobCandId,p_phone:a.phone,p_text:txt}).then(function(){
+    var d=(a.phone||'').replace(/\D/g,'');
+    window.open('https://wa.me/'+d+'?text='+encodeURIComponent(txt),'_blank'); // envia de fato pelo WhatsApp
+    convOpen(a.phone, a.name);
+  }).catch(function(e){ toast(e.message||'Erro','err'); });
+};
+
 // ============ WHATSAPP / COMUNICAÇÃO ============
 // Custo por disparo (R$). Alterado de 0,09 para 0,40.
 var COST_PER_MESSAGE = 0.40;
@@ -5744,6 +5908,12 @@ window.waUpdateReach = waUpdateReach;
 function renderWhatsapp(){
   var html = '<div class="page-head"><div><h2>Comunicação</h2><div class="sub">'+activeOnly(state.templates).length+' templates · '+activeOnly(state.campaigns).length+' campanhas</div></div><div style="display:flex;gap:8px"><button class="btn-ghost" onclick="modalTemplate()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Template</button></div></div>';
   html += '<div class="notice"><strong>ℹ Envio real</strong> requer backend com WhatsApp Business API (Meta) + Twilio + SendGrid. Aqui você cria, segmenta e simula.</div>';
+  // Destaque: enviar para LEADS (base dos eventos — não são militância ainda)
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px;padding:16px 18px;border:1px solid rgba(0,168,120,.35);border-radius:12px;background:linear-gradient(135deg,rgba(0,168,120,.08),transparent)">'
+    +'<div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:10px;background:rgba(0,168,120,.15);display:flex;align-items:center;justify-content:center;color:var(--brand-2);flex-shrink:0"><svg class="icon" width="22" height="22"><use href="#i-users"/></svg></div>'
+      +'<div><div style="font-weight:800;font-size:15px">Enviar para os Leads</div><div style="font-size:12px;color:var(--muted)">Pessoas captadas nos eventos (QR). Recebem notícias e convites — filtre por bairro/cidade e dispare.</div></div></div>'
+    +'<button class="btn-primary" onclick="setView(\'leads\')"><svg class="icon" width="14" height="14"><use href="#i-arrow-right"/></svg> Abrir Leads</button>'
+  +'</div>';
 
   html += '<div class="kpi-grid">'
     +'<div class="kpi"><div class="ic"><svg class="icon" width="18" height="18"><use href="#i-message"/></svg></div><div class="lbl">Templates</div><div class="v">'+activeOnly(state.templates).length+'</div></div>'
@@ -7412,7 +7582,12 @@ window.waConnect = function(){
   if(!data.display_number || !data.phone_number_id){ toast('Informe ao menos o número e o Phone Number ID','warn'); return; }
   if(!window._mobCandId){ toast('Abra uma campanha primeiro','warn'); return; }
   window.MOB_RPC('mob_wa_config_save',{p_candidate:window._mobCandId, p_data:data}).then(function(r){
-    if(r && r.ok){ toast('WhatsApp conectado'); waLoadConfig(); }
+    if(r && r.ok){
+      // O número oficial passa a ser o número do candidato usado nos QR/compartilhamentos
+      try{ state.candidate = state.candidate||{}; state.candidate.whatsapp = data.display_number; saveState();
+           window.MOB_RPC('mob_update_candidate_self',{p_id:window._mobCandId,p_data:{whatsapp:data.display_number}}).catch(function(){}); }catch(e){}
+      toast('WhatsApp conectado'); waLoadConfig();
+    }
     else toast((r&&r.error)||'Erro ao conectar','err');
   }).catch(function(e){ toast(e.message||'Erro','err'); });
 };
