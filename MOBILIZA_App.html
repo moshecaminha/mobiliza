@@ -1541,6 +1541,9 @@ function mobOpenCandidate(cand){
     if(c.theme_color) state.candidate.color = c.theme_color;
     if(c.photo_url) state.candidate.photo = c.photo_url;
     state.session = state.session || {}; state.session.loggedIn = true; state.session.candidateId = cand.id;
+    // Semear/atualizar templates e insights padrão para campanhas abertas do banco
+    try{ if(typeof seedDefaultTemplatesIfEmpty==='function') seedDefaultTemplatesIfEmpty(); }catch(e){}
+    try{ if(typeof seedDefaultInsightsIfEmpty==='function') seedDefaultInsightsIfEmpty(); }catch(e){}
     mobApplyTheme(state.candidate.color);
     document.getElementById('login-screen').classList.remove('show');
     document.getElementById('login-step-cand').style.display='none';
