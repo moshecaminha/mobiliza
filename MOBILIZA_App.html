@@ -6026,7 +6026,7 @@ function renderWhatsapp(){
   html += '<div id="wa-reach" style="margin-top:10px;font-size:11px;color:var(--brand-2);font-weight:600;padding:8px 10px;background:rgba(0,168,120,.07);border:1px solid rgba(0,168,120,.2);border-radius:8px">Alcance estimado: <strong>'+initialAud.length.toLocaleString('pt-BR')+'</strong> contatos</div>';
   html += '<label>Mensagem</label><textarea id="wa-msg" oninput="updateWaPrev()">'+esc(firstMsg)+'</textarea>';
   html += '<div style="font-size:10px;color:var(--muted);margin-top:4px">Variáveis: {nome} {bairro} {numero} {hora} {local} {evento}</div>';
-  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:11px;color:var(--muted)" id="wa-cost">—</div><button class="btn-primary" onclick="saveCampaign()"><svg class="icon" width="13" height="13"><use href="#i-download"/></svg> Registrar</button></div>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:11px;color:var(--muted)" id="wa-cost">—</div><button class="btn-primary" onclick="saveCampaign()"><svg class="icon" width="13" height="13"><use href="#i-message"/></svg> Disparar agora</button></div>';
   html += '</div>';
 
   html += '<div><div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin-bottom:8px">Preview</div>'
@@ -6081,19 +6081,34 @@ window.saveCampaign = function(){
   if(!name){ toast('Nomeie a campanha','warn'); return; }
   var aud = waComputeAudience();
   if(!aud.length){ toast('Segmentação vazia — nenhum contato selecionado','warn'); return; }
+  var msg = document.getElementById('wa-msg').value;
+  var channel = String(document.getElementById('wa-channel').value||'').toLowerCase();
   var cost = aud.length * COST_PER_MESSAGE;
-  state.campaigns.push({
-    id:genId(), name:name,
-    channel:document.getElementById('wa-channel').value,
-    message:document.getElementById('wa-msg').value,
-    status:'draft', createdAt:Date.now(),
-    reach: aud.length,
-    costBrl: cost,
+  var camp = {
+    id:genId(), name:name, channel:channel, message:msg,
+    status:'draft', createdAt:Date.now(), reach: aud.length, costBrl: cost,
     segments: JSON.parse(JSON.stringify(waSeg)),
     recipientIds: aud.map(function(p){return p.id;})
-  });
+  };
+  state.campaigns.push(camp);
   saveState(); renderWhatsapp();
-  toast('Campanha registrada · '+aud.length+' disparos · R$ '+cost.toFixed(2).replace('.',','));
+
+  if(channel==='whatsapp'){
+    var num = (state.candidate&&state.candidate.partyNumber)||'';
+    var recipients = aud.filter(function(p){ return (p.phone||'').replace(/\D/g,'').length>=10; }).map(function(p){
+      var t = msg.replace(/\{nome\}/g,(p.name||'').split(' ')[0]||'').replace(/\{bairro\}/g,p.bairro||'').replace(/\{cidade\}/g,p.cidade||'').replace(/\{numero\}/g,num);
+      return { phone:p.phone, name:p.name, text:t };
+    });
+    if(!recipients.length){ toast('Campanha registrada, mas nenhum contato tem telefone válido para disparo.','warn'); return; }
+    toast('Disparando '+recipients.length+' pelo número oficial…');
+    waPlatformSend({recipients:recipients}).then(function(d){
+      camp.status = (d.sent>0)?'sent':'failed'; camp.sent = d.sent||0; camp.failed = d.failed||0; saveState(); renderWhatsapp();
+      var extra = d.failed ? ' · '+d.failed+' falharam (fora da janela de 24h podem exigir template aprovado)' : '';
+      toast('Enviadas '+(d.sent||0)+' de '+recipients.length+extra, d.sent?'':'warn');
+    }).catch(function(e){ camp.status='failed'; saveState(); renderWhatsapp(); toast(e.message||'Erro no disparo. Conecte o WhatsApp em Configurações.','err'); });
+  } else {
+    toast('Campanha registrada ('+channel+') · '+aud.length+' contatos. Envio de SMS/e-mail exige backend próprio.');
+  }
 };
 window.rmCampaign = function(id){ if(!confirm('Mover para lixeira?'))return; var item=softDelete(state.campaigns,id); logAction('delete','campaign',item); saveState(); renderWhatsapp(); toast('Movido para lixeira'); };
 
