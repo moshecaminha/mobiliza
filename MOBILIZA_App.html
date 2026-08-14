@@ -1122,6 +1122,14 @@ window.mobUFCityPair = function(ufId, cityId, ufVal, cityVal){
   }catch(e){}
 })();
 
+// Telefone padrão Brasil: 55 + DDD + número (sem +). Prefixa 55 quando falta.
+window.mobPhone55 = function(p){
+  var d = String(p||'').replace(/\D/g,'');
+  if(/^55/.test(d) && (d.length===12 || d.length===13)) return d;
+  if(d.length===10 || d.length===11) return '55'+d;
+  return d;
+};
+
 // Fator eleitores aptos sobre população total (Brasil ~70-72%)
 function estimateVotersFromPopulation(pop){ return Math.round(pop*0.71); }
 
@@ -5729,11 +5737,12 @@ function leadsDraw(){
   else {
     html += '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Nome</th><th>Telefone</th><th>Bairro/Cidade</th><th>Nº</th><th style="text-align:right">Ações</th></tr></thead><tbody>';
     html += filtered.map(function(l){
-      var ph=(l.phone||'').replace(/\x27/g,''); var nm=(l.name||'').replace(/\x27/g,'');
+      var ph=(l.phone||'').replace(/\x27/g,''); var nm=(l.name||'').replace(/\x27/g,''); var lid=(l.id||'');
       return '<tr><td><strong>'+esc(l.name||'')+'</strong></td><td>'+esc(l.phone||'')+'</td><td style="font-size:12px">'+esc(l.bairro||'')+(l.city?' · '+esc(l.city):'')+'</td><td>'+esc(l.number||'')+'</td>'
         +'<td style="text-align:right;white-space:nowrap">'
           +'<button class="btn-ghost" style="padding:5px 10px;font-size:12px;color:#128C4B;margin-right:5px" onclick="leadWa(\''+ph+'\',\''+esc(nm)+'\')"><svg class="icon" width="13" height="13"><use href="#i-message"/></svg>Mensagem</button>'
-          +'<a class="btn-ghost" style="padding:5px 10px;font-size:12px;text-decoration:none" href="tel:'+ph.replace(/\D/g,'')+'"><svg class="icon" width="13" height="13"><use href="#i-phone"/></svg>Ligar</a>'
+          +'<a class="btn-ghost" style="padding:5px 10px;font-size:12px;text-decoration:none;margin-right:5px" href="tel:'+ph.replace(/\D/g,'')+'"><svg class="icon" width="13" height="13"><use href="#i-phone"/></svg>Ligar</a>'
+          +'<button class="btn-ghost" style="padding:5px 9px;font-size:12px" onclick="leadEdit(\''+esc(lid)+'\')" title="Editar"><svg class="icon" width="13" height="13"><use href="#i-edit"/></svg></button>'
         +'</td></tr>';
     }).join('');
     html += '</tbody></table></div>';
@@ -5748,6 +5757,29 @@ window.waPlatformSend = function(args){
     if(res.error) throw new Error((res.error && res.error.message) || 'Falha no envio');
     return res.data || {};
   });
+};
+window.leadEdit = function(id){
+  var l = (window._leadsCache||[]).find(function(x){return String(x.id)===String(id);}); if(!l){ toast('Lead não encontrado','warn'); return; }
+  showModalHtml('<h3>Editar lead</h3><div class="sub">Atualize os dados. O WhatsApp é salvo no padrão Brasil (55 + DDD + número).</div>'
+    +'<label>Nome</label><input id="le-name" value="'+esc(l.name||'')+'">'
+    +'<div class="form-row"><div><label>WhatsApp</label><input id="le-phone" value="'+esc(l.phone||'')+'" placeholder="5581999999999"></div><div><label>Nº da casa</label><input id="le-num" value="'+esc(l.number||'')+'"></div></div>'
+    +'<div class="form-row"><div><label>Bairro</label><input id="le-bairro" value="'+esc(l.bairro||'')+'"></div><div><label>Cidade</label><input id="le-city" value="'+esc(l.city||'')+'"></div></div>'
+    +'<div class="actions"><button class="btn-danger" onclick="leadDelete(\''+esc((l.id||'')).replace(/\x27/g,'')+'\')">Excluir</button><button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="leadEditSave(\''+esc((l.id||'')).replace(/\x27/g,'')+'\')">Salvar</button></div>', 'leadedit-'+id);
+};
+window.leadEditSave = function(id){
+  var g=function(x){var e=document.getElementById(x);return e?(e.value||'').trim():'';};
+  var data={ name:g('le-name'), phone:g('le-phone'), number:g('le-num'), bairro:g('le-bairro'), city:g('le-city') };
+  window.MOB_RPC('mob_lead_update',{p_candidate:window._mobCandId, p_lead_id:id, p_data:data}).then(function(r){
+    if(r&&r.ok){ closeModal(); toast('Lead atualizado'); leadsLoad(); }
+    else toast((r&&r.error)||'Erro','err');
+  }).catch(function(e){ toast(e.message||'Erro','err'); });
+};
+window.leadDelete = function(id){
+  if(!confirm('Excluir este lead definitivamente?')) return;
+  window.MOB_RPC('mob_lead_delete',{p_candidate:window._mobCandId, p_lead_id:id}).then(function(r){
+    if(r&&r.ok){ closeModal(); toast('Lead excluído'); leadsLoad(); }
+    else toast((r&&r.error)||'Erro','err');
+  }).catch(function(e){ toast(e.message||'Erro','err'); });
 };
 window.leadWa = function(phone, name){
   window._leadCompose = { phone:phone, name:name };
@@ -7856,7 +7888,7 @@ window.saveLeader = function(id){
     var withLast = ROLES_WITH_LAST_VOTES.indexOf(role)>=0;
     var data = {
       name:name,
-      phone: ($('ml-phone')?($('ml-phone').value||'').trim():''),
+      phone: ($('ml-phone')?mobPhone55(($('ml-phone').value||'').trim()):''),
       email: ($('ml-email')?($('ml-email').value||'').trim():''),
       // Endereço completo (via CEP)
       cep: ($('ml-cep')?($('ml-cep').value||'').trim():''),
@@ -8220,6 +8252,7 @@ window.submitJoin = function(){
   var phone = (phoneEl.value||'').trim();
   if(!name){toast('Informe seu nome','warn'); nameEl.focus(); return;}
   if(!phone || phone.replace(/\D/g,'').length < 10){toast('Informe seu WhatsApp com DDD (10 ou 11 dígitos)','warn'); phoneEl.focus(); return;}
+  phone = mobPhone55(phone); // padrão Brasil: 55 + DDD + número
   var leaderId = document.getElementById('join-screen').getAttribute('data-leader');
   if(!leaderId){ toast('Link inválido — sem liderança associada','err'); return; }
   var leader = state.leaders.find(function(x){return x.id===leaderId});
@@ -8439,7 +8472,7 @@ window.saveMilitant = function(id){
     var withLastM = PROFILES_WITH_LAST_VOTES.indexOf(profile)>=0;
     var data = {
       name:name,
-      phone: ($('mm-phone')?($('mm-phone').value||'').trim():''),
+      phone: ($('mm-phone')?mobPhone55(($('mm-phone').value||'').trim()):''),
       email: ($('mm-email')?($('mm-email').value||'').trim():''),
       // Endereço completo
       cep: ($('mm-cep')?($('mm-cep').value||'').trim():''),
