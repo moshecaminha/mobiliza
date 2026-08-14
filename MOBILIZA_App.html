@@ -2307,17 +2307,27 @@ function finishWiz(){
   saveState(); showApp();
   toast('Plataforma configurada · bem-vindo!');
 }
+var STD_TPL_VERSION = 3;
 function standardTemplates(){
   var cand = (state.candidate && state.candidate.name) || 'a campanha';
+  var num  = (state.candidate && state.candidate.partyNumber) || 'XX';
   return [
     {name:'Boas-vindas ao apoiador', preview:'Bem-vindo à campanha…', content:'Olá, {nome}! 👋\n\nQue bom ter você com a gente na campanha de '+cand+'. Vamos te manter por dentro das ações no seu bairro.\n\nConte com a gente!'},
-    {name:'Convite para evento', preview:'{nome}, participe do evento…', content:'Olá, {nome}!\n\nHoje às {hora} teremos {evento} em {bairro}. Sua presença faz diferença.\n\nPosso confirmar você? Responda SIM. 💚'},
     {name:'Confirmação de cadastro', preview:'Cadastro confirmado…', content:'Olá, {nome}! Seu cadastro na campanha de '+cand+' está confirmado. Em breve falamos como você pode ajudar na sua região ({cidade}).'},
+    {name:'Convite para evento', preview:'{nome}, participe do evento…', content:'Olá, {nome}!\n\nHoje às {hora} teremos {evento} em {bairro}. Sua presença faz diferença.\n\nPosso confirmar você? Responda SIM. 💚'},
+    {name:'Convite para caminhada', preview:'Bora caminhar com a gente…', content:'Oi, {nome}! 🚶‍♂️\n\nNeste sábado tem caminhada com '+cand+' em {bairro}, às {hora}. Traz a família e a vizinhança!\n\nBora juntos?'},
+    {name:'Convite para reunião', preview:'Reunião no bairro…', content:'Olá, {nome}! Vamos ter uma reunião da campanha de '+cand+' em {bairro}, {hora}. Sua presença e suas ideias são muito importantes. Posso contar com você?'},
     {name:'Lembrete de evento (véspera)', preview:'É amanhã!…', content:'Oi, {nome}! Passando para lembrar: amanhã às {hora} tem {evento} em {bairro}. Te espero lá! 🙌'},
     {name:'Agradecimento pós-evento', preview:'Obrigado pela presença…', content:'{nome}, obrigado por estar com a gente em {evento}! Sua presença fortalece a campanha de '+cand+'. Bora seguir juntos.'},
-    {name:'Mobilização de véspera', preview:'Amanhã é dia…', content:'{nome}, amanhã é o dia! Conto com o seu voto e o da sua família. Peça votos para '+cand+' no seu bairro. Juntos vamos vencer! 💪'},
+    {name:'Lembrete do número do candidato', preview:'Anota o número…', content:'Oi, {nome}! Na hora de votar, é '+cand+' — número '+num+'. Anota aí e passa pra sua família e amigos. Seu voto muda o seu bairro! 🗳️'},
+    {name:'Faltam 30 dias', preview:'Reta final começou…', content:'{nome}, faltam 30 dias para a eleição! Agora cada conversa vale ouro. Ajude '+cand+' ('+num+') falando com 5 pessoas do seu bairro esta semana. Conto com você! 💪'},
+    {name:'Faltam 10 dias', preview:'A reta final…', content:'{nome}, faltam só 10 dias! 🔥 É agora que a eleição se decide. Peça voto para '+cand+' — número '+num+' — em {bairro}. Juntos vamos chegar lá!'},
+    {name:'Véspera da eleição', preview:'Amanhã é o grande dia…', content:'{nome}, amanhã é o grande dia! 🙏 Leve seu título e vote em '+cand+', número '+num+'. Peça o voto da sua família também. Contamos com você!'},
+    {name:'Dia da eleição — chegou o grande dia', preview:'Chegou o grande dia!…', content:'CHEGOU O GRANDE DIA, {nome}! 🎉🗳️\n\nHoje o seu voto decide o futuro do seu bairro. Vote '+cand+' — número '+num+' — e leve 3 pessoas para votar com você. Vamos vencer juntos!'},
+    {name:'Puxada de voto (leve 5)', preview:'Leve 5 votos…', content:'{nome}, um pedido: leve 5 votos para '+cand+' ('+num+'). Fale com 5 pessoas de confiança hoje e peça o voto. É assim, de pessoa em pessoa, que a gente vence! 🤝'},
     {name:'Chamado para voluntários', preview:'Some com a gente…', content:'Olá, {nome}! Estamos formando o time de voluntários em {bairro}. Topa ajudar algumas horas por semana? Responda que eu te explico como.'},
-    {name:'Pesquisa rápida', preview:'Sua opinião importa…', content:'Oi, {nome}! Em uma palavra: qual o maior problema do seu bairro hoje? Sua resposta ajuda a campanha de '+cand+' a priorizar o que importa.'}
+    {name:'Pesquisa rápida', preview:'Sua opinião importa…', content:'Oi, {nome}! Em uma palavra: qual o maior problema do seu bairro hoje? Sua resposta ajuda a campanha de '+cand+' a priorizar o que importa.'},
+    {name:'Agradecimento pós-eleição', preview:'Obrigado!…', content:'{nome}, obrigado de coração! ❤️ Cada voto e cada gesto seu fizeram parte dessa caminhada com '+cand+'. Seguimos juntos, trabalhando pelo seu bairro.'}
   ];
 }
 function seedDefaultTemplatesIfEmpty(){
@@ -2325,13 +2335,14 @@ function seedDefaultTemplatesIfEmpty(){
   var std = standardTemplates();
   if(activeOnly(state.templates).length===0){
     state.templates = std.map(function(s){ return {id:genId(),name:s.name,preview:s.preview,content:s.content}; });
+    state._stdTplVer = STD_TPL_VERSION;
     return;
   }
-  // Top-up único: adiciona os padrões que faltam sem apagar os personalizados
-  if(!state._stdTplTopup){
+  // Top-up por versão: adiciona os padrões novos que faltam, sem apagar os personalizados
+  if((state._stdTplVer||0) < STD_TPL_VERSION){
     var names={}; activeOnly(state.templates).forEach(function(t){ names[(t.name||'').toLowerCase()]=1; });
     std.forEach(function(s){ if(!names[s.name.toLowerCase()]) state.templates.push({id:genId(),name:s.name,preview:s.preview,content:s.content}); });
-    state._stdTplTopup = true;
+    state._stdTplVer = STD_TPL_VERSION;
   }
 }
 function seedDefaultInsightsIfEmpty(){
