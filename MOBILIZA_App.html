@@ -1558,6 +1558,8 @@ function mobOpenCandidate(cand){
     // Semear/atualizar templates e insights padrão para campanhas abertas do banco
     try{ if(typeof seedDefaultTemplatesIfEmpty==='function') seedDefaultTemplatesIfEmpty(); }catch(e){}
     try{ if(typeof seedDefaultInsightsIfEmpty==='function') seedDefaultInsightsIfEmpty(); }catch(e){}
+    // Sincroniza o número OFICIAL conectado no estado (para QR de pré-cadastro e compartilhamentos)
+    try{ if(window._mobCandId && window.MOB_RPC){ window.MOB_RPC('mob_wa_config_get',{p_candidate:window._mobCandId}).then(function(cfg){ if(cfg && cfg.connected && cfg.display_number){ state.candidate=state.candidate||{}; state.candidate.whatsapp=cfg.display_number; try{saveState();}catch(e){} } }).catch(function(){}); } }catch(e){}
     mobApplyTheme(state.candidate.color);
     document.getElementById('login-screen').classList.remove('show');
     document.getElementById('login-step-cand').style.display='none';
@@ -5881,19 +5883,31 @@ function convLoad(){
     }).join('');
   }).catch(function(e){ list.innerHTML='<div style="padding:16px;color:var(--coral)">'+esc(e.message||'Erro')+'</div>'; });
 }
-// QR de pré-cadastro: abre o WhatsApp oficial do candidato com uma mensagem pronta
+// QR de pré-cadastro: usa o número OFICIAL conectado (whatsapp_configs), com fallback ao blob
 window.preCadastroQR = function(){
   var num = mobPhone55((window._evtCand&&window._evtCand.whatsapp)||(state.candidate&&state.candidate.whatsapp)||'');
-  if(!num || num.length<12){ toast('Conecte/cadastre o WhatsApp do candidato primeiro (Configurações)','warn'); return; }
+  if(num && num.length>=12){ return _preCadShow(num); }
+  if(window._mobCandId && window.MOB_RPC){
+    window.MOB_RPC('mob_wa_config_get',{p_candidate:window._mobCandId}).then(function(cfg){
+      var n = mobPhone55((cfg&&cfg.display_number)||'');
+      if(n && n.length>=12){
+        try{ state.candidate=state.candidate||{}; if(!state.candidate.whatsapp){ state.candidate.whatsapp=cfg.display_number; saveState(); } }catch(e){}
+        _preCadShow(n);
+      } else { toast('Conecte o WhatsApp do candidato primeiro (Configurações)','warn'); }
+    }).catch(function(){ toast('Conecte o WhatsApp do candidato primeiro (Configurações)','warn'); });
+  } else { toast('Conecte o WhatsApp do candidato primeiro (Configurações)','warn'); }
+};
+function _preCadShow(num){
   var cand=(state.candidate&&state.candidate.name)||'';
   var wa='https://wa.me/'+num+'?text='+encodeURIComponent('Quero me cadastrar na campanha de '+cand+'.');
   var qr='https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=8&data='+encodeURIComponent(wa);
   showModalHtml('<h3>QR de pré-cadastro</h3><div class="sub">A pessoa escaneia, o WhatsApp abre com a mensagem pronta e ela só toca em enviar. A conversa aparece aqui para você finalizar o cadastro.</div>'
     +'<div style="text-align:center;margin:14px 0"><div style="display:inline-block;background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px"><img src="'+qr+'" style="width:280px;max-width:78vw;height:auto;display:block"></div></div>'
+    +'<div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:10px">Número oficial: <strong>'+esc(num)+'</strong></div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-primary" style="flex:1" onclick="window.open(\''+qr+'\',\'_blank\')"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg>Abrir/Imprimir QR</button>'
     +'<button class="btn-ghost" style="flex:1" onclick="copyText(\''+wa.replace(/\x27/g,'')+'\')"><svg class="icon" width="14" height="14"><use href="#i-hashtag"/></svg>Copiar link</button></div>'
     +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Fechar</button></div>', 'precad');
-};
+}
 // Finalizar cadastro de um contato que chegou pela conversa (escolhe Lead ou Militante)
 window.convFinalize = function(phone, name){
   window._convFin = { phone:phone, name:name };
