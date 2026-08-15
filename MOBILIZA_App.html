@@ -5721,7 +5721,7 @@ window._leadsFilter = {bairro:'',cidade:'',q:''};
 window.renderLeads = function(){
   var el = document.getElementById('view-leads');
   el.innerHTML = '<div class="page-head"><div><h2>Leads</h2><div class="sub">Pessoas captadas pelos QR dos eventos. Ainda não são militância — recebem notícias e convites.</div></div>'
-    + '<div><button class="btn-ghost" onclick="preCadastroQR()"><svg class="icon" width="14" height="14"><use href="#i-hashtag"/></svg> QR de pré-cadastro</button></div></div>'
+    + '<div style="display:flex;gap:8px"><button class="btn-ghost" onclick="importContacts()"><svg class="icon" width="14" height="14"><use href="#i-upload"/></svg> Importar contatos</button><button class="btn-ghost" onclick="preCadastroQR()"><svg class="icon" width="14" height="14"><use href="#i-hashtag"/></svg> QR de pré-cadastro</button></div></div>'
     + '<div id="leads-box"><div style="padding:20px;color:var(--muted)">Carregando…</div></div>';
   leadsLoad();
 };
@@ -5847,6 +5847,110 @@ window.leadsBulkSend = function(){
     toast('Enviadas '+(d.sent||0)+' de '+recipients.length+((d.failed)?' · '+d.failed+' falharam (podem exigir template)':''));
     if(typeof convLoad==='function'){ /* nada */ }
   }).catch(function(e){ toast(e.message||'Erro','err'); });
+};
+
+// ============ IMPORTAR CONTATOS (planilha XLSX/CSV, em lote por candidato) ============
+function mobLoadSheetJS(cb){
+  if(window.XLSX){ cb(); return; }
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=function(){ cb(); };
+  s.onerror=function(){ toast('Falha ao carregar o leitor de planilha','err'); };
+  document.head.appendChild(s);
+}
+function impNormHeader(h){ return String(h||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,''); }
+var IMPMAP = {
+  nome:'name', name:'name', nomecompleto:'name',
+  telefone:'phone', whatsapp:'phone', celular:'phone', fone:'phone', telefonewhatsapp:'phone', tel:'phone',
+  email:'email', mail:'email',
+  cep:'cep',
+  endereco:'address', address:'address', rua:'address', logradouro:'address',
+  numero:'number', num:'number', n:'number', nro:'number',
+  bairro:'bairro',
+  cidade:'city', city:'city', municipio:'city',
+  uf:'uf', estado:'uf',
+  perfil:'perfil', tipo:'perfil', classificacao:'perfil'
+};
+function impNormPerfil(p){
+  p=String(p||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  if(/lideranc|lider/.test(p)) return 'lideranca';
+  if(/vereador/.test(p)) return 'vereador';
+  if(/suplente/.test(p)) return 'suplente';
+  if(/cabo/.test(p)) return 'cabo';
+  if(/militante|militancia/.test(p)) return 'militante';
+  if(/apoiad|simpatiz/.test(p)) return 'apoiador';
+  if(/^lead/.test(p)) return 'lead';
+  if(/outro/.test(p)) return 'outro';
+  return '';
+}
+window.importContacts = function(){
+  showModalHtml('<h3>Importar contatos</h3><div class="sub">Envie uma planilha (.xlsx ou .csv) e a base é alimentada em lote, para este candidato. Telefones entram no padrão 55 e contatos repetidos são atualizados (sem duplicar).</div>'
+    +'<div style="background:var(--soft-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--ink-2);line-height:1.6">Colunas aceitas: <strong>Nome</strong>, <strong>Telefone</strong>, Email, CEP, Endereço, Número, Bairro, Cidade, UF, Perfil.<br>Obrigatórias: <strong>Nome</strong> e <strong>Telefone</strong>. O <strong>Perfil</strong> pode ser: apoiador, militante, liderança, vereador, suplente, cabo, lead ou outro.</div>'
+    +'<div style="margin:12px 0"><button class="btn-ghost" onclick="importDownloadTemplate()"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg> Baixar modelo (.xlsx)</button></div>'
+    +'<label>Perfil padrão <span style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">(para linhas sem a coluna Perfil)</span></label>'
+    +'<select id="imp-perfil"><option value="apoiador">Apoiador</option><option value="militante">Militante</option><option value="lideranca">Liderança</option><option value="vereador">Vereador</option><option value="suplente">Suplente</option><option value="cabo">Cabo eleitoral</option><option value="lead">Lead</option><option value="outro">Outro contato</option></select>'
+    +'<label style="margin-top:10px">Arquivo da planilha</label><input type="file" id="imp-file" accept=".xlsx,.xls,.csv">'
+    +'<div id="imp-status" style="margin-top:12px;font-size:13px;color:var(--ink-2)"></div>'
+    +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Fechar</button><button class="btn-primary" onclick="importDoFile()"><svg class="icon" width="13" height="13"><use href="#i-upload"/></svg> Importar</button></div>', 'importmodal');
+};
+window.importDownloadTemplate = function(){
+  mobLoadSheetJS(function(){
+    try{
+      var headers=['Nome','Telefone','Email','CEP','Endereco','Numero','Bairro','Cidade','UF','Perfil'];
+      var ex1=['Maria Souza','81999990000','maria@email.com','54510-000','Rua das Flores','120','Centro','Cabo de Santo Agostinho','PE','apoiador'];
+      var ex2=['João Lima','8188887777','','','','','Centro','Cabo de Santo Agostinho','PE','militante'];
+      var ws=XLSX.utils.aoa_to_sheet([headers,ex1,ex2]);
+      ws['!cols']=headers.map(function(){return {wch:20};});
+      var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Contatos');
+      XLSX.writeFile(wb,'modelo_contatos_MOBILIZZA.xlsx');
+    }catch(e){ toast('Erro ao gerar o modelo','err'); }
+  });
+};
+window.importDoFile = function(){
+  var fi=document.getElementById('imp-file'); var st=document.getElementById('imp-status');
+  if(!fi || !fi.files || !fi.files[0]){ toast('Selecione um arquivo','warn'); return; }
+  if(!window._mobCandId){ toast('Abra uma campanha primeiro','warn'); return; }
+  var defPerfil=(document.getElementById('imp-perfil')||{}).value||'apoiador';
+  if(st) st.textContent='Lendo a planilha…';
+  mobLoadSheetJS(function(){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      try{
+        var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+        var sheet=wb.Sheets[wb.SheetNames[0]];
+        var arr=XLSX.utils.sheet_to_json(sheet,{defval:''});
+        var recs=arr.map(function(row){
+          var o={}; Object.keys(row).forEach(function(k){ var nk=IMPMAP[impNormHeader(k)]; if(nk){ o[nk]=String(row[k]==null?'':row[k]).trim(); } }); return o;
+        }).filter(function(o){ return o.name && o.phone; });
+        if(!recs.length){ if(st) st.textContent='Nenhuma linha válida (verifique as colunas Nome e Telefone).'; return; }
+        var leadRows=[], militantes=[], lideres=[]; var LEADER_ROLE={lideranca:'bairro',vereador:'vereador',suplente:'suplente',cabo:'cabo'};
+        recs.forEach(function(o){
+          var perfil=impNormPerfil(o.perfil)||defPerfil;
+          if(perfil==='militante'){ militantes.push(o); }
+          else if(LEADER_ROLE[perfil]){ o._role=LEADER_ROLE[perfil]; lideres.push(o); }
+          else { o.status=perfil; leadRows.push(o); }
+        });
+        var addedBlob=0;
+        militantes.forEach(function(o){ state.militants=state.militants||[]; state.militants.push({id:genId(),createdAt:Date.now(),name:o.name,phone:mobPhone55(o.phone),email:o.email||'',cep:o.cep||'',bairro:o.bairro||'',city:o.city||'',uf:(o.uf||'').toUpperCase(),profile:'comum',status:'active',source:'import',leaderId:'',regionId:'',votesPromised:0,votesEstimated:0,votesDelivered:0,lastElectionVotes:0,notes:''}); addedBlob++; });
+        lideres.forEach(function(o){ state.leaders=state.leaders||[]; state.leaders.push({id:genId(),createdAt:Date.now(),name:o.name,phone:mobPhone55(o.phone),email:o.email||'',cep:o.cep||'',bairro:o.bairro||'',city:o.city||'',uf:(o.uf||'').toUpperCase(),role:o._role,status:'active',source:'import',regionId:'',party:'',electoralNumber:'',votesPromised:0,votesEstimated:0,votesDelivered:0,lastElectionVotes:0,lastElectionYear:'',contactsGoal:0,contactsMade:0,notes:''}); addedBlob++; });
+        if(addedBlob){ try{ saveState(); }catch(e){} }
+        if(st) st.textContent='Enviando '+recs.length+' contato(s)…';
+        function finish(acc){
+          if(st) st.innerHTML='<strong style="color:var(--brand-2)">Importação concluída!</strong><br>Leads: '+acc.inserted+' novos, '+acc.updated+' atualizados'+(acc.skipped?', '+acc.skipped+' ignorados':'')+(addedBlob?('<br>Militância/lideranças adicionadas: '+addedBlob):'')+'.';
+          toast('Importação concluída'); try{ if(typeof leadsLoad==='function') leadsLoad(); }catch(e){} try{ updateSidebarCounters(); }catch(e){}
+        }
+        function sendChunk(i, acc){
+          if(i>=leadRows.length){ finish(acc); return; }
+          window.MOB_RPC('mob_leads_bulk_import',{p_candidate:window._mobCandId, p_rows:leadRows.slice(i,i+200)}).then(function(r){
+            acc.inserted+=(r&&r.inserted)||0; acc.updated+=(r&&r.updated)||0; acc.skipped+=(r&&r.skipped)||0; sendChunk(i+200, acc);
+          }).catch(function(err){ if(st) st.textContent='Erro no envio: '+(err.message||err); });
+        }
+        if(leadRows.length) sendChunk(0,{inserted:0,updated:0,skipped:0}); else finish({inserted:0,updated:0,skipped:0});
+      }catch(err){ if(st) st.textContent='Erro ao ler a planilha: '+(err.message||err); }
+    };
+    reader.onerror=function(){ if(st) st.textContent='Não consegui ler o arquivo.'; };
+    reader.readAsArrayBuffer(fi.files[0]);
+  });
 };
 
 // ============ CONVERSAS (inbox WhatsApp, por candidato) ============
