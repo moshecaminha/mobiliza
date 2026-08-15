@@ -1129,6 +1129,12 @@ window.mobPhone55 = function(p){
   if(d.length===10 || d.length===11) return '55'+d;
   return d;
 };
+// Forma canônica igual ao wa_id da Meta (remove o "9" extra de celular BR de 13 dígitos)
+window.mobWaCanonical = function(p){
+  var d = mobPhone55(p);
+  if(d.length===13 && d.slice(0,2)==='55' && d.charAt(4)==='9') return d.slice(0,4)+d.slice(5);
+  return d;
+};
 
 // Fator eleitores aptos sobre população total (Brasil ~70-72%)
 function estimateVotersFromPopulation(pop){ return Math.round(pop*0.71); }
@@ -5696,7 +5702,8 @@ window._leadsCache = [];
 window._leadsFilter = {bairro:'',cidade:'',q:''};
 window.renderLeads = function(){
   var el = document.getElementById('view-leads');
-  el.innerHTML = '<div class="page-head"><div><h2>Leads</h2><div class="sub">Pessoas captadas pelos QR dos eventos. Ainda não são militância — recebem notícias e convites.</div></div></div>'
+  el.innerHTML = '<div class="page-head"><div><h2>Leads</h2><div class="sub">Pessoas captadas pelos QR dos eventos. Ainda não são militância — recebem notícias e convites.</div></div>'
+    + '<div><button class="btn-ghost" onclick="preCadastroQR()"><svg class="icon" width="14" height="14"><use href="#i-hashtag"/></svg> QR de pré-cadastro</button></div></div>'
     + '<div id="leads-box"><div style="padding:20px;color:var(--muted)">Carregando…</div></div>';
   leadsLoad();
 };
@@ -5828,28 +5835,100 @@ window.leadsBulkSend = function(){
 window._convActive = null;
 window.renderConversas = function(){
   var el = document.getElementById('view-conversas');
-  el.innerHTML = '<div class="page-head"><div><h2>Conversas</h2><div class="sub">Mensagens recebidas no WhatsApp oficial da campanha. Leia, responda ou ligue.</div></div><div><button class="btn-ghost" onclick="convLoad()"><svg class="icon" width="14" height="14"><use href="#i-refresh"/></svg> Atualizar</button></div></div>'
-    +'<div style="display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start">'
+  el.innerHTML = '<div class="page-head"><div><h2>Conversas</h2><div class="sub">Mensagens no WhatsApp oficial. Leia, responda, ligue — e finalize o cadastro de quem chegou pelo pré-cadastro.</div></div>'
+    +'<div style="display:flex;gap:8px"><button class="btn-ghost" onclick="preCadastroQR()"><svg class="icon" width="14" height="14"><use href="#i-hashtag"/></svg> QR de pré-cadastro</button><button class="btn-ghost" onclick="convBuildKnown().then(convLoad)"><svg class="icon" width="14" height="14"><use href="#i-refresh"/></svg> Atualizar</button></div></div>'
+    +'<div style="display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start">'
       +'<div id="conv-list" style="border:1px solid var(--border);border-radius:12px;max-height:70vh;overflow:auto"><div style="padding:16px;color:var(--muted)">Carregando…</div></div>'
       +'<div id="conv-thread" style="border:1px solid var(--border);border-radius:12px;min-height:320px;display:flex;align-items:center;justify-content:center;color:var(--muted)">Selecione uma conversa à esquerda.</div>'
     +'</div>';
-  convLoad();
+  convBuildKnown().then(convLoad);
+  if(window._convPoll){ clearInterval(window._convPoll); }
+  window._convPoll = setInterval(function(){
+    var v=document.getElementById('view-conversas');
+    if(v && v.classList.contains('active')){ convLoad(); }
+    else { clearInterval(window._convPoll); window._convPoll=null; }
+  }, 15000);
 };
+// Conjunto de telefones já cadastrados (leads + militância + lideranças), em forma canônica
+window._convKnown = {};
+function convBuildKnown(){
+  window._convKnown = {};
+  function add(p){ if(!p) return; window._convKnown[mobWaCanonical(p)] = true; }
+  try{ (state.leaders||[]).forEach(function(l){ if(!l.deleted) add(l.phone); }); }catch(e){}
+  try{ (state.militants||[]).forEach(function(m){ if(!m.deleted) add(m.phone); }); }catch(e){}
+  if(!window._mobCandId || !window.MOB_RPC) return Promise.resolve();
+  return window.MOB_RPC('mob_leads_list',{p_candidate:window._mobCandId}).then(function(rows){
+    (rows||[]).forEach(function(l){ add(l.phone); });
+  }).catch(function(){});
+}
 function convLoad(){
   var list=document.getElementById('conv-list'); if(!list) return;
   if(!window._mobCandId||!window.MOB_RPC){ list.innerHTML='<div style="padding:16px;color:var(--muted)">Faça login.</div>'; return; }
   window.MOB_RPC('mob_wa_conversations',{p_candidate:window._mobCandId}).then(function(r){
     var convs=(r&&r.conversations)||[];
-    if(!convs.length){ list.innerHTML='<div style="padding:18px;color:var(--muted);font-size:13px">Nenhuma conversa ainda. Quando alguém escrever no seu WhatsApp oficial conectado, aparece aqui.</div>'; return; }
+    if(!convs.length){ list.innerHTML='<div style="padding:18px;color:var(--muted);font-size:13px">Nenhuma conversa ainda. Gere o <strong>QR de pré-cadastro</strong> acima: quando a pessoa mandar mensagem, ela aparece aqui para você finalizar o cadastro.</div>'; return; }
     list.innerHTML = convs.map(function(c){
       var when = c.last_at? new Date(c.last_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
       var unread = (c.unread>0) ? '<span style="background:var(--coral);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:9px;margin-left:6px">'+c.unread+'</span>':'';
-      return '<div onclick="convOpen(\''+esc((c.contact_phone||'')).replace(/\x27/g,'')+'\',\''+esc((c.contact_name||'').replace(/\x27/g,''))+'\')" style="padding:12px 14px;border-bottom:1px solid #F1F5F9;cursor:pointer">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><strong style="font-size:14px">'+esc(c.contact_name||c.contact_phone)+unread+'</strong><span style="font-size:10px;color:var(--muted);flex-shrink:0">'+when+'</span></div>'
-        +'<div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(c.last_dir==='out'?'Você: ':'')+esc(c.last_body||'')+'</div></div>';
+      var ph=esc((c.contact_phone||'')).replace(/\x27/g,''); var nm=esc((c.contact_name||'').replace(/\x27/g,''));
+      var registered = window._convKnown[mobWaCanonical(c.contact_phone||'')];
+      var badge = registered ? '' : '<span style="background:#FEF3C7;color:#92400E;font-size:10px;font-weight:700;padding:1px 7px;border-radius:9px;margin-left:6px">novo</span>';
+      var finalize = registered ? '' : '<button class="btn-ghost" style="margin-top:6px;padding:4px 10px;font-size:11px;color:var(--brand-2)" onclick="event.stopPropagation();convFinalize(\''+ph+'\',\''+nm+'\')"><svg class="icon" width="12" height="12"><use href="#i-plus"/></svg>Finalizar cadastro</button>';
+      return '<div onclick="convOpen(\''+ph+'\',\''+nm+'\')" style="padding:12px 14px;border-bottom:1px solid #F1F5F9;cursor:pointer">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><strong style="font-size:14px">'+esc(c.contact_name||c.contact_phone)+badge+unread+'</strong><span style="font-size:10px;color:var(--muted);flex-shrink:0">'+when+'</span></div>'
+        +'<div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(c.last_dir==='out'?'Você: ':'')+esc(c.last_body||'')+'</div>'
+        +finalize+'</div>';
     }).join('');
   }).catch(function(e){ list.innerHTML='<div style="padding:16px;color:var(--coral)">'+esc(e.message||'Erro')+'</div>'; });
 }
+// QR de pré-cadastro: abre o WhatsApp oficial do candidato com uma mensagem pronta
+window.preCadastroQR = function(){
+  var num = mobPhone55((window._evtCand&&window._evtCand.whatsapp)||(state.candidate&&state.candidate.whatsapp)||'');
+  if(!num || num.length<12){ toast('Conecte/cadastre o WhatsApp do candidato primeiro (Configurações)','warn'); return; }
+  var cand=(state.candidate&&state.candidate.name)||'';
+  var wa='https://wa.me/'+num+'?text='+encodeURIComponent('Quero me cadastrar na campanha de '+cand+'.');
+  var qr='https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=8&data='+encodeURIComponent(wa);
+  showModalHtml('<h3>QR de pré-cadastro</h3><div class="sub">A pessoa escaneia, o WhatsApp abre com a mensagem pronta e ela só toca em enviar. A conversa aparece aqui para você finalizar o cadastro.</div>'
+    +'<div style="text-align:center;margin:14px 0"><div style="display:inline-block;background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px"><img src="'+qr+'" style="width:280px;max-width:78vw;height:auto;display:block"></div></div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-primary" style="flex:1" onclick="window.open(\''+qr+'\',\'_blank\')"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg>Abrir/Imprimir QR</button>'
+    +'<button class="btn-ghost" style="flex:1" onclick="copyText(\''+wa.replace(/\x27/g,'')+'\')"><svg class="icon" width="14" height="14"><use href="#i-hashtag"/></svg>Copiar link</button></div>'
+    +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Fechar</button></div>', 'precad');
+};
+// Finalizar cadastro de um contato que chegou pela conversa (escolhe Lead ou Militante)
+window.convFinalize = function(phone, name){
+  window._convFin = { phone:phone, name:name };
+  showModalHtml('<h3>Finalizar cadastro</h3><div class="sub">Complete os dados desta pessoa e escolha como salvar.</div>'
+    +'<label>Nome</label><input id="fc-name" value="'+esc(name||'')+'" placeholder="Nome completo">'
+    +'<label>WhatsApp</label><input id="fc-phone" value="'+esc(mobPhone55(phone))+'">'
+    +'<div class="form-row">'+mobUFCityPair('fc-uf','fc-city',(state.election&&state.election.state)||'',(state.election&&state.election.city)||'')+'</div>'
+    +'<div class="form-row"><div><label>Bairro</label><input id="fc-bairro"></div><div><label>Nº</label><input id="fc-num"></div></div>'
+    +'<div class="actions" style="flex-wrap:wrap"><button class="btn-ghost" onclick="closeModal()">Cancelar</button>'
+      +'<button class="btn-ghost" onclick="convFinalizeSave(\'lead\')"><svg class="icon" width="13" height="13"><use href="#i-users"/></svg>Salvar como Lead</button>'
+      +'<button class="btn-primary" onclick="convFinalizeSave(\'militante\')"><svg class="icon" width="13" height="13"><use href="#i-users"/></svg>Salvar como Militante</button></div>', 'convfin');
+};
+window.convFinalizeSave = function(kind){
+  var g=function(x){var e=document.getElementById(x);return e?(e.value||'').trim():'';};
+  var name=g('fc-name'), phone=mobPhone55(g('fc-phone')), bairro=g('fc-bairro'), city=g('fc-city'), uf=g('fc-uf'), num=g('fc-num');
+  if(!name){ toast('Informe o nome','warn'); return; }
+  if(kind==='lead'){
+    window.MOB_RPC('mob_lead_create',{p_candidate:window._mobCandId, p_data:{name:name,phone:phone,bairro:bairro,city:city,uf:uf,number:num}}).then(function(r){
+      if(r&&r.ok){ window._convKnown[mobWaCanonical(phone)]=true; closeModal(); toast('Salvo como Lead'); convLoad(); }
+      else toast((r&&r.error)||'Erro','err');
+    }).catch(function(e){ toast(e.message||'Erro','err'); });
+  } else {
+    try{
+      var item={id:genId(),createdAt:Date.now(),name:name,phone:phone,bairro:bairro,city:city,uf:(uf||'').toUpperCase(),
+        profile:'comum',status:'active',source:'conversa',leaderId:'',regionId:'',
+        votesPromised:0,votesEstimated:0,votesDelivered:0,lastElectionVotes:0,notes:''};
+      state.militants=state.militants||[]; state.militants.push(item);
+      if(typeof logAction==='function') logAction('create','militant',item);
+      saveState();
+      window._convKnown[mobWaCanonical(phone)]=true;
+      try{ if(typeof geocodePerson==='function') geocodePerson(item,true); }catch(e){}
+      closeModal(); toast('Salvo como Militante'); convLoad();
+    }catch(e){ toast('Erro ao salvar','err'); }
+  }
+};
 window.convOpen = function(phone, name){
   window._convActive = {phone:phone, name:name};
   var th=document.getElementById('conv-thread'); if(!th) return;
