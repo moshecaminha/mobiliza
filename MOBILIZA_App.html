@@ -5866,7 +5866,7 @@ window.renderConversas = function(){
 };
 // Conjunto de telefones já cadastrados (leads + militância + lideranças), em forma canônica
 window._convKnown = {};
-function convBuildKnown(){
+window.convBuildKnown = function(){
   window._convKnown = {};
   function add(p){ if(!p) return; window._convKnown[mobWaCanonical(p)] = true; }
   try{ (state.leaders||[]).forEach(function(l){ if(!l.deleted) add(l.phone); }); }catch(e){}
@@ -5875,8 +5875,8 @@ function convBuildKnown(){
   return window.MOB_RPC('mob_leads_list',{p_candidate:window._mobCandId}).then(function(rows){
     (rows||[]).forEach(function(l){ add(l.phone); });
   }).catch(function(){});
-}
-function convLoad(){
+};
+window.convLoad = function(){
   var list=document.getElementById('conv-list'); if(!list) return;
   if(!window._mobCandId||!window.MOB_RPC){ list.innerHTML='<div style="padding:16px;color:var(--muted)">Faça login.</div>'; return; }
   window.MOB_RPC('mob_wa_conversations',{p_candidate:window._mobCandId}).then(function(r){
@@ -5895,7 +5895,7 @@ function convLoad(){
         +finalize+'</div>';
     }).join('');
   }).catch(function(e){ list.innerHTML='<div style="padding:16px;color:var(--coral)">'+esc(e.message||'Erro')+'</div>'; });
-}
+};
 // QR de pré-cadastro: usa o número OFICIAL conectado (whatsapp_configs), com fallback ao blob
 window.preCadastroQR = function(){
   var num = mobPhone55((window._evtCand&&window._evtCand.whatsapp)||(state.candidate&&state.candidate.whatsapp)||'');
