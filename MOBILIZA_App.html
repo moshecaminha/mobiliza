@@ -4281,6 +4281,23 @@ function googleNewsFeed(query){
   return 'https://news.google.com/rss/search?q='+encodeURIComponent(q)+'&hl=pt-BR&gl=BR&ceid=BR:pt-419';
 }
 
+// Busca via proxies CORS, com fallback (allorigins → corsproxy → jina)
+async function fetchViaProxy(url){
+  var proxies = [
+    'https://api.allorigins.win/raw?url='+encodeURIComponent(url),
+    'https://corsproxy.io/?url='+encodeURIComponent(url),
+    'https://r.jina.ai/'+url
+  ];
+  for(var p=0;p<proxies.length;p++){
+    try{
+      var r = await fetch(proxies[p], {signal: AbortSignal.timeout?AbortSignal.timeout(8000):undefined});
+      if(!r.ok) continue;
+      var t = await r.text();
+      if(t && t.length>50) return t;
+    }catch(e){}
+  }
+  return '';
+}
 window.searchRSSReal = async function(query){
   if(!query) return [];
   var feeds = autoRssFeeds();
@@ -4290,10 +4307,8 @@ window.searchRSSReal = async function(query){
   for(var i=0;i<feeds.length && i<6;i++){
     var isGoogle = feeds[i].indexOf('news.google.com')>=0;
     try {
-      var proxyUrl = 'https://api.allorigins.win/raw?url='+encodeURIComponent(feeds[i]);
-      var r = await fetch(proxyUrl, {signal: AbortSignal.timeout?AbortSignal.timeout(8000):undefined});
-      if(!r.ok) continue;
-      var xml = await r.text();
+      var xml = await fetchViaProxy(feeds[i]);
+      if(!xml) continue;
       var items = parseRSSXml(xml);
       var feedUrl = feeds[i];
       var fromGoogle = isGoogle;
@@ -4718,7 +4733,9 @@ function renderSocial(){
   var lastUpdate = state.socialLastUpdate ? Math.floor((Date.now()-state.socialLastUpdate)/60000) : null;
 
   var html = '<div class="page-head"><div><h2>Radar de Sentimento Social</h2><div class="sub">'+activeOnly(state.socialKeywords).length+' termos · '+feedItems.length+' menções'+(lastUpdate!==null?' · atualizado há '+(lastUpdate<1?'agora':lastUpdate+' min'):'')+'</div></div>'
-    +'<div style="display:flex;gap:8px"><button class="btn-ghost" id="btn-refresh-social" onclick="refreshSocialFeed()"><svg class="icon" width="14" height="14"><use href="#i-radar"/></svg> Atualizar busca</button>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" id="btn-refresh-social" onclick="refreshSocialFeed()"><svg class="icon" width="14" height="14"><use href="#i-radar"/></svg> Atualizar busca</button>'
+    +'<button class="btn-ghost" onclick="socialReport()"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg> Relatório</button>'
+    +'<button class="btn-ghost" onclick="socialWhatsApp()"><svg class="icon" width="14" height="14"><use href="#i-message"/></svg> Enviar resumo</button>'
     +'<button class="btn-primary" onclick="modalKeyword()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Termo</button></div></div>';
 
   // Status das APIs
@@ -4768,6 +4785,25 @@ function renderSocial(){
       +'</div></div>';
   }
 
+  // Volumetria (7 dias) + principais fontes
+  if(feedItems.length>0){
+    var _now=new Date(); _now.setHours(0,0,0,0);
+    var _days=[];
+    for(var _d=6;_d>=0;_d--){ var _dt=new Date(_now); _dt.setDate(_dt.getDate()-_d); _days.push({label:_dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}), start:_dt.getTime(), count:0}); }
+    feedItems.forEach(function(f){ var t=f.ts||0; for(var j=_days.length-1;j>=0;j--){ if(t>=_days[j].start){ _days[j].count++; break; } } });
+    var _maxc=_days.reduce(function(m,x){return Math.max(m,x.count);},1);
+    var _srcCount={}; feedItems.forEach(function(f){ var a=f.acct||'—'; _srcCount[a]=(_srcCount[a]||0)+1; });
+    var _topSrc=Object.keys(_srcCount).sort(function(a,b){return _srcCount[b]-_srcCount[a];}).slice(0,6);
+    html += '<div class="grid-2" style="margin-bottom:14px">'
+      +'<div class="card"><div class="card-head"><div class="card-title">Volumetria (7 dias)</div></div>'
+        +'<div style="display:flex;align-items:flex-end;gap:8px;height:130px;padding:10px 4px 4px">'
+        + _days.map(function(x){ var h=Math.round(x.count/_maxc*100); return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;justify-content:flex-end;height:100%"><div style="font-size:10px;color:var(--muted);font-weight:700">'+x.count+'</div><div style="width:100%;background:linear-gradient(180deg,var(--brand),var(--brand-3));border-radius:5px 5px 0 0;height:'+Math.max(3,h)+'%"></div><div style="font-size:9px;color:var(--muted)">'+x.label+'</div></div>'; }).join('')
+        +'</div></div>'
+      +'<div class="card"><div class="card-head"><div class="card-title">Principais fontes</div></div>'
+        +(_topSrc.length? _topSrc.map(function(a){ return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #F1F5F9;font-size:13px"><span style="max-width:72%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(a)+'</span><strong style="color:var(--brand-2)">'+_srcCount[a]+'</strong></div>'; }).join('') : '<div style="color:var(--muted);font-size:12px;padding:8px">Sem dados</div>')
+      +'</div></div>';
+  }
+
   html += '<div class="grid-2"><div class="card"><div class="card-head"><div class="card-title">Feed de Menções</div>'
     +(feedItems.length>0?'<span class="badge brand">● '+feedItems.length+' resultados</span>':'')+'</div>';
   if(feedItems.length===0){
@@ -4804,7 +4840,69 @@ function renderSocial(){
   html += '</div></div>';
 
   document.getElementById('view-social').innerHTML = html;
+  // Auto-busca ao abrir (uma vez por sessão), se conectado e ainda sem menções
+  try{
+    if(!state.demo && !window._socialAutoTried && activeOnly(state.socialKeywords).length>0 && feedItems.length===0 && typeof refreshSocialFeed==='function'){
+      window._socialAutoTried = true;
+      setTimeout(function(){ try{ refreshSocialFeed(); }catch(e){} }, 500);
+    }
+  }catch(e){}
 }
+// Relatório diário do Radar Social (imprimível / PDF)
+window.socialReport = function(){
+  var feed = state.socialFeed||[];
+  if(!feed.length){ toast('Sem menções para exportar — clique em Atualizar busca','warn'); return; }
+  var total=feed.length;
+  var pos=feed.filter(function(f){return f.sent==='pos'}).length;
+  var neg=feed.filter(function(f){return f.sent==='neg'}).length;
+  var neu=total-pos-neg;
+  var srcCount={}; feed.forEach(function(f){var a=f.acct||'—';srcCount[a]=(srcCount[a]||0)+1;});
+  var topSrc=Object.keys(srcCount).sort(function(a,b){return srcCount[b]-srcCount[a];}).slice(0,10);
+  var kwCount={}; feed.forEach(function(f){ if(f.kw){kwCount[f.kw]=(kwCount[f.kw]||0)+1;} });
+  var topKw=Object.keys(kwCount).sort(function(a,b){return kwCount[b]-kwCount[a];});
+  var now=new Date(); now.setHours(0,0,0,0); var days=[];
+  for(var d=6;d>=0;d--){ var dt=new Date(now); dt.setDate(dt.getDate()-d); days.push({label:dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}),start:dt.getTime(),count:0}); }
+  feed.forEach(function(f){var t=f.ts||0;for(var j=days.length-1;j>=0;j--){if(t>=days[j].start){days[j].count++;break;}}});
+  var dateNow=new Date().toLocaleString('pt-BR');
+  var cand=(state.candidate&&state.candidate.name)||'Candidato';
+  var negList=feed.filter(function(f){return f.sent==='neg'}).slice(0,10);
+  var topList=feed.slice(0,15);
+  var rep='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Radar Social · '+esc(cand)+' · '+dateNow+'</title>'
+    +'<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:24px 32px;color:#0F172A;max-width:900px;margin:0 auto;font-size:13px;line-height:1.5}h1{font-size:24px}h2{font-size:15px;margin:20px 0 8px;padding-bottom:5px;border-bottom:2px solid #00A878;color:#00805F;text-transform:uppercase;letter-spacing:.03em}.meta{color:#64748B;font-size:12px;margin-top:4px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}.kpi{padding:10px;background:#F1F5F9;border-radius:6px;border-left:3px solid #00A878}.kpi .l{font-size:10px;text-transform:uppercase;color:#64748B;font-weight:700}.kpi .v{font-size:20px;font-weight:800}table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}th{background:#F1F5F9;padding:6px 8px;text-align:left}td{padding:6px 8px;border-bottom:1px solid #F1F5F9}.b{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700}.pos{background:#DCFCE7;color:#166534}.neg{background:#FEE2E2;color:#991B1B}.neu{background:#F1F5F9;color:#475569}@media print{body{padding:12px}}</style></head><body>'
+    +'<h1>Radar Social — '+esc(cand)+'</h1><div class="meta">'+esc((state.election.city||'')+'/'+(state.election.state||''))+' · Gerado em '+dateNow+'</div>'
+    +'<div class="kpis"><div class="kpi"><div class="l">Menções</div><div class="v">'+total+'</div></div>'
+      +'<div class="kpi"><div class="l">Positivas</div><div class="v" style="color:#00805F">'+pos+'</div></div>'
+      +'<div class="kpi"><div class="l">Negativas</div><div class="v" style="color:#991B1B">'+neg+'</div></div>'
+      +'<div class="kpi"><div class="l">Neutras</div><div class="v">'+neu+'</div></div></div>'
+    +'<h2>Volumetria (7 dias)</h2><table><thead><tr>'+days.map(function(x){return '<th>'+x.label+'</th>';}).join('')+'</tr></thead><tbody><tr>'+days.map(function(x){return '<td><strong>'+x.count+'</strong></td>';}).join('')+'</tr></tbody></table>'
+    +'<h2>Por termo</h2><table><thead><tr><th>Termo</th><th>Menções</th></tr></thead><tbody>'+topKw.map(function(k){return '<tr><td>'+esc(k)+'</td><td>'+kwCount[k]+'</td></tr>';}).join('')+'</tbody></table>'
+    +'<h2>Principais fontes</h2><table><thead><tr><th>Fonte</th><th>Menções</th></tr></thead><tbody>'+topSrc.map(function(a){return '<tr><td>'+esc(a)+'</td><td>'+srcCount[a]+'</td></tr>';}).join('')+'</tbody></table>'
+    +(negList.length?'<h2>Atenção — menções negativas</h2><table><thead><tr><th>Fonte</th><th>Menção</th></tr></thead><tbody>'+negList.map(function(f){return '<tr><td>'+esc(f.acct||'')+'</td><td>'+esc(f.txt||'')+'</td></tr>';}).join('')+'</tbody></table>':'')
+    +'<h2>Menções recentes</h2><table><thead><tr><th>Fonte</th><th>Sent.</th><th>Menção</th></tr></thead><tbody>'+topList.map(function(f){var c=f.sent==='pos'?'pos':f.sent==='neg'?'neg':'neu';var l=f.sent==='pos'?'positivo':f.sent==='neg'?'negativo':'neutro';return '<tr><td>'+esc(f.acct||'')+'</td><td><span class="b '+c+'">'+l+'</span></td><td>'+esc(f.txt||'')+'</td></tr>';}).join('')+'</tbody></table>'
+    +'<div style="margin-top:24px;font-size:10px;color:#94A3B8;text-align:center">MOBILIZZA · Radar Social · fontes: Google Notícias / RSS'+(state.apiConfig&&state.apiConfig.youtube?' + YouTube':'')+'</div></body></html>';
+  var w=window.open(URL.createObjectURL(new Blob([rep],{type:'text/html;charset=utf-8'})),'_blank');
+  if(!w){ toast('Permita pop-ups para abrir o relatório','warn'); return; }
+  setTimeout(function(){ try{w.print();}catch(e){} }, 800);
+  toast('Relatório do Radar Social aberto · Ctrl+P para salvar PDF');
+};
+// Enviar resumo do Radar pelo WhatsApp (abre o WhatsApp com o texto pronto)
+window.socialWhatsApp = function(){
+  var feed=state.socialFeed||[];
+  if(!feed.length){ toast('Sem menções para enviar — clique em Atualizar busca','warn'); return; }
+  var pos=feed.filter(function(f){return f.sent==='pos'}).length;
+  var neg=feed.filter(function(f){return f.sent==='neg'}).length;
+  var cand=(state.candidate&&state.candidate.name)||'campanha';
+  var dstr=new Date().toLocaleDateString('pt-BR');
+  var srcCount={}; feed.forEach(function(f){var a=f.acct||'—';srcCount[a]=(srcCount[a]||0)+1;});
+  var topSrc=Object.keys(srcCount).sort(function(a,b){return srcCount[b]-srcCount[a];}).slice(0,3);
+  var lines=['📊 Radar Social — '+cand+' ('+dstr+')','',
+    'Menções: '+feed.length,
+    'Positivas: '+pos+'  ·  Negativas: '+neg,
+    'Fontes: '+topSrc.join(', ')];
+  var neg1=feed.filter(function(f){return f.sent==='neg'})[0];
+  if(neg1){ lines.push('', '⚠️ Negativo: '+String(neg1.txt||'').slice(0,140)); }
+  window.open('https://wa.me/?text='+encodeURIComponent(lines.join('\n')),'_blank');
+};
 window.rmKeyword = function(id){
   var item=softDelete(state.socialKeywords,id);
   logAction('delete','keyword',item);
