@@ -5839,7 +5839,7 @@ function leadsFiltered(){
     return true;
   });
 }
-function leadsDraw(){
+window.leadsDraw = function(){
   var box = document.getElementById('leads-box'); if(!box) return;
   var rows = window._leadsCache||[]; var f=window._leadsFilter;
   var bairros={}, cidades={};
@@ -5871,7 +5871,7 @@ function leadsDraw(){
     html += '</tbody></table></div>';
   }
   box.innerHTML = html;
-}
+};
 // Envia pela API oficial do candidato (Edge Function mob-wa-send). Registra em Conversas.
 window.waPlatformSend = function(args){
   if(!window.MOB_SB || !window.MOB_SB.functions){ return Promise.reject(new Error('Sessão não iniciada')); }
