@@ -3699,6 +3699,8 @@ function renderDashboard(){
   var html = '<div class="page-head"><div><h2>Visão Geral · '+esc(state.candidate.name)+'</h2><div class="sub">'+esc(sub)+'</div></div>'
     +(state.demo?'<div><span class="badge brand"><svg class="icon" width="11" height="11"><use href="#i-zap"/></svg> Modo Demo</span></div>':'')+'</div>';
 
+  html += '<div id="dash-newcontacts"></div>';
+
   html += '<div class="kpi-grid">'
     +'<div class="kpi"><div class="ic"><svg class="icon" width="18" height="18"><use href="#i-vote"/></svg></div><div class="lbl">Votos Projetados</div><div class="v">'+p.projected.toLocaleString('pt-BR')+'</div><div class="delta '+(p.gap<=0?'up':'flat')+'">'+(p.gap<=0?'+ '+Math.abs(p.gap).toLocaleString('pt-BR')+' acima':Math.abs(p.gap).toLocaleString('pt-BR')+' abaixo')+'</div></div>'
     +'<div class="kpi gold"><div class="ic"><svg class="icon" width="18" height="18"><use href="#i-users"/></svg></div><div class="lbl">Base Ativa</div><div class="v">'+(activeOnly(state.militants).length+activeOnly(state.leaders).length)+'</div><div class="delta flat">'+activeOnly(state.leaders).length+' lideranças · '+activeOnly(state.militants).length+' militantes</div></div>'
@@ -3790,6 +3792,17 @@ function renderDashboard(){
     +'</div></div>';
 
   document.getElementById('view-dashboard').innerHTML = html;
+  try{
+    if(typeof dashLoadNewContacts==='function'){
+      dashLoadNewContacts();
+      if(window._dashPoll) clearInterval(window._dashPoll);
+      window._dashPoll = setInterval(function(){
+        var v=document.getElementById('view-dashboard');
+        if(v && v.classList.contains('active') && document.getElementById('dash-newcontacts')){ dashLoadNewContacts(); }
+        else { clearInterval(window._dashPoll); window._dashPoll=null; }
+      }, 20000);
+    }
+  }catch(e){}
 
   if(activeOnly(state.regions).length>0){
     var labels = state.regions.map(function(r){return r.name});
@@ -5911,37 +5924,78 @@ function _preCadShow(num){
 // Finalizar cadastro de um contato que chegou pela conversa (escolhe Lead ou Militante)
 window.convFinalize = function(phone, name){
   window._convFin = { phone:phone, name:name };
-  showModalHtml('<h3>Finalizar cadastro</h3><div class="sub">Complete os dados desta pessoa e escolha como salvar.</div>'
+  showModalHtml('<h3>Finalizar cadastro</h3><div class="sub">Complete os dados e escolha o perfil desta pessoa.</div>'
     +'<label>Nome</label><input id="fc-name" value="'+esc(name||'')+'" placeholder="Nome completo">'
-    +'<label>WhatsApp</label><input id="fc-phone" value="'+esc(mobPhone55(phone))+'">'
+    +'<div class="form-row"><div><label>WhatsApp</label><input id="fc-phone" value="'+esc(mobPhone55(phone))+'"></div>'
+      +'<div><label>Perfil do cadastro</label><select id="fc-perfil">'
+        +'<option value="apoiador">Apoiador</option>'
+        +'<option value="militante">Militante</option>'
+        +'<option value="lideranca">Liderança</option>'
+        +'<option value="vereador">Vereador</option>'
+        +'<option value="suplente">Suplente</option>'
+        +'<option value="cabo">Cabo eleitoral</option>'
+        +'<option value="lead">Lead</option>'
+        +'<option value="outro">Outro contato</option>'
+      +'</select></div></div>'
     +'<div class="form-row">'+mobUFCityPair('fc-uf','fc-city',(state.election&&state.election.state)||'',(state.election&&state.election.city)||'')+'</div>'
     +'<div class="form-row"><div><label>Bairro</label><input id="fc-bairro"></div><div><label>Nº</label><input id="fc-num"></div></div>'
-    +'<div class="actions" style="flex-wrap:wrap"><button class="btn-ghost" onclick="closeModal()">Cancelar</button>'
-      +'<button class="btn-ghost" onclick="convFinalizeSave(\'lead\')"><svg class="icon" width="13" height="13"><use href="#i-users"/></svg>Salvar como Lead</button>'
-      +'<button class="btn-primary" onclick="convFinalizeSave(\'militante\')"><svg class="icon" width="13" height="13"><use href="#i-users"/></svg>Salvar como Militante</button></div>', 'convfin');
+    +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="convFinalizeSave()"><svg class="icon" width="13" height="13"><use href="#i-check"/></svg>Salvar cadastro</button></div>', 'convfin');
 };
-window.convFinalizeSave = function(kind){
+window.convFinalizeSave = function(){
   var g=function(x){var e=document.getElementById(x);return e?(e.value||'').trim():'';};
-  var name=g('fc-name'), phone=mobPhone55(g('fc-phone')), bairro=g('fc-bairro'), city=g('fc-city'), uf=g('fc-uf'), num=g('fc-num');
+  var name=g('fc-name'), phone=mobPhone55(g('fc-phone')), bairro=g('fc-bairro'), city=g('fc-city'), uf=(g('fc-uf')||'').toUpperCase(), num=g('fc-num');
+  var perfil=g('fc-perfil')||'apoiador';
   if(!name){ toast('Informe o nome','warn'); return; }
-  if(kind==='lead'){
-    window.MOB_RPC('mob_lead_create',{p_candidate:window._mobCandId, p_data:{name:name,phone:phone,bairro:bairro,city:city,uf:uf,number:num}}).then(function(r){
-      if(r&&r.ok){ window._convKnown[mobWaCanonical(phone)]=true; closeModal(); toast('Salvo como Lead'); convLoad(); }
-      else toast((r&&r.error)||'Erro','err');
+  var LEAD_TYPES={apoiador:1,lead:1,outro:1};
+  var LEADER_ROLES={lideranca:'bairro',vereador:'vereador',suplente:'suplente',cabo:'cabo'};
+  var lbl={apoiador:'Apoiador',lead:'Lead',outro:'Outro contato',militante:'Militante',lideranca:'Liderança',vereador:'Vereador',suplente:'Suplente',cabo:'Cabo eleitoral'};
+  function done(){ try{window._convKnown[mobWaCanonical(phone)]=true;}catch(e){} closeModal(); toast('Salvo como '+(lbl[perfil]||perfil)); try{if(typeof convLoad==='function')convLoad();}catch(e){} try{if(typeof dashLoadNewContacts==='function')dashLoadNewContacts();}catch(e){} }
+  if(LEAD_TYPES[perfil]){
+    window.MOB_RPC('mob_lead_create',{p_candidate:window._mobCandId, p_data:{name:name,phone:phone,bairro:bairro,city:city,uf:uf,number:num,status:perfil}}).then(function(r){
+      if(r&&r.ok){ done(); } else toast((r&&r.error)||'Erro','err');
     }).catch(function(e){ toast(e.message||'Erro','err'); });
+  } else if(perfil==='militante'){
+    try{
+      var m={id:genId(),createdAt:Date.now(),name:name,phone:phone,bairro:bairro,city:city,uf:uf,profile:'comum',status:'active',source:'conversa',leaderId:'',regionId:'',votesPromised:0,votesEstimated:0,votesDelivered:0,lastElectionVotes:0,notes:''};
+      state.militants=state.militants||[]; state.militants.push(m); if(typeof logAction==='function')logAction('create','militant',m); saveState();
+      try{ if(typeof geocodePerson==='function') geocodePerson(m,true); }catch(e){}
+      done();
+    }catch(e){ toast('Erro ao salvar','err'); }
   } else {
     try{
-      var item={id:genId(),createdAt:Date.now(),name:name,phone:phone,bairro:bairro,city:city,uf:(uf||'').toUpperCase(),
-        profile:'comum',status:'active',source:'conversa',leaderId:'',regionId:'',
-        votesPromised:0,votesEstimated:0,votesDelivered:0,lastElectionVotes:0,notes:''};
-      state.militants=state.militants||[]; state.militants.push(item);
-      if(typeof logAction==='function') logAction('create','militant',item);
-      saveState();
-      window._convKnown[mobWaCanonical(phone)]=true;
-      try{ if(typeof geocodePerson==='function') geocodePerson(item,true); }catch(e){}
-      closeModal(); toast('Salvo como Militante'); convLoad();
+      var role=LEADER_ROLES[perfil]||'bairro';
+      var l={id:genId(),createdAt:Date.now(),name:name,phone:phone,bairro:bairro,city:city,uf:uf,role:role,status:'active',source:'conversa',regionId:'',party:'',electoralNumber:'',votesPromised:0,votesEstimated:0,votesDelivered:0,lastElectionVotes:0,lastElectionYear:'',contactsGoal:0,contactsMade:0,notes:''};
+      state.leaders=state.leaders||[]; state.leaders.push(l); if(typeof logAction==='function')logAction('create','leader',l); saveState();
+      try{ if(typeof geocodePerson==='function') geocodePerson(l,true); }catch(e){}
+      try{ if(typeof pushLeaderToBackend==='function') pushLeaderToBackend(l); }catch(e){}
+      done();
     }catch(e){ toast('Erro ao salvar','err'); }
   }
+};
+// Alerta de novos contatos (pré-cadastro pelo QR/WhatsApp) na página inicial
+window.dashLoadNewContacts = function(){
+  var box=document.getElementById('dash-newcontacts'); if(!box) return;
+  if(!window._mobCandId||!window.MOB_RPC){ box.innerHTML=''; return; }
+  convBuildKnown().then(function(){
+    return window.MOB_RPC('mob_wa_conversations',{p_candidate:window._mobCandId});
+  }).then(function(r){
+    var convs=(r&&r.conversations)||[];
+    var novos = convs.filter(function(c){ return !window._convKnown[mobWaCanonical(c.contact_phone||'')]; });
+    if(!novos.length){ box.innerHTML=''; return; }
+    var rows = novos.slice(0,6).map(function(c){
+      var ph=esc((c.contact_phone||'')).replace(/\x27/g,''); var nm=esc((c.contact_name||'').replace(/\x27/g,''));
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid rgba(0,0,0,.06)">'
+        +'<div style="min-width:0"><strong style="font-size:13px">'+esc(c.contact_name||c.contact_phone)+'</strong>'
+        +'<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw">'+esc(c.last_body||'')+'</div></div>'
+        +'<button class="btn-primary" style="padding:5px 12px;font-size:12px;flex-shrink:0" onclick="convFinalize(\''+ph+'\',\''+nm+'\')">Classificar</button></div>';
+    }).join('');
+    box.innerHTML = '<div style="border:1px solid rgba(245,158,11,.4);background:linear-gradient(135deg,rgba(245,158,11,.08),transparent);border-radius:12px;padding:14px 16px;margin-bottom:16px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:4px">'
+        +'<div style="display:flex;align-items:center;gap:10px"><span style="width:34px;height:34px;border-radius:9px;background:rgba(245,158,11,.16);display:flex;align-items:center;justify-content:center;color:#B45309;flex-shrink:0"><svg class="icon" width="18" height="18"><use href="#i-bell"/></svg></span>'
+        +'<div><strong style="font-size:14px">'+novos.length+' novo(s) contato(s) pelo WhatsApp aguardando classificação</strong><div style="font-size:12px;color:var(--muted)">Chegaram pelo QR/pré-cadastro. Defina o perfil: apoiador, militante, liderança, vereador, cabo, lead ou outro.</div></div></div>'
+        +'<button class="btn-ghost" style="flex-shrink:0" onclick="setView(\'conversas\')">Ver nas Conversas</button>'
+      +'</div>'+rows+'</div>';
+  }).catch(function(){});
 };
 window.convOpen = function(phone, name){
   window._convActive = {phone:phone, name:name};
