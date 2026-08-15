@@ -5359,13 +5359,13 @@ function renderMilitancia(){
   var militants = activeOnly(state.militants);
   var vereadores = leaders.filter(function(l){return l.role==='vereador'});
   var suplentes = leaders.filter(function(l){return l.role==='suplente'});
-  var lideran = leaders.filter(function(l){return l.role==='regional'||l.role==='bairro'||l.role==='outra'});
+  var lideran = leaders.filter(function(l){return l.role==='regional'||l.role==='bairro'||l.role==='outra'||l.role==='coordenador'});
   var cabos = leaders.filter(function(l){return l.role==='cabo'});
   var militantesReal = militants.filter(function(m){return (m.profile||'comum')==='comum'});
   var candidato = state.candidate;
   var candCargo = state.election.position||'Candidato(a)';
 
-  var html = '<div class="page-head"><div><h2>Equipe da Campanha</h2><div class="sub">'+(leaders.length+militants.length+1)+' pessoas no total <span id="sync-status" style="margin-left:10px;font-size:11px;color:var(--muted)"></span></div></div><div style="display:flex;gap:8px"><button class="btn-ghost" onclick="syncFromServer(true)" title="Puxar cadastros feitos via QR code"><svg class="icon" width="14" height="14"><use href="#i-refresh"/></svg>Sincronizar</button><button class="btn-ghost" onclick="modalMilitant()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Militante</button><button class="btn-primary" onclick="modalLeader()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Liderança</button></div></div>';
+  var html = '<div class="page-head"><div><h2>Equipe da Campanha</h2><div class="sub">'+(leaders.length+militants.length+1)+' pessoas no total <span id="sync-status" style="margin-left:10px;font-size:11px;color:var(--muted)"></span></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="syncFromServer(true)" title="Puxar cadastros feitos via QR code"><svg class="icon" width="14" height="14"><use href="#i-refresh"/></svg>Sincronizar</button><button class="btn-ghost" onclick="importContacts(\'equipe\')"><svg class="icon" width="14" height="14"><use href="#i-upload"/></svg> Importar equipe</button><button class="btn-ghost" onclick="modalMilitant()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Militante</button><button class="btn-primary" onclick="modalLeader()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Liderança</button></div></div>';
   // Auto-sync silencioso ao abrir a Militância se houver backend + token
   setTimeout(function(){ syncFromServer(false); }, 200);
   // KPIs: Prefeito/Candidato + 4 grupos
@@ -5865,6 +5865,7 @@ window.leadsDraw = function(){
         +'<td style="text-align:right;white-space:nowrap">'
           +'<button class="btn-ghost" style="padding:5px 10px;font-size:12px;color:#128C4B;margin-right:5px" onclick="leadWa(\''+ph+'\',\''+esc(nm)+'\')"><svg class="icon" width="13" height="13"><use href="#i-message"/></svg>Mensagem</button>'
           +'<a class="btn-ghost" style="padding:5px 10px;font-size:12px;text-decoration:none;margin-right:5px" href="tel:'+ph.replace(/\D/g,'')+'"><svg class="icon" width="13" height="13"><use href="#i-phone"/></svg>Ligar</a>'
+          +'<button class="btn-ghost" style="padding:5px 10px;font-size:12px;color:var(--brand-2);margin-right:5px" onclick="leadPromote(\''+esc(lid)+'\')" title="Promover para a equipe"><svg class="icon" width="13" height="13"><use href="#i-trending-up"/></svg>Promover</button>'
           +'<button class="btn-ghost" style="padding:5px 9px;font-size:12px" onclick="leadEdit(\''+esc(lid)+'\')" title="Editar"><svg class="icon" width="13" height="13"><use href="#i-edit"/></svg></button>'
         +'</td></tr>';
     }).join('');
@@ -5903,6 +5904,39 @@ window.leadDelete = function(id){
     if(r&&r.ok){ closeModal(); toast('Lead excluído'); leadsLoad(); }
     else toast((r&&r.error)||'Erro','err');
   }).catch(function(e){ toast(e.message||'Erro','err'); });
+};
+// Promover lead: evolui para a equipe (militante/liderança/coordenador/vereador…) ou atualiza a classificação
+window.leadPromote = function(id){
+  var l=(window._leadsCache||[]).find(function(x){return String(x.id)===String(id);}); if(!l){ toast('Lead não encontrado','warn'); return; }
+  window._leadPromo={id:id};
+  showModalHtml('<h3>Promover lead</h3><div class="sub">Transforme este lead num membro da equipe (evolução para militância/liderança) ou ajuste a classificação.</div>'
+    +'<label>Nome</label><input id="lp-name" value="'+esc(l.name||'')+'">'
+    +'<div class="form-row"><div><label>WhatsApp</label><input id="lp-phone" value="'+esc(mobPhone55(l.phone))+'"></div>'
+      +'<div><label>Perfil / Papel</label><select id="lp-perfil">'
+        +'<option value="apoiador">Apoiador</option><option value="militante">Militante</option><option value="lideranca">Liderança</option><option value="coordenador">Coordenador</option><option value="vereador">Vereador</option><option value="suplente">Suplente</option><option value="cabo">Cabo eleitoral</option><option value="outro">Outro contato</option>'
+      +'</select></div></div>'
+    +'<div class="form-row">'+mobUFCityPair('lp-uf','lp-city',(l.uf||''),(l.city||''))+'</div>'
+    +'<div class="form-row"><div><label>Bairro</label><input id="lp-bairro" value="'+esc(l.bairro||'')+'"></div><div><label>Nº</label><input id="lp-num" value="'+esc(l.number||'')+'"></div></div>'
+    +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="leadPromoteSave()"><svg class="icon" width="13" height="13"><use href="#i-trending-up"/></svg> Salvar</button></div>', 'leadpromo');
+};
+window.leadPromoteSave = function(){
+  var g=function(x){var e=document.getElementById(x);return e?(e.value||'').trim():'';};
+  var lp=window._leadPromo||{};
+  var name=g('lp-name'), phone=mobPhone55(g('lp-phone')), bairro=g('lp-bairro'), city=g('lp-city'), uf=(g('lp-uf')||'').toUpperCase(), num=g('lp-num'), perfil=g('lp-perfil')||'apoiador';
+  if(!name){ toast('Informe o nome','warn'); return; }
+  var LEAD_TYPES={apoiador:1,lead:1,outro:1};
+  var LEADER_ROLES={lideranca:'bairro',coordenador:'coordenador',vereador:'vereador',suplente:'suplente',cabo:'cabo'};
+  var lbl={apoiador:'Apoiador',lead:'Lead',outro:'Outro contato',militante:'Militante',lideranca:'Liderança',coordenador:'Coordenador',vereador:'Vereador',suplente:'Suplente',cabo:'Cabo eleitoral'};
+  function moveToTeam(){ if(lp.id){ try{ window.MOB_RPC('mob_lead_delete',{p_candidate:window._mobCandId,p_lead_id:lp.id}).catch(function(){}); }catch(e){} } closeModal(); toast('Promovido para '+(lbl[perfil]||perfil)+' (movido para a Equipe)'); try{leadsLoad();}catch(e){} try{updateSidebarCounters();}catch(e){} }
+  if(LEAD_TYPES[perfil]){
+    window.MOB_RPC('mob_lead_update',{p_candidate:window._mobCandId,p_lead_id:lp.id,p_data:{name:name,phone:phone,bairro:bairro,city:city,uf:uf,number:num,status:perfil}}).then(function(r){
+      if(r&&r.ok){ closeModal(); toast('Atualizado para '+(lbl[perfil]||perfil)); try{leadsLoad();}catch(e){} } else toast((r&&r.error)||'Erro','err');
+    }).catch(function(e){ toast(e.message||'Erro','err'); });
+  } else if(perfil==='militante'){
+    try{ state.militants=state.militants||[]; var m={id:genId(),createdAt:Date.now(),name:name,phone:phone,bairro:bairro,city:city,uf:uf,profile:'comum',status:'active',source:'lead',leaderId:'',regionId:'',votesPromised:0,votesEstimated:0,votesDelivered:0,lastElectionVotes:0,notes:''}; state.militants.push(m); if(typeof logAction==='function')logAction('create','militant',m); saveState(); try{geocodePerson(m,true);}catch(e){} moveToTeam(); }catch(e){ toast('Erro ao salvar','err'); }
+  } else {
+    try{ var role=LEADER_ROLES[perfil]||'bairro'; state.leaders=state.leaders||[]; var ld={id:genId(),createdAt:Date.now(),name:name,phone:phone,bairro:bairro,city:city,uf:uf,role:role,status:'active',source:'lead',regionId:'',party:'',electoralNumber:'',votesPromised:0,votesEstimated:0,votesDelivered:0,lastElectionVotes:0,lastElectionYear:'',contactsGoal:0,contactsMade:0,notes:''}; state.leaders.push(ld); if(typeof logAction==='function')logAction('create','leader',ld); saveState(); try{geocodePerson(ld,true);}catch(e){} moveToTeam(); }catch(e){ toast('Erro ao salvar','err'); }
+  }
 };
 window.leadWa = function(phone, name){
   window._leadCompose = { phone:phone, name:name };
@@ -5967,10 +6001,17 @@ var IMPMAP = {
   bairro:'bairro',
   cidade:'city', city:'city', municipio:'city',
   uf:'uf', estado:'uf',
-  perfil:'perfil', tipo:'perfil', classificacao:'perfil'
+  perfil:'perfil', tipo:'perfil', classificacao:'perfil', papel:'perfil', funcao:'perfil',
+  partido:'party', sigla:'party',
+  numeroeleitoral:'electoralNumber', numeleitoral:'electoralNumber', neleitoral:'electoralNumber',
+  votosestimados:'votesEstimated', votoestimado:'votesEstimated', votosestimado:'votesEstimated', votos:'votesEstimated',
+  votosultimaeleicao:'lastElectionVotes', votosultima:'lastElectionVotes', ultimaeleicao:'lastElectionVotes',
+  metacontatos:'contactsGoal', metadecontatos:'contactsGoal', meta:'contactsGoal',
+  regiao:'region', regiaopolitica:'region'
 };
 function impNormPerfil(p){
   p=String(p||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  if(/coordenad|coord/.test(p)) return 'coordenador';
   if(/lideranc|lider/.test(p)) return 'lideranca';
   if(/vereador/.test(p)) return 'vereador';
   if(/suplente/.test(p)) return 'suplente';
@@ -5981,26 +6022,48 @@ function impNormPerfil(p){
   if(/outro/.test(p)) return 'outro';
   return '';
 }
-window.importContacts = function(){
-  showModalHtml('<h3>Importar contatos</h3><div class="sub">Envie uma planilha (.xlsx ou .csv) e a base é alimentada em lote, para este candidato. Telefones entram no padrão 55 e contatos repetidos são atualizados (sem duplicar).</div>'
-    +'<div style="background:var(--soft-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--ink-2);line-height:1.6">Colunas aceitas: <strong>Nome</strong>, <strong>Telefone</strong>, Email, CEP, Endereço, Número, Bairro, Cidade, UF, Perfil.<br>Obrigatórias: <strong>Nome</strong> e <strong>Telefone</strong>. O <strong>Perfil</strong> pode ser: apoiador, militante, liderança, vereador, suplente, cabo, lead ou outro.</div>'
-    +'<div style="margin:12px 0"><button class="btn-ghost" onclick="importDownloadTemplate()"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg> Baixar modelo (.xlsx)</button></div>'
-    +'<label>Perfil padrão <span style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">(para linhas sem a coluna Perfil)</span></label>'
-    +'<select id="imp-perfil"><option value="apoiador">Apoiador</option><option value="militante">Militante</option><option value="lideranca">Liderança</option><option value="vereador">Vereador</option><option value="suplente">Suplente</option><option value="cabo">Cabo eleitoral</option><option value="lead">Lead</option><option value="outro">Outro contato</option></select>'
+window.importContacts = function(mode){
+  mode = (mode==='equipe') ? 'equipe' : 'leads';
+  var isTeam = mode==='equipe';
+  var title = isTeam ? 'Importar equipe' : 'Importar contatos';
+  var cols = isTeam
+    ? 'Nome, Telefone, Email, CEP, Endereço, Número, Bairro, Cidade, UF, <strong>Papel</strong>, Partido, Número eleitoral, Votos estimados, Votos última eleição, Meta de contatos'
+    : 'Nome, Telefone, Email, CEP, Endereço, Número, Bairro, Cidade, UF, Perfil';
+  var defOpts = isTeam
+    ? '<option value="militante">Militante</option><option value="lideranca">Liderança</option><option value="coordenador">Coordenador</option><option value="vereador">Vereador</option><option value="suplente">Suplente</option><option value="cabo">Cabo eleitoral</option><option value="apoiador">Apoiador</option>'
+    : '<option value="apoiador">Apoiador</option><option value="militante">Militante</option><option value="lideranca">Liderança</option><option value="vereador">Vereador</option><option value="suplente">Suplente</option><option value="cabo">Cabo eleitoral</option><option value="lead">Lead</option><option value="outro">Outro contato</option>';
+  showModalHtml('<h3>'+title+'</h3><div class="sub">Envie uma planilha (.xlsx ou .csv) e a base é alimentada em lote, para este candidato. Telefones entram no padrão 55 e repetidos são atualizados (sem duplicar).</div>'
+    +'<div style="background:var(--soft-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--ink-2);line-height:1.6">Colunas aceitas: '+cols+'.<br>Obrigatórias: <strong>Nome</strong> e <strong>Telefone</strong>. O <strong>'+(isTeam?'Papel':'Perfil')+'</strong> pode ser: apoiador, militante, liderança, coordenador, vereador, suplente, cabo'+(isTeam?'':', lead')+' ou outro.</div>'
+    +'<div style="margin:12px 0"><button class="btn-ghost" onclick="importDownloadTemplate(\''+mode+'\')"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg> Baixar modelo (.xlsx)</button></div>'
+    +'<label>'+(isTeam?'Papel':'Perfil')+' padrão <span style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">(para linhas sem a coluna)</span></label>'
+    +'<select id="imp-perfil">'+defOpts+'</select>'
     +'<label style="margin-top:10px">Arquivo da planilha</label><input type="file" id="imp-file" accept=".xlsx,.xls,.csv">'
     +'<div id="imp-status" style="margin-top:12px;font-size:13px;color:var(--ink-2)"></div>'
     +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Fechar</button><button class="btn-primary" onclick="importDoFile()"><svg class="icon" width="13" height="13"><use href="#i-upload"/></svg> Importar</button></div>', 'importmodal');
 };
-window.importDownloadTemplate = function(){
+window.importDownloadTemplate = function(mode){
+  var isTeam = mode==='equipe';
   mobLoadSheetJS(function(){
     try{
-      var headers=['Nome','Telefone','Email','CEP','Endereco','Numero','Bairro','Cidade','UF','Perfil'];
-      var ex1=['Maria Souza','81999990000','maria@email.com','54510-000','Rua das Flores','120','Centro','Cabo de Santo Agostinho','PE','apoiador'];
-      var ex2=['João Lima','8188887777','','','','','Centro','Cabo de Santo Agostinho','PE','militante'];
-      var ws=XLSX.utils.aoa_to_sheet([headers,ex1,ex2]);
-      ws['!cols']=headers.map(function(){return {wch:20};});
-      var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Contatos');
-      XLSX.writeFile(wb,'modelo_contatos_MOBILIZZA.xlsx');
+      var headers, rows;
+      if(isTeam){
+        headers=['Nome','Telefone','Email','CEP','Endereco','Numero','Bairro','Cidade','UF','Papel','Partido','NumeroEleitoral','VotosEstimados','VotosUltimaEleicao','MetaContatos'];
+        rows=[
+          ['Carlos Andrade','81999990000','carlos@email.com','54510-000','Rua A','100','Centro','Cabo de Santo Agostinho','PE','lideranca','PP','','300','0','200'],
+          ['Marta Dias','8188887777','','','','','Centro','Cabo de Santo Agostinho','PE','militante','','','50','0',''],
+          ['Vereador Souza','8177776666','','','','','Centro','Cabo de Santo Agostinho','PE','vereador','PP','45123','1200','980','']
+        ];
+      } else {
+        headers=['Nome','Telefone','Email','CEP','Endereco','Numero','Bairro','Cidade','UF','Perfil'];
+        rows=[
+          ['Maria Souza','81999990000','maria@email.com','54510-000','Rua das Flores','120','Centro','Cabo de Santo Agostinho','PE','apoiador'],
+          ['João Lima','8188887777','','','','','Centro','Cabo de Santo Agostinho','PE','militante']
+        ];
+      }
+      var ws=XLSX.utils.aoa_to_sheet([headers].concat(rows));
+      ws['!cols']=headers.map(function(){return {wch:18};});
+      var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws, isTeam?'Equipe':'Contatos');
+      XLSX.writeFile(wb, isTeam?'modelo_equipe_MOBILIZZA.xlsx':'modelo_contatos_MOBILIZZA.xlsx');
     }catch(e){ toast('Erro ao gerar o modelo','err'); }
   });
 };
@@ -6021,7 +6084,7 @@ window.importDoFile = function(){
           var o={}; Object.keys(row).forEach(function(k){ var nk=IMPMAP[impNormHeader(k)]; if(nk){ o[nk]=String(row[k]==null?'':row[k]).trim(); } }); return o;
         }).filter(function(o){ return o.name && o.phone; });
         if(!recs.length){ if(st) st.textContent='Nenhuma linha válida (verifique as colunas Nome e Telefone).'; return; }
-        var leadRows=[], militantes=[], lideres=[]; var LEADER_ROLE={lideranca:'bairro',vereador:'vereador',suplente:'suplente',cabo:'cabo'};
+        var leadRows=[], militantes=[], lideres=[]; var LEADER_ROLE={lideranca:'bairro',coordenador:'coordenador',vereador:'vereador',suplente:'suplente',cabo:'cabo'};
         recs.forEach(function(o){
           var perfil=impNormPerfil(o.perfil)||defPerfil;
           if(perfil==='militante'){ militantes.push(o); }
@@ -6029,8 +6092,8 @@ window.importDoFile = function(){
           else { o.status=perfil; leadRows.push(o); }
         });
         var addedBlob=0;
-        militantes.forEach(function(o){ state.militants=state.militants||[]; state.militants.push({id:genId(),createdAt:Date.now(),name:o.name,phone:mobPhone55(o.phone),email:o.email||'',cep:o.cep||'',bairro:o.bairro||'',city:o.city||'',uf:(o.uf||'').toUpperCase(),profile:'comum',status:'active',source:'import',leaderId:'',regionId:'',votesPromised:0,votesEstimated:0,votesDelivered:0,lastElectionVotes:0,notes:''}); addedBlob++; });
-        lideres.forEach(function(o){ state.leaders=state.leaders||[]; state.leaders.push({id:genId(),createdAt:Date.now(),name:o.name,phone:mobPhone55(o.phone),email:o.email||'',cep:o.cep||'',bairro:o.bairro||'',city:o.city||'',uf:(o.uf||'').toUpperCase(),role:o._role,status:'active',source:'import',regionId:'',party:'',electoralNumber:'',votesPromised:0,votesEstimated:0,votesDelivered:0,lastElectionVotes:0,lastElectionYear:'',contactsGoal:0,contactsMade:0,notes:''}); addedBlob++; });
+        militantes.forEach(function(o){ state.militants=state.militants||[]; state.militants.push({id:genId(),createdAt:Date.now(),name:o.name,phone:mobPhone55(o.phone),email:o.email||'',cep:o.cep||'',bairro:o.bairro||'',city:o.city||'',uf:(o.uf||'').toUpperCase(),profile:'comum',status:'active',source:'import',leaderId:'',regionId:'',votesPromised:0,votesEstimated:(+o.votesEstimated||0),votesDelivered:0,lastElectionVotes:(+o.lastElectionVotes||0),notes:''}); addedBlob++; });
+        lideres.forEach(function(o){ state.leaders=state.leaders||[]; state.leaders.push({id:genId(),createdAt:Date.now(),name:o.name,phone:mobPhone55(o.phone),email:o.email||'',cep:o.cep||'',bairro:o.bairro||'',city:o.city||'',uf:(o.uf||'').toUpperCase(),role:o._role,status:'active',source:'import',regionId:'',party:(o.party||''),electoralNumber:(o.electoralNumber||''),votesPromised:0,votesEstimated:(+o.votesEstimated||0),votesDelivered:0,lastElectionVotes:(+o.lastElectionVotes||0),lastElectionYear:'',contactsGoal:(+o.contactsGoal||0),contactsMade:0,notes:''}); addedBlob++; });
         if(addedBlob){ try{ saveState(); }catch(e){} }
         if(st) st.textContent='Enviando '+recs.length+' contato(s)…';
         function finish(acc){
