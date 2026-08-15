@@ -75,10 +75,12 @@ td{padding:9px 8px;border-bottom:1px solid var(--soft);vertical-align:middle}
   <div class="tabs">
     <div class="tab on" id="tab-cand" onclick="switchTab('cand')">Candidatos</div>
     <div class="tab" id="tab-user" onclick="switchTab('user')">Usuários</div>
+    <div class="tab" id="tab-gest" onclick="switchTab('gest')">Gestores</div>
   </div>
   <div class="wrap">
     <div id="view-cand"></div>
     <div id="view-user" style="display:none"></div>
+    <div id="view-gest" style="display:none"></div>
   </div>
 </div>
 
@@ -130,8 +132,11 @@ async function enterApp(){
 window.switchTab = function(t){
   $('tab-cand').classList.toggle('on', t==='cand');
   $('tab-user').classList.toggle('on', t==='user');
+  $('tab-gest').classList.toggle('on', t==='gest');
   $('view-cand').style.display = t==='cand'?'':'none';
   $('view-user').style.display = t==='user'?'':'none';
+  $('view-gest').style.display = t==='gest'?'':'none';
+  if(t==='gest') loadGestores();
 };
 
 // ---------------- CANDIDATOS ----------------
@@ -319,6 +324,67 @@ window.toggleAdmin=async function(uid,val){
 window.delUser=async function(uid,email){
   if(!confirm('Excluir o usuário '+email+'? A conta de acesso será removida.')) return;
   try{ await rpc('mob_admin_delete_user',{ p_user_id:uid }); toast('Excluído'); loadUsers(); refreshCandidates(); }catch(e){ toast(e.message); }
+};
+
+// ---------------- GESTORES ----------------
+// Um gestor administra apenas os candidatos que você (superadmin) escolher.
+// Ele faz login no app normal (mobilizza.org/app) e só enxerga esses candidatos.
+async function loadGestores(){
+  try{ CACHE.gestores = await rpc('mob_admin_gestores'); renderGestores(); }
+  catch(e){ $('view-gest').innerHTML='<div class="card err">'+esc(e.message)+'</div>'; }
+}
+function renderGestores(){
+  const list = CACHE.gestores||[];
+  let h='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div><h3>Gestores ('+list.length+')</h3><div class="sub">Administradores que gerenciam apenas os candidatos que você selecionar. Eles acessam pelo app normal e só veem esses candidatos.</div></div><button class="btn" onclick="modalGestor()">+ Novo gestor</button></div></div>';
+  if(!list.length){ h+='<div class="card sub">Nenhum gestor ainda. Crie um e escolha quais candidatos ele administra.</div>'; $('view-gest').innerHTML=h; return; }
+  h+='<div class="card"><div style="overflow-x:auto"><table><thead><tr><th>E-mail</th><th>Nome</th><th>Candidatos que administra</th><th style="text-align:right">Ações</th></tr></thead><tbody>';
+  list.forEach(g=>{
+    const cands=(g.candidates||[]).map(c=>'<span class="chip">'+esc(c.name)+'</span>').join(' ')||'<span class="sub">nenhum</span>';
+    h+='<tr><td><strong>'+esc(g.email)+'</strong></td><td>'+esc(g.name||'')+'</td>'
+      +'<td>'+cands+'</td>'
+      +'<td style="text-align:right;white-space:nowrap">'
+        +'<button class="btn ghost sm" onclick="modalGestor(\''+g.user_id+'\')">Editar candidatos</button> '
+        +'<button class="btn ghost sm" onclick="setPass(\''+g.user_id+'\',\''+esc(g.email)+'\')">Senha</button> '
+        +'<button class="btn danger sm" onclick="delGestor(\''+g.user_id+'\',\''+esc(g.email)+'\')">Remover acesso</button>'
+      +'</td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+  $('view-gest').innerHTML=h;
+}
+window.modalGestor=function(uid){
+  const g = uid ? ((CACHE.gestores||[]).find(x=>x.user_id===uid)||{}) : {};
+  const editing = !!uid;
+  const selIds = new Set((g.candidates||[]).map(c=>c.id));
+  const cands = (CACHE.candidates||[]);
+  const checks = cands.length ? cands.map(c=>
+    '<label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px;margin:4px 0">'
+    +'<input type="checkbox" class="gest-cand" value="'+c.id+'" style="width:auto"'+(selIds.has(c.id)?' checked':'')+'> '
+    +esc(c.name)+' <span class="sub">'+esc(c.uf||'')+(c.city?'/'+esc(c.city):'')+'</span></label>'
+  ).join('') : '<div class="sub">Nenhum candidato cadastrado ainda.</div>';
+  showModal('<h3>'+(editing?'Editar gestor':'Novo gestor')+'</h3>'
+    +'<label>E-mail *</label><input id="g-email" type="email" value="'+esc(g.email||'')+'"'+(editing?' readonly':'')+'>'
+    +'<label>Nome</label><input id="g-name" value="'+esc(g.name||'')+'">'
+    +(editing?'':'<label>Senha do primeiro acesso *</label><input id="g-pass" placeholder="mínimo 6 caracteres">')
+    +'<label style="margin-top:12px">Candidatos que este gestor pode administrar</label>'
+    +'<div style="max-height:280px;overflow:auto;margin-top:4px">'+checks+'</div>'
+    +'<div style="text-align:right;margin-top:16px"><button class="btn ghost" onclick="closeModal()">Cancelar</button> <button class="btn" onclick="saveGestor(\''+(uid||'')+'\')">Salvar</button></div>');
+};
+window.saveGestor=async function(uid){
+  const editing=!!uid;
+  const email=$('g-email').value.trim(), name=$('g-name').value.trim();
+  const password = editing ? '' : ($('g-pass')?$('g-pass').value:'');
+  if(!email){ toast('E-mail obrigatório'); return; }
+  if(!editing && password.length<6){ toast('Senha do primeiro acesso (6+) obrigatória'); return; }
+  const ids=[...document.querySelectorAll('.gest-cand:checked')].map(x=>x.value);
+  if(!ids.length && !confirm('Nenhum candidato selecionado — o gestor ficará sem acesso a candidato algum. Continuar?')) return;
+  try{
+    await rpc('mob_admin_gestor_save',{ p_email:email, p_password:password, p_name:name, p_candidate_ids:ids });
+    closeModal(); toast(editing?'Gestor atualizado':'Gestor criado'); loadGestores();
+  }catch(e){ toast(e.message); }
+};
+window.delGestor=async function(uid,email){
+  if(!confirm('Remover o acesso de gestor de '+email+'? A conta continua existindo, mas deixa de administrar candidatos.')) return;
+  try{ await rpc('mob_admin_gestor_delete',{ p_user_id:uid }); toast('Acesso de gestor removido'); loadGestores(); }catch(e){ toast(e.message); }
 };
 
 // ---------------- util ----------------
