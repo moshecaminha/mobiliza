@@ -73,12 +73,14 @@ td{padding:9px 8px;border-bottom:1px solid var(--soft);vertical-align:middle}
     <button class="btn ghost sm" onclick="doLogout()">Sair</button>
   </div>
   <div class="tabs">
-    <div class="tab on" id="tab-cand" onclick="switchTab('cand')">Candidatos</div>
+    <div class="tab on" id="tab-over" onclick="switchTab('over')">Visão geral</div>
+    <div class="tab" id="tab-cand" onclick="switchTab('cand')">Candidatos</div>
     <div class="tab" id="tab-user" onclick="switchTab('user')">Usuários</div>
     <div class="tab" id="tab-gest" onclick="switchTab('gest')">Gestores</div>
   </div>
   <div class="wrap">
-    <div id="view-cand"></div>
+    <div id="view-over"></div>
+    <div id="view-cand" style="display:none"></div>
     <div id="view-user" style="display:none"></div>
     <div id="view-gest" style="display:none"></div>
   </div>
@@ -126,18 +128,78 @@ async function enterApp(){
   $('who').textContent = SESSION.user.email;
   $('login').style.display='none';
   $('app').style.display='block';
+  try{ await rpc('mob_activity_log',{ p_candidate:null, p_action:'acesso', p_entity:'painel-admin', p_detail:SESSION.user.email }); }catch(e){}
+  renderOverview();
   renderCandidates();
   loadUsers();
 }
 window.switchTab = function(t){
-  $('tab-cand').classList.toggle('on', t==='cand');
-  $('tab-user').classList.toggle('on', t==='user');
-  $('tab-gest').classList.toggle('on', t==='gest');
-  $('view-cand').style.display = t==='cand'?'':'none';
-  $('view-user').style.display = t==='user'?'':'none';
-  $('view-gest').style.display = t==='gest'?'':'none';
+  ['over','cand','user','gest'].forEach(function(k){
+    $('tab-'+k).classList.toggle('on', t===k);
+    $('view-'+k).style.display = t===k?'':'none';
+  });
+  if(t==='over') renderOverview();
   if(t==='gest') loadGestores();
 };
+
+// ---------------- VISÃO GERAL (somente leitura) ----------------
+// Horário padronizado em Brasília (America/Sao_Paulo)
+function brt(ts){ try{ return new Date(ts).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}); }catch(e){ return ''; } }
+function num(v){ return (+v||0).toLocaleString('pt-BR'); }
+async function renderOverview(){
+  const list = CACHE.candidates||[];
+  const selId = (CACHE.overFilter||'');
+  const scope = selId ? list.filter(c=>c.id===selId) : list;
+  // Agrega KPIs a partir do relatório já embutido em cada candidato
+  const agg = {leaders:0,militants:0,leads:0,events:0,checkins:0,votes:0,income:0,expense:0,donations:0};
+  scope.forEach(c=>{ const r=c.report||{}, f=r.finance||{};
+    agg.leaders+=+r.leaders||0; agg.militants+=+r.militants||0; agg.leads+=+r.leads||0;
+    agg.events+=+r.events||0; agg.checkins+=+r.checkins||0; agg.votes+=+r.votes_estimated||0;
+    agg.income+=+f.income||0; agg.expense+=+f.expense||0; agg.donations+=+f.donations||0;
+  });
+  const bal = agg.income + agg.donations - agg.expense;
+  const opts = '<option value="">Todos os candidatos ('+list.length+')</option>'+
+    list.map(c=>'<option value="'+c.id+'"'+(c.id===selId?' selected':'')+'>'+esc(c.name)+'</option>').join('');
+  let h = '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">'
+    +'<div><h3>Visão geral da plataforma</h3><div class="sub">Somente leitura · consolidado de todas as campanhas · horário de Brasília</div></div>'
+    +'<div style="display:flex;gap:8px;align-items:center"><label class="sub" style="text-transform:none">Filtrar:</label>'
+    +'<select id="over-filter" onchange="setOverFilter(this.value)" style="padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px">'+opts+'</select> '
+    +'<button class="btn ghost sm" onclick="refreshOverview()">↻ Atualizar</button></div></div></div>';
+  // KPIs gerais
+  h += '<div class="card"><h3 style="margin-bottom:10px">Indicadores'+(selId?' · '+esc((list.find(c=>c.id===selId)||{}).name||''):'')+'</h3>'
+    +'<div class="grid" style="grid-template-columns:repeat(6,1fr)">'
+    +kpi(scope.length,'Campanhas')+kpi(num(agg.leaders),'Lideranças')+kpi(num(agg.militants),'Militantes')
+    +kpi(num(agg.leads),'Leads')+kpi(num(agg.events),'Eventos')+kpi(num(agg.checkins),'Check-ins')
+    +'</div><div class="grid" style="grid-template-columns:repeat(4,1fr);margin-top:10px">'
+    +kpi(num(agg.votes),'Votos estimados')+kpi(money(agg.income),'Receitas')+kpi(money(agg.expense),'Despesas')+kpi(money(agg.donations),'Doações')
+    +'</div></div>';
+  // Área financeira consolidada (por candidato)
+  h += '<div class="card"><h3>Financeiro consolidado</h3><div class="sub">Saldo = receitas + doações − despesas</div><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th>Candidato</th><th style="text-align:right">Receitas</th><th style="text-align:right">Doações</th><th style="text-align:right">Despesas</th><th style="text-align:right">Saldo</th></tr></thead><tbody>';
+  scope.forEach(c=>{ const f=(c.report||{}).finance||{}; const sb=(+f.income||0)+(+f.donations||0)-(+f.expense||0);
+    h+='<tr><td><strong>'+esc(c.name)+'</strong></td><td style="text-align:right">'+money(f.income)+'</td><td style="text-align:right">'+money(f.donations)+'</td><td style="text-align:right">'+money(f.expense)+'</td><td style="text-align:right;font-weight:700;color:'+(sb<0?'#dc2626':'#059669')+'">'+money(sb)+'</td></tr>';
+  });
+  h+='<tr style="border-top:2px solid #e5e7eb"><td><strong>TOTAL</strong></td><td style="text-align:right"><strong>'+money(agg.income)+'</strong></td><td style="text-align:right"><strong>'+money(agg.donations)+'</strong></td><td style="text-align:right"><strong>'+money(agg.expense)+'</strong></td><td style="text-align:right;font-weight:800;color:'+(bal<0?'#dc2626':'#059669')+'">'+money(bal)+'</td></tr>';
+  h+='</tbody></table></div></div>';
+  // Logs de usuários (com horário de Brasília)
+  h += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Logs de usuários</h3><span class="sub" id="over-log-count"></span></div><div class="sub">Acessos e ações recentes · horário de Brasília</div><div id="over-logs" style="margin-top:8px"><div class="sub">Carregando…</div></div></div>';
+  $('view-over').innerHTML = h;
+  loadOverviewLogs(selId);
+}
+window.setOverFilter = function(v){ CACHE.overFilter = v||''; renderOverview(); };
+window.refreshOverview = async function(){ CACHE.candidates = await rpc('mob_admin_candidates'); renderOverview(); toast('Atualizado'); };
+async function loadOverviewLogs(candId){
+  try{
+    const rows = await rpc('mob_admin_activity',{ p_candidate: candId||null, p_limit: 300 });
+    const box=$('over-logs'); const cnt=$('over-log-count');
+    if(cnt) cnt.textContent = (rows||[]).length+' registros';
+    if(!rows || !rows.length){ box.innerHTML='<div class="sub">Nenhum registro ainda. Os acessos e ações aparecerão aqui conforme o uso.</div>'; return; }
+    const actLabel = a => ({acesso:'acessou',create:'criou',edit:'editou',delete:'excluiu'})[a]||a;
+    let t='<div style="overflow-x:auto"><table><thead><tr><th>Quando (Brasília)</th><th>Usuário</th><th>Ação</th><th>Item</th><th>Campanha</th></tr></thead><tbody>';
+    rows.forEach(a=>{ t+='<tr><td style="white-space:nowrap">'+brt(a.at)+'</td><td>'+esc(a.email||'—')+'</td><td>'+esc(actLabel(a.action))+'</td><td>'+esc((a.entity||'')+(a.detail?' · '+a.detail:''))+'</td><td>'+esc(a.candidate||'—')+'</td></tr>'; });
+    t+='</tbody></table></div>';
+    box.innerHTML=t;
+  }catch(e){ $('over-logs').innerHTML='<div class="card err">'+esc(e.message)+'</div>'; }
+}
 
 // ---------------- CANDIDATOS ----------------
 async function refreshCandidates(){ CACHE.candidates = await rpc('mob_admin_candidates'); renderCandidates(); }

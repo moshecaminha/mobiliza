@@ -1238,6 +1238,13 @@ function logAction(action, entity, data){
   });
   // limita a 500 últimas ações
   if(state.history.length>500) state.history = state.history.slice(0,500);
+  // Espelha no log central do servidor (para o painel do administrador)
+  try{
+    if(window._mobCandId && window.MOB_RPC){
+      var nm = (data && (data.name||data.title||data.term)) || '';
+      window.MOB_RPC('mob_activity_log',{p_candidate:window._mobCandId, p_action:action, p_entity:entity, p_detail:nm}).catch(function(){});
+    }
+  }catch(e){}
 }
 
 window.exportData = function(){
@@ -1572,6 +1579,8 @@ function mobOpenCandidate(cand){
     showApp();
     mobApplyCandidatePhoto();
     try { saveState(); } catch(e){}
+    // Log de acesso (aparece no painel do administrador, horário de Brasília)
+    try{ if(window.MOB_RPC) window.MOB_RPC('mob_activity_log',{p_candidate:cand.id, p_action:'acesso', p_entity:'login', p_detail:(c.name||'')}).catch(function(){}); }catch(e){}
   }).catch(function(e){
     var err=document.getElementById('lg-err');
     document.getElementById('login-step-cand').style.display='none';
