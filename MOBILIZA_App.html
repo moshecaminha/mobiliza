@@ -1511,6 +1511,8 @@ window.loginPassword = function(){
 };
 
 function mobAfterAuth(){
+  // Sinalizador: só o superadmin da plataforma vê a "Zona de risco"
+  try{ window.MOB_RPC('mob_is_platform_admin').then(function(v){ window.MOB_IS_ADMIN=(v===true); if(window._mobView==='settings' && typeof renderSettings==='function'){ try{renderSettings();}catch(e){} } }).catch(function(){ window.MOB_IS_ADMIN=false; }); }catch(e){ window.MOB_IS_ADMIN=false; }
   window.MOB_RPC('mob_my_candidates').then(function(cands){
     _mobCands = cands||[];
     var list=document.getElementById('cand-list');
@@ -2388,6 +2390,7 @@ var VIEW_LABELS = {
   ia:['Estratégia','IA Insights'], settings:['Estratégia','Configurações']
 };
 window.setView = function(v, skipHashUpdate){
+  window._mobView = v;
   Object.keys(charts).forEach(function(k){ try{charts[k].destroy()}catch(e){} delete charts[k]; });
   var views = document.querySelectorAll('.view');
   for(var i=0;i<views.length;i++) views[i].classList.remove('active');
@@ -8071,9 +8074,16 @@ function renderSettings(){
     html += '</div>';
   }
 
-  html += '<div class="config-section"><h3 style="color:var(--danger)"><svg class="icon" width="15" height="15"><use href="#i-alert"/></svg> Zona de risco</h3><div class="sub">Operações irreversíveis</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="loadDemoMinas()"><svg class="icon" width="13" height="13"><use href="#i-refresh"/></svg>Carregar demo Minas Gerais</button><button class="btn-ghost" onclick="loadDemoPernambuco()"><svg class="icon" width="13" height="13"><use href="#i-refresh"/></svg>Carregar demo Pernambuco</button><button class="btn-danger" onclick="resetApp()"><svg class="icon" width="14" height="14"><use href="#i-trash"/></svg>Apagar tudo</button></div></div>';
+  // Zona de risco: SOMENTE o superadmin da plataforma pode ver (demo/reset destrutivos)
+  if(window.MOB_IS_ADMIN===true){
+    html += '<div class="config-section"><h3 style="color:var(--danger)"><svg class="icon" width="15" height="15"><use href="#i-alert"/></svg> Zona de risco</h3><div class="sub">Operações irreversíveis · visível apenas para o administrador da plataforma</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="loadDemoMinas()"><svg class="icon" width="13" height="13"><use href="#i-refresh"/></svg>Carregar demo Minas Gerais</button><button class="btn-ghost" onclick="loadDemoPernambuco()"><svg class="icon" width="13" height="13"><use href="#i-refresh"/></svg>Carregar demo Pernambuco</button><button class="btn-danger" onclick="resetApp()"><svg class="icon" width="14" height="14"><use href="#i-trash"/></svg>Apagar tudo</button></div></div>';
+  }
 
   document.getElementById('view-settings').innerHTML = html;
+  // Se o sinalizador de admin ainda não resolveu, busca e re-renderiza (evita mostrar a zona de risco por engano)
+  if(typeof window.MOB_IS_ADMIN==='undefined'){
+    try{ window.MOB_RPC('mob_is_platform_admin').then(function(v){ window.MOB_IS_ADMIN=(v===true); if(window._mobView==='settings') renderSettings(); }).catch(function(){ window.MOB_IS_ADMIN=false; }); }catch(e){ window.MOB_IS_ADMIN=false; }
+  }
   try{ if(typeof waLoadConfig==='function') waLoadConfig(); }catch(e){}
   try{ if(typeof socialLoadConfig==='function') socialLoadConfig(); }catch(e){}
   try{ if(window.MOB_SB && window.MOB_SB.auth){ window.MOB_SB.auth.getUser().then(function(u){ var el=document.getElementById('mc-email'); if(el && u && u.data && u.data.user) el.textContent=u.data.user.email||''; }).catch(function(){}); } }catch(e){}
