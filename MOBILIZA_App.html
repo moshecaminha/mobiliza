@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Cdefs%3E%3ClinearGradient id=%27g%27 x1=%270%27 y1=%270%27 x2=%271%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%2300E5A8%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300805F%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2764%27 height=%2764%27 rx=%2715%27 fill=%27url(%23g)%27/%3E%3Cpath d=%27M 13 50 L 13 22 L 22 13 L 32 25 L 42 13 L 51 22 L 51 50%27 stroke=%27%23fff%27 stroke-width=%275.5%27 fill=%27none%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3Ccircle cx=%2742%27 cy=%2713%27 r=%274%27 fill=%27%23FFB800%27 stroke=%27%23fff%27 stroke-width=%271.5%27/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Cdefs%3E%3ClinearGradient id=%27g%27 x1=%270%27 y1=%270%27 x2=%271%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%2300E5A8%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300805F%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2764%27 height=%2764%27 rx=%2715%27 fill=%27url(%23g)%27/%3E%3Cpath d=%27M 13 50 L 13 22 L 22 13 L 32 25 L 42 13 L 51 22 L 51 50%27 stroke=%27%23fff%27 stroke-width=%275.5%27 fill=%27none%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3Ccircle cx=%2742%27 cy=%2713%27 r=%274%27 fill=%27%23FFB800%27 stroke=%27%23fff%27 stroke-width=%271.5%27/%3E%3C/svg%3E">
+<meta name="theme-color" content="#00A878">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>MOBILIZZA.ORG — Plataforma Estratégica para Candidatos</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2300E5A8'/%3E%3Cstop offset='1' stop-color='%2300805F'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='15' fill='url(%23g)'/%3E%3Cpath d='M 13 50 L 13 22 L 22 13 L 32 25 L 42 13 L 51 22 L 51 50' stroke='%23fff' stroke-width='5.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='42' cy='13' r='4' fill='%23FFB800' stroke='%23fff' stroke-width='1.5'/%3E%3C/svg%3E">
 <style>
 :root{--navy:#0A1628;--navy-2:#13213D;--brand:#00A878;--brand-2:#00805F;--brand-3:#00C896;--gold:#B45309;--gold-2:#D97706;--coral:#DC2626;--coral-2:#B91C1C;--blue:#2563EB;--purple:#6D28D9;--bg:#F5F7FA;--card:#FFFFFF;--ink:#0F172A;--ink-2:#1E293B;--muted:#64748B;--muted-2:#94A3B8;--border:#E2E8F0;--soft:#F1F5F9;--soft-2:#F8FAFC;--success:#059669;--warning:#D97706;--danger:#DC2626}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -18,6 +20,8 @@ input,select,textarea{font-family:inherit;outline:none;color:var(--ink)}
 .icon{display:inline-block;flex-shrink:0;vertical-align:middle}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .icon.spin{animation:spin 1s linear infinite}
+
+
 
 /* ERROR */
 #err-overlay{position:fixed;inset:0;background:#FEF2F2;z-index:9999;padding:40px;display:none;align-items:center;justify-content:center}
@@ -452,6 +456,83 @@ input,select,textarea{font-family:inherit;outline:none;color:var(--ink)}
 .feed-item .meta{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-bottom:4px;flex-wrap:wrap}
 .feed-item .meta strong{color:var(--ink-2)}
 .feed-item .text{font-size:13px;color:var(--ink-2);line-height:1.5}
+
+/* ============================================================
+   MOBILE / TABLET — navegação sem menu lateral fixo
+   ============================================================ */
+.mob-bar{display:none;align-items:center;gap:10px;height:56px;padding:0 12px;background:#0A1628;color:#fff;flex-shrink:0;position:sticky;top:0;z-index:120}
+.mob-bar .mb-btn{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;background:rgba(255,255,255,.08);flex-shrink:0}
+.mob-bar .mb-btn:active{background:rgba(255,255,255,.18)}
+.mob-bar .mb-title{flex:1;min-width:0;font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mob-bar .mb-sub{font-size:10px;font-weight:500;opacity:.6;text-transform:uppercase;letter-spacing:.06em}
+.sb-scrim{display:none;position:fixed;inset:0;background:rgba(6,14,26,.55);z-index:190;backdrop-filter:blur(2px)}
+.sb-scrim.show{display:block}
+/* Barra inferior de atalhos — polegar alcança */
+.mob-tabs{display:none;position:fixed;left:0;right:0;bottom:0;z-index:130;background:#fff;border-top:1px solid var(--border);
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom));grid-template-columns:repeat(5,1fr)}
+.mob-tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:10px;color:var(--muted);font-size:10px;font-weight:700}
+.mob-tabs button.on{color:var(--brand-2);background:rgba(0,168,120,.08)}
+.mob-tabs button svg{width:20px;height:20px}
+
+@media (max-width:1024px){
+  .grid-2,.grid-2-1,.grid-3{grid-template-columns:1fr}
+}
+@media (max-width:900px){
+  body{overflow:auto}
+  #app{height:100dvh;overflow:hidden}
+  .mob-bar{display:flex}
+  .mob-tabs{display:grid}
+  /* menu lateral vira gaveta */
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:270px;max-width:84vw;z-index:200;
+    transform:translateX(-100%);transition:transform .24s ease;overflow-y:auto;box-shadow:0 0 40px rgba(0,0,0,.4)}
+  .sidebar.open{transform:translateX(0)}
+  .topbar{display:none}
+  .content{padding:14px 12px calc(78px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+  .page-head{align-items:flex-start;margin-bottom:14px;gap:10px}
+  .page-head h2{font-size:20px}
+  .page-head > div{width:100%}
+  .card{padding:14px;border-radius:12px}
+  .form-row,.form-row-3{grid-template-columns:1fr;gap:8px}
+  /* tabelas roláveis, sem quebrar a página */
+  .card table{min-width:560px}
+  .card > table,.tbl-wrap{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* modal em tela cheia */
+  .modal-bg{padding:0;align-items:flex-end}
+  .modal{width:100%;max-width:100%;max-height:94dvh;border-radius:16px 16px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+  .modal .actions{position:sticky;bottom:0;background:#fff;padding-top:12px;margin-top:14px;border-top:1px solid var(--border);
+    display:flex;gap:8px;flex-wrap:wrap}
+  .modal .actions button{flex:1;min-width:120px;justify-content:center;padding:13px}
+  /* alvos de toque confortáveis */
+  input,select,textarea{font-size:16px;padding:12px 13px}   /* 16px evita o zoom automático do iOS */
+  button,.btn-primary,.btn-ghost,.nav-item{min-height:44px}
+  .chart-box{height:230px}
+  .kpi-grid,.mob-kpis{grid-template-columns:repeat(2,1fr)!important}
+  .cmd-panel{width:100%;margin:0 8px}
+  .funnel-row{flex-wrap:wrap}
+  .funnel-row .val{margin-left:auto}
+}
+@media (max-width:560px){
+  .mob-kpis{grid-template-columns:repeat(2,1fr)!important}
+  .page-head h2{font-size:18px}
+  .modal{padding:16px 13px calc(16px + env(safe-area-inset-bottom))}
+  .card{padding:12px}
+}
+.lg-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:14px;-webkit-overflow-scrolling:touch}
+.lg-tab{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;padding:9px 14px;border-radius:10px;
+  border:1px solid var(--border);background:#fff;color:var(--muted);font-weight:700;font-size:13px}
+.lg-tab.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.lg-tab:hover:not(.on){background:var(--soft)}
+.conv-grid{display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start}
+.conv-back{display:none}
+@media (max-width:900px){
+  .conv-grid{grid-template-columns:1fr;gap:12px}
+  .conv-grid #conv-list{max-height:none}
+  .conv-grid.thread-open #conv-list{display:none}
+  .conv-grid:not(.thread-open) #conv-thread{display:none!important}
+  .conv-back{display:inline-flex!important;align-items:center;gap:6px;margin-bottom:10px;padding:9px 13px;
+    border:1px solid var(--border);border-radius:9px;background:#fff;font-weight:700;font-size:13px;color:var(--ink-2)}
+}
+@media (min-width:901px){ .sidebar{transform:none!important} }
 </style>
 </head>
 <body>
@@ -496,6 +577,12 @@ input,select,textarea{font-family:inherit;outline:none;color:var(--ink)}
 <symbol id="i-vote" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><rect x="3" y="5" width="18" height="14" rx="2"/></symbol>
 <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
 <symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></symbol>
+<symbol id="i-paperclip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+<symbol id="i-truck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></symbol>
+<symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></symbol>
 <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
 <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
 <symbol id="i-lightbulb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.6.6 1 1.5 1 2.5h6c0-1 .4-1.9 1-2.5A6 6 0 0 0 12 3z"/></symbol>
@@ -744,7 +831,15 @@ input,select,textarea{font-family:inherit;outline:none;color:var(--ink)}
       </button>
     </div>
   </aside>
+  <div class="sb-scrim" id="sb-scrim" onclick="mobCloseNav()"></div>
   <main class="main">
+    <!-- Barra superior do celular: menu, título da tela e busca -->
+    <div class="mob-bar">
+      <button class="mb-btn" onclick="mobToggleNav()" aria-label="Abrir menu"><svg class="icon" width="22" height="22"><use href="#i-menu"/></svg></button>
+      <div class="mb-title"><div class="mb-sub" id="mb-1">Inteligência</div><div id="mb-2">Dashboard</div></div>
+      <button class="mb-btn" onclick="openCmd()" aria-label="Buscar"><svg class="icon" width="19" height="19"><use href="#i-search"/></svg></button>
+      <button class="mb-btn" onclick="toggleQuickMenu(event)" aria-label="Cadastrar"><svg class="icon" width="19" height="19"><use href="#i-plus"/></svg></button>
+    </div>
     <div class="topbar">
       <div style="display:flex;align-items:center;gap:16px;flex:1;min-width:0">
         <div style="flex-shrink:0">
@@ -798,6 +893,14 @@ input,select,textarea{font-family:inherit;outline:none;color:var(--ink)}
       <div class="view" id="view-ia"></div>
       <div class="view" id="view-settings"></div>
     </div>
+    <!-- Atalhos fixos no rodapé (celular) -->
+    <nav class="mob-tabs" id="mob-tabs">
+      <button data-mv="dashboard" onclick="setView('dashboard')"><svg><use href="#i-dashboard"/></svg>Painel</button>
+      <button data-mv="militancia" onclick="setView('militancia')"><svg><use href="#i-users"/></svg>Equipe</button>
+      <button data-mv="conversas" onclick="setView('conversas')"><svg><use href="#i-message"/></svg>Conversas</button>
+      <button data-mv="agenda" onclick="setView('agenda')"><svg><use href="#i-calendar"/></svg>Agenda</button>
+      <button onclick="mobToggleNav()"><svg><use href="#i-menu"/></svg>Tudo</button>
+    </nav>
   </main>
 </div>
 
@@ -967,6 +1070,7 @@ var DEFAULT_STATE = {
   candidate:{name:'',party:'',partyNumberSigla:'',partyNumber:'',photo:'',color:'#00C896',bio:''},
   election:{level:'municipal',position:'',city:'',state:'',date:'',voterCount:0,victoryTarget:0},
   parameters:{multiplier:4.2,conversion:0.71},
+  pollingPlaces:[],
   regions:[],leaders:[],militants:[],events:[],campaigns:[],templates:[],insights:[],socialKeywords:[],socialFeed:[],socialLastUpdate:0,competitors:[],dismissedInsights:[],
   // Logística
   committees:[],products:[],stockEntries:[],purchaseOrders:[],
@@ -2413,7 +2517,14 @@ window.setView = function(v, skipHashUpdate){
   if(VIEW_LABELS[v]){
     document.getElementById('bc-1').textContent = VIEW_LABELS[v][0];
     document.getElementById('bc-2').textContent = VIEW_LABELS[v][1];
+    var m1 = document.getElementById('mb-1'), m2 = document.getElementById('mb-2');
+    if(m1) m1.textContent = VIEW_LABELS[v][0];
+    if(m2) m2.textContent = VIEW_LABELS[v][1];
   }
+  // celular: fecha a gaveta e marca a aba ativa no rodapé
+  mobCloseNav();
+  var tabs = document.querySelectorAll('#mob-tabs button[data-mv]');
+  for(var t=0;t<tabs.length;t++) tabs[t].classList.toggle('on', tabs[t].getAttribute('data-mv')===v);
   document.getElementById('content').scrollTop = 0;
   // Persistir view atual: URL hash + localStorage
   if(!skipHashUpdate){
@@ -2459,6 +2570,7 @@ function renderView(v){
   else if(v==='trends') renderTrends();
   else if(v==='ia') renderIA();
   else if(v==='settings') renderSettings();
+  try{ mobWrapTables(document.getElementById('view-'+v)); }catch(e){}
 }
 function bootApp(){
   document.getElementById('sidebar-av').textContent = (state.candidate.name||'?').split(' ').map(function(p){return p[0]||''}).slice(0,2).join('').toUpperCase();
@@ -2634,21 +2746,726 @@ document.addEventListener('input', function(ev){
 
 // ============ CALC ============
 function calcProjection(){
-  var militants = activeOnly(state.militants);
+  var militants = activeOnly(state.militants).filter(function(m){return m.status!=='inactive'});
   var leaders = activeOnly(state.leaders);
-  var apoiadores = militants.filter(function(m){return m.status!=='inactive'}).length + leaders.length;
+  var people = leaders.concat(militants);
+  var apoiadores = people.length;
   var multiplier = state.parameters.multiplier||4.2;
   var conversion = state.parameters.conversion||0.71;
-  var projected = Math.round(apoiadores*multiplier*conversion);
+
+  // Pessoas que JA declararam quantos votos estimam entregar
+  var comEst = people.filter(function(x){ return (+x.votesEstimated||0) > 0; });
+  var semEst = apoiadores - comEst.length;
+  var somaEstimada  = comEst.reduce(function(a,x){ return a+(+x.votesEstimated||0); },0);
+  var somaPrometida = people.reduce(function(a,x){ return a+(+x.votesPromised||0); },0);
+  var somaHistorico = people.reduce(function(a,x){ return a+(+x.lastElectionVotes||0); },0);
+  var somaEntregue  = people.reduce(function(a,x){ return a+(+x.votesDelivered||0); },0);
+
+  // Bloco 1: estimativas declaradas nome a nome, com desconto de conversao
+  var declarado = Math.round(somaEstimada*conversion);
+  // Bloco 2: quem ainda nao tem estimativa entra pelo multiplicador medio
+  var modelado  = Math.round(semEst*multiplier*conversion);
+  var projected = declarado + modelado;
+
   var target = state.election.victoryTarget||0;
   var gap = target - projected;
   var winScore = target>0 ? Math.min(100, Math.max(0, Math.round(projected/target*100))) : 0;
-  return {apoiadores:apoiadores, multiplier:multiplier, conversion:conversion, projected:projected, target:target, gap:gap, winScore:winScore};
+  var confianca = projected>0 ? Math.round(declarado/projected*100) : 0;
+  var coberturaEst = apoiadores>0 ? Math.round(comEst.length/apoiadores*100) : 0;
+
+  return {apoiadores:apoiadores, multiplier:multiplier, conversion:conversion,
+          projected:projected, target:target, gap:gap, winScore:winScore,
+          comEst:comEst.length, semEst:semEst, somaEstimada:somaEstimada,
+          somaPrometida:somaPrometida, somaHistorico:somaHistorico, somaEntregue:somaEntregue,
+          declarado:declarado, modelado:modelado, confianca:confianca, coberturaEst:coberturaEst};
 }
 function calcRegionProjection(rid){
-  var c = activeOnly(state.militants).filter(function(m){return m.regionId===rid}).length + activeOnly(state.leaders).filter(function(l){return l.regionId===rid}).length;
-  return Math.round(c*(state.parameters.multiplier||4.2)*(state.parameters.conversion||0.71));
+  var mult = state.parameters.multiplier||4.2;
+  var conv = state.parameters.conversion||0.71;
+  var people = activeOnly(state.militants).filter(function(m){return m.regionId===rid && m.status!=='inactive'})
+        .concat(activeOnly(state.leaders).filter(function(l){return l.regionId===rid}));
+  var comEst = people.filter(function(x){ return (+x.votesEstimated||0) > 0; });
+  var soma = comEst.reduce(function(a,x){ return a+(+x.votesEstimated||0); },0);
+  return Math.round(soma*conv) + Math.round((people.length-comEst.length)*mult*conv);
 }
+
+// ============ LOCAIS DE VOTAÇÃO (onde vota) ============
+// Base propria + importacao dos dados abertos do TSE. O campo aceita digitacao livre;
+// tudo que a equipe digita entra na base, entao o autocomplete melhora sozinho.
+function pollNorm(x){ return (x||'').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim(); }
+function pollAll(){ state.pollingPlaces = state.pollingPlaces||[]; return state.pollingPlaces; }
+function pollPlacesFor(city, uf){
+  var c = pollNorm(city), u = (uf||'').toUpperCase();
+  var list = pollAll().filter(function(x){
+    if(u && x.uf && String(x.uf).toUpperCase()!==u) return false;
+    if(c && pollNorm(x.city) && pollNorm(x.city)!==c) return false;
+    return true;
+  });
+  var seen = {}; list.forEach(function(x){ seen[pollNorm(x.name)] = 1; });
+  var extra = [];
+  activeOnly(state.leaders||[]).concat(activeOnly(state.militants||[])).forEach(function(pp){
+    if(!pp.pollingPlace) return;
+    if(c && pollNorm(pp.city) && pollNorm(pp.city)!==c) return;
+    var k = pollNorm(pp.pollingPlace);
+    if(!k || seen[k]) return;
+    seen[k] = 1;
+    extra.push({name:pp.pollingPlace, address:pp.pollingAddress||'', bairro:pp.bairro||'', city:pp.city||'', uf:pp.uf||'', zona:pp.pollingZona||'', source:'equipe'});
+  });
+  return list.concat(extra).sort(function(a,b){ return pollNorm(a.name)<pollNorm(b.name)?-1:1; });
+}
+function pollOptionsHtml(list){
+  return list.slice(0,1500).map(function(x){
+    var lbl = [x.bairro, x.address, x.zona?('zona '+x.zona):''].filter(Boolean).join(' · ');
+    return '<option value="'+esc(x.name)+'">'+esc(lbl)+'</option>';
+  }).join('');
+}
+function pollBlockHtml(prefix, o){
+  o = o||{};
+  var dlId = prefix+'polldl';
+  var city = o.city||state.election.city||'', uf = o.uf||state.election.state||'';
+  var list = pollPlacesFor(city, uf);
+  return '<div style="margin-top:14px;padding:14px;background:linear-gradient(135deg,rgba(37,99,235,.06),rgba(37,99,235,.01));border:1px solid rgba(37,99,235,.22);border-radius:10px">'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em"><svg class="icon" width="14" height="14" style="color:var(--blue)"><use href="#i-pin"/></svg>Onde vota</div>'
+    +'<label>Local de votação</label>'
+    +'<input id="'+prefix+'pollplace" list="'+dlId+'" type="text" value="'+esc(o.pollingPlace||'')+'" placeholder="Digite: Escola, Colégio, EMEF…" oninput="pollOnPick(\''+prefix+'\')" autocomplete="off">'
+    +'<datalist id="'+dlId+'">'+pollOptionsHtml(list)+'</datalist>'
+    +'<div id="'+prefix+'pollhint" style="margin-top:4px;font-size:11px;color:var(--muted);line-height:1.4">'
+      +(list.length ? list.length.toLocaleString('pt-BR')+' locais disponíveis para '+esc(city||'esta cidade')+'. Não achou? Digite o nome — ele entra na base.'
+                    : 'Nenhum local cadastrado para esta cidade ainda. Digite o nome e ele passa a aparecer para toda a equipe. Você também pode importar a base do TSE em Configurações.')
+    +'</div>'
+    +'<label style="margin-top:10px">Endereço do local</label>'
+    +'<input id="'+prefix+'polladdr" type="text" value="'+esc(o.pollingAddress||'')+'" placeholder="Rua, número — bairro">'
+    +'<div class="form-row"><div><label>Zona eleitoral</label><input id="'+prefix+'pollzona" type="text" inputmode="numeric" value="'+esc(o.pollingZona||'')+'" placeholder="Ex: 045"></div>'
+    +'<div><label>Seção</label><input id="'+prefix+'pollsecao" type="text" inputmode="numeric" value="'+esc(o.pollingSecao||'')+'" placeholder="Ex: 0123"></div></div>'
+    +'<div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.4">Saber onde cada apoiador vota permite medir força por seção, planejar boca de urna e comparar o resultado real da urna com a projeção.</div>'
+  +'</div>';
+}
+window.pollOnPick = function(prefix){
+  var el = document.getElementById(prefix+'pollplace'); if(!el) return;
+  var v = pollNorm(el.value); if(!v) return;
+  var cityEl = document.getElementById(prefix+'city'), ufEl = document.getElementById(prefix+'uf');
+  var hit = pollPlacesFor(cityEl?cityEl.value:'', ufEl?ufEl.value:'').find(function(x){ return pollNorm(x.name)===v; });
+  if(!hit) return;
+  var a = document.getElementById(prefix+'polladdr'); if(a && !a.value && hit.address) a.value = hit.address;
+  var z = document.getElementById(prefix+'pollzona'); if(z && !z.value && hit.zona) z.value = hit.zona;
+  var b = document.getElementById(prefix+'bairro'); if(b && !b.value && hit.bairro) b.value = hit.bairro;
+};
+window.pollRefreshDatalist = function(prefix){
+  var dl = document.getElementById(prefix+'polldl'); if(!dl) return;
+  var cityEl = document.getElementById(prefix+'city'), ufEl = document.getElementById(prefix+'uf');
+  var city = cityEl?cityEl.value:'', uf = ufEl?ufEl.value:'';
+  var list = pollPlacesFor(city, uf);
+  dl.innerHTML = pollOptionsHtml(list);
+  var h = document.getElementById(prefix+'pollhint');
+  if(h) h.textContent = list.length ? (list.length.toLocaleString('pt-BR')+' locais disponíveis para '+(city||'esta cidade')+'. Não achou? Digite o nome — ele entra na base.')
+                                    : 'Nenhum local cadastrado para esta cidade ainda. Digite o nome e ele passa a aparecer para toda a equipe.';
+};
+function pollReadForm(prefix){
+  var g = function(x){ var e = document.getElementById(prefix+x); return e?(e.value||'').trim():''; };
+  return { pollingPlace:g('pollplace'), pollingAddress:g('polladdr'), pollingZona:g('pollzona'), pollingSecao:g('pollsecao') };
+}
+function pollRegisterFromPerson(person){
+  if(!person || !person.pollingPlace) return;
+  var k = pollNorm(person.pollingPlace), c = pollNorm(person.city);
+  var arr = pollAll();
+  var found = arr.find(function(x){ return pollNorm(x.name)===k && pollNorm(x.city)===c; });
+  if(found){
+    if(!found.address && person.pollingAddress) found.address = person.pollingAddress;
+    if(!found.zona && person.pollingZona) found.zona = person.pollingZona;
+    return;
+  }
+  arr.push({id:genId(), name:person.pollingPlace, address:person.pollingAddress||'', bairro:person.bairro||'',
+            city:person.city||'', uf:(person.uf||'').toUpperCase(), zona:person.pollingZona||'',
+            source:'equipe', createdAt:Date.now()});
+}
+// Agrupa a equipe por local de votacao — base dos relatorios de urna e da logistica de dia de eleicao
+function pollBreakdown(){
+  var people = activeOnly(state.leaders||[]).map(function(x){ return Object.assign({_t:'Liderança'}, x); })
+        .concat(activeOnly(state.militants||[]).map(function(x){ return Object.assign({_t:'Militante'}, x); }));
+  var map = {};
+  people.forEach(function(pp){
+    var key = pp.pollingPlace ? pollNorm(pp.city)+'|'+pollNorm(pp.pollingPlace) : '__sem__';
+    if(!map[key]) map[key] = {name: pp.pollingPlace||'Sem local informado', city: pp.pollingPlace?(pp.city||''):'',
+                              uf: pp.uf||'', zona: pp.pollingZona||'', bairro: pp.bairro||'', n:0, votos:0, pessoas:[]};
+    map[key].n++;
+    map[key].votos += (+pp.votesEstimated||0);
+    map[key].pessoas.push(pp);
+  });
+  return Object.keys(map).map(function(k){ return map[k]; })
+    .sort(function(a,b){ if(a.name==='Sem local informado') return 1; if(b.name==='Sem local informado') return -1; return b.n-a.n; });
+}
+try {
+  document.addEventListener('change', function(ev){
+    var t = ev.target; if(!t || !t.id) return;
+    if(t.id==='ml-city' || t.id==='ml-uf') pollRefreshDatalist('ml-');
+    if(t.id==='mm-city' || t.id==='mm-uf') pollRefreshDatalist('mm-');
+  }, true);
+} catch(e){}
+
+// ---- Importacao do CSV de locais de votacao do TSE ----
+// O arquivo do TSE vem separado por ponto-e-virgula, com aspas e encoding latin-1.
+var POLL_TSE_COLS = {
+  nome:   ['NM_LOCAL_VOTACAO','NM_LOCVOT','NOME_LOCAL_VOTACAO','NM_LOCAL'],
+  end:    ['DS_ENDERECO','ENDERECO','DS_LOCAL_VOTACAO_ENDERECO'],
+  bairro: ['NM_BAIRRO','BAIRRO','NM_LOCALIDADE_BAIRRO'],
+  cidade: ['NM_MUNICIPIO','MUNICIPIO','NM_LOCALIDADE'],
+  uf:     ['SG_UF','UF'],
+  zona:   ['NR_ZONA','ZONA'],
+  secao:  ['NR_SECAO','SECAO']
+};
+function pollPickCol(header, keys){
+  var norm = header.map(function(h){ return String(h||'').toUpperCase().replace(/^"|"$/g,'').trim(); });
+  for(var i=0;i<keys.length;i++){ var idx = norm.indexOf(keys[i]); if(idx>=0) return idx; }
+  return -1;
+}
+function pollSplitLine(line){
+  var sep = (line.split(';').length > line.split(',').length) ? ';' : ',';
+  return line.split(sep).map(function(c){ return c.replace(/^"|"$/g,'').trim(); });
+}
+window.pollImportPick = function(){
+  var inp = document.createElement('input');
+  inp.type='file'; inp.accept='.csv,text/csv';
+  inp.onchange = function(){ if(inp.files && inp.files[0]) pollImportFile(inp.files[0]); };
+  inp.click();
+};
+function pollImportFile(file){
+  var st = document.getElementById('poll-import-status');
+  var say = function(m){ if(st) st.innerHTML = m; };
+  say('Lendo <strong>'+esc(file.name)+'</strong>…');
+  var rd = new FileReader();
+  rd.onerror = function(){ say('<span style="color:var(--coral)">Não consegui ler o arquivo.</span>'); };
+  rd.onload = function(){
+    try {
+      var txt = rd.result;
+      // Se veio latin-1 (padrao do TSE), reinterpreta
+      if(/Ã|Â/.test(txt.slice(0,4000)) === false && /�/.test(txt.slice(0,4000))){
+        try { txt = new TextDecoder('iso-8859-1').decode(new Uint8Array(rd.resultBuffer||[])); } catch(e){}
+      }
+      var lines = txt.split(/\r?\n/).filter(function(l){ return l.trim().length; });
+      if(lines.length < 2){ say('<span style="color:var(--coral)">Arquivo vazio ou sem cabeçalho.</span>'); return; }
+      var header = pollSplitLine(lines[0]);
+      var iNome = pollPickCol(header, POLL_TSE_COLS.nome);
+      if(iNome < 0){
+        say('<span style="color:var(--coral)">Não encontrei a coluna do nome do local (NM_LOCAL_VOTACAO). Confira se o CSV é o de "Locais de votação" do TSE.</span>');
+        return;
+      }
+      var iEnd = pollPickCol(header, POLL_TSE_COLS.end), iBai = pollPickCol(header, POLL_TSE_COLS.bairro);
+      var iCid = pollPickCol(header, POLL_TSE_COLS.cidade), iUf = pollPickCol(header, POLL_TSE_COLS.uf);
+      var iZon = pollPickCol(header, POLL_TSE_COLS.zona);
+      var arr = pollAll();
+      var index = {};
+      arr.forEach(function(x){ index[pollNorm(x.city)+'|'+pollNorm(x.name)] = x; });
+      var novos = 0, atualizados = 0;
+      for(var n=1;n<lines.length;n++){
+        var c = pollSplitLine(lines[n]);
+        var nome = (c[iNome]||'').trim(); if(!nome) continue;
+        var cidade = iCid>=0 ? (c[iCid]||'').trim() : '';
+        var key = pollNorm(cidade)+'|'+pollNorm(nome);
+        var rec = index[key];
+        if(rec){
+          if(!rec.address && iEnd>=0 && c[iEnd]) { rec.address = c[iEnd].trim(); atualizados++; }
+          if(!rec.zona && iZon>=0 && c[iZon]) rec.zona = c[iZon].trim();
+          continue;
+        }
+        rec = { id: genId(), name: nome,
+                address: iEnd>=0 ? (c[iEnd]||'').trim() : '',
+                bairro:  iBai>=0 ? (c[iBai]||'').trim() : '',
+                city: cidade, uf: iUf>=0 ? (c[iUf]||'').trim().toUpperCase() : '',
+                zona: iZon>=0 ? (c[iZon]||'').trim() : '',
+                source: 'tse', createdAt: Date.now() };
+        arr.push(rec); index[key] = rec; novos++;
+      }
+      saveState();
+      say('<span style="color:var(--brand-2)"><strong>'+novos.toLocaleString('pt-BR')+'</strong> locais importados'
+          + (atualizados? ' · '+atualizados.toLocaleString('pt-BR')+' atualizados' : '')
+          + ' · base agora com <strong>'+arr.length.toLocaleString('pt-BR')+'</strong> locais.</span>');
+      toast(novos.toLocaleString('pt-BR')+' locais de votação importados');
+      renderSettings();
+    } catch(e){
+      say('<span style="color:var(--coral)">Erro ao importar: '+esc(e.message)+'</span>');
+    }
+  };
+  rd.readAsText(file, 'ISO-8859-1');
+}
+window.pollExport = function(){
+  var arr = pollAll();
+  if(!arr.length){ toast('Nenhum local cadastrado ainda','warn'); return; }
+  var head = 'nome;endereco;bairro;cidade;uf;zona;origem\n';
+  var body = arr.map(function(x){
+    return [x.name,x.address,x.bairro,x.city,x.uf,x.zona,x.source||''].map(function(v){
+      return '"'+String(v||'').replace(/"/g,'""')+'"';
+    }).join(';');
+  }).join('\n');
+  var blob = new Blob(['﻿'+head+body], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'locais_votacao_MOBILIZA.csv';
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+};
+window.pollClearTSE = function(){
+  if(!confirm('Remover os locais importados do TSE? Os locais cadastrados pela equipe são mantidos.')) return;
+  state.pollingPlaces = pollAll().filter(function(x){ return x.source!=='tse'; });
+  saveState(); renderSettings(); toast('Locais do TSE removidos');
+};
+
+// ============ BASE DE DOCUMENTOS (comprovantes) ============
+// Banco SEPARADO em IndexedDB. O estado da campanha guarda so os IDs;
+// as imagens ficam aqui, sem estourar o localStorage nem inchar a sincronizacao.
+var DOCDB_NAME = 'mobiliza_docs', DOCDB_STORE = 'docs', _docDb = null;
+function docDbOpen(){
+  return new Promise(function(resolve, reject){
+    if(_docDb) return resolve(_docDb);
+    if(!window.indexedDB) return reject(new Error('Este navegador não suporta armazenamento de documentos.'));
+    var req = indexedDB.open(DOCDB_NAME, 1);
+    req.onupgradeneeded = function(){
+      var db = req.result;
+      if(!db.objectStoreNames.contains(DOCDB_STORE)){
+        var st = db.createObjectStore(DOCDB_STORE, {keyPath:'id'});
+        st.createIndex('entity', ['entity','entityId'], {unique:false});
+      }
+    };
+    req.onsuccess = function(){ _docDb = req.result; resolve(_docDb); };
+    req.onerror = function(){ reject(req.error||new Error('Falha ao abrir a base de documentos')); };
+  });
+}
+function docPut(rec){
+  return docDbOpen().then(function(db){
+    return new Promise(function(resolve, reject){
+      var tx = db.transaction(DOCDB_STORE,'readwrite');
+      tx.objectStore(DOCDB_STORE).put(rec);
+      tx.oncomplete = function(){ resolve(rec); };
+      tx.onerror = function(){ reject(tx.error); };
+    });
+  });
+}
+function docGet(id){
+  return docDbOpen().then(function(db){
+    return new Promise(function(resolve, reject){
+      var r = db.transaction(DOCDB_STORE,'readonly').objectStore(DOCDB_STORE).get(id);
+      r.onsuccess = function(){ resolve(r.result||null); };
+      r.onerror = function(){ reject(r.error); };
+    });
+  });
+}
+function docDelete(id){
+  return docDbOpen().then(function(db){
+    return new Promise(function(resolve, reject){
+      var tx = db.transaction(DOCDB_STORE,'readwrite');
+      tx.objectStore(DOCDB_STORE).delete(id);
+      tx.oncomplete = function(){ resolve(true); };
+      tx.onerror = function(){ reject(tx.error); };
+    });
+  });
+}
+function docList(){
+  return docDbOpen().then(function(db){
+    return new Promise(function(resolve, reject){
+      var out = [], cur = db.transaction(DOCDB_STORE,'readonly').objectStore(DOCDB_STORE).openCursor();
+      cur.onsuccess = function(){
+        var c = cur.result;
+        if(c){ var v = c.value; out.push({id:v.id,name:v.name,type:v.type,size:v.size,createdAt:v.createdAt,entity:v.entity,entityId:v.entityId}); c.continue(); }
+        else resolve(out);
+      };
+      cur.onerror = function(){ reject(cur.error); };
+    });
+  });
+}
+// Foto de celular vem com 4-8 MB. Reduz para caber e carregar rapido.
+function docCompress(file, maxPx, quality){
+  maxPx = maxPx||1600; quality = quality||0.82;
+  return new Promise(function(resolve){
+    if(!/^image\//.test(file.type)){
+      var fr0 = new FileReader();
+      fr0.onload = function(){ resolve({dataUrl:fr0.result, type:file.type, w:0, h:0}); };
+      fr0.readAsDataURL(file);
+      return;
+    }
+    var fr = new FileReader();
+    fr.onload = function(){
+      var img = new Image();
+      img.onload = function(){
+        var w = img.width, h = img.height, r = Math.min(1, maxPx/Math.max(w,h));
+        var cw = Math.round(w*r), ch = Math.round(h*r);
+        try {
+          var cv = document.createElement('canvas'); cv.width=cw; cv.height=ch;
+          cv.getContext('2d').drawImage(img,0,0,cw,ch);
+          resolve({dataUrl: cv.toDataURL('image/jpeg', quality), type:'image/jpeg', w:cw, h:ch});
+        } catch(e){ resolve({dataUrl:fr.result, type:file.type, w:w, h:h}); }
+      };
+      img.onerror = function(){ resolve({dataUrl:fr.result, type:file.type, w:0, h:0}); };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+function docHumanSize(b){
+  b = +b||0;
+  if(b < 1024) return b+' B';
+  if(b < 1048576) return (b/1024).toFixed(0)+' KB';
+  return (b/1048576).toFixed(1).replace('.',',')+' MB';
+}
+
+// ---- Anexos dentro de um modal (comprovantes de lancamento/doacao) ----
+var _attachDraft = [];   // [{id,name,type,size,dataUrl}]
+function attachReset(list){ _attachDraft = (list||[]).slice(); }
+function attachBlockHtml(title, hint){
+  return '<div style="margin-top:14px;padding:14px;background:var(--soft-2);border:1px solid var(--border);border-radius:10px">'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:12px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em"><svg class="icon" width="14" height="14" style="color:var(--brand-2)"><use href="#i-upload"/></svg>'+(title||'Comprovante')+'</div>'
+    +'<div style="font-size:11px;color:var(--muted);line-height:1.45;margin-bottom:10px">'+(hint||'Fotografe o recibo ou envie um arquivo do computador. Fica guardado na base de documentos da campanha.')+'</div>'
+    +'<input type="file" id="att-cam" accept="image/*" capture="environment" style="display:none" onchange="attachAdd(this.files)">'
+    +'<input type="file" id="att-file" accept="image/*,application/pdf" multiple style="display:none" onchange="attachAdd(this.files)">'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      +'<button type="button" class="btn-primary" style="padding:9px 14px" onclick="document.getElementById(\'att-cam\').click()"><svg class="icon" width="14" height="14"><use href="#i-camera"/></svg>Tirar foto</button>'
+      +'<button type="button" class="btn-ghost" style="padding:9px 14px" onclick="document.getElementById(\'att-file\').click()"><svg class="icon" width="14" height="14"><use href="#i-upload"/></svg>Enviar arquivo</button>'
+    +'</div>'
+    +'<div id="att-list" style="margin-top:10px">'+attachListHtml()+'</div>'
+  +'</div>';
+}
+function attachListHtml(){
+  if(!_attachDraft.length) return '<div style="font-size:11px;color:var(--muted)">Nenhum comprovante anexado.</div>';
+  return '<div style="display:flex;gap:8px;flex-wrap:wrap">'+_attachDraft.map(function(a,i){
+    var isImg = /^image\//.test(a.type||'');
+    return '<div style="width:92px;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:#fff;position:relative">'
+      +(isImg ? '<img src="'+a.dataUrl+'" style="width:100%;height:70px;object-fit:cover;display:block;cursor:zoom-in" onclick="attachPreview('+i+')">'
+              : '<div style="height:70px;display:flex;align-items:center;justify-content:center;background:var(--soft);color:var(--muted);font-size:11px;font-weight:700">PDF</div>')
+      +'<div style="padding:4px 6px;font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(a.name||'arquivo')+'</div>'
+      +'<button type="button" onclick="attachRemove('+i+')" title="Remover" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(220,38,38,.92);color:#fff;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center">×</button>'
+    +'</div>';
+  }).join('')+'</div>';
+}
+window.attachAdd = function(files){
+  if(!files || !files.length) return;
+  var pend = [].slice.call(files);
+  var box = document.getElementById('att-list');
+  if(box) box.innerHTML = '<div style="font-size:11px;color:var(--muted)">Processando '+pend.length+' arquivo(s)…</div>';
+  Promise.all(pend.map(function(f){
+    return docCompress(f).then(function(r){
+      return {id:genId(), name:f.name||'comprovante.jpg', type:r.type, size:Math.round((r.dataUrl.length*3)/4), dataUrl:r.dataUrl};
+    });
+  })).then(function(list){
+    _attachDraft = _attachDraft.concat(list);
+    var b = document.getElementById('att-list'); if(b) b.innerHTML = attachListHtml();
+    toast(list.length+' comprovante(s) anexado(s)');
+  }).catch(function(e){ toast('Erro ao anexar: '+(e.message||''),'err'); });
+};
+window.attachRemove = function(i){
+  _attachDraft.splice(i,1);
+  var b = document.getElementById('att-list'); if(b) b.innerHTML = attachListHtml();
+};
+window.attachPreview = function(i){
+  var a = _attachDraft[i]; if(!a) return;
+  var w = window.open('','_blank');
+  if(w) w.document.write('<title>'+esc(a.name||'Comprovante')+'</title><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+a.dataUrl+'" style="max-width:100%;max-height:100vh"></body>');
+};
+// Converte dataURL em Blob para subir ao Storage
+function dataUrlToBlob(dataUrl){
+  var parts = (dataUrl||'').split(','); var meta = parts[0]||''; var b64 = parts[1]||'';
+  var mime = (meta.match(/data:([^;]+)/)||[])[1] || 'application/octet-stream';
+  var bin = atob(b64); var len = bin.length; var arr = new Uint8Array(len);
+  for(var i=0;i<len;i++) arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+// Grava os anexos do modal: sobe para o Storage (banco, isolado por candidato) e mantém cache local (offline).
+// Devolve objetos {id, path, name, type, size} guardados no estado.
+function attachCommit(entity, entityId){
+  var list = _attachDraft.slice();
+  var cand = window._mobCandId;
+  return Promise.all(list.map(function(a){
+    var localSave = docPut({id:a.id, name:a.name, type:a.type, size:a.size, dataUrl:a.dataUrl,
+                            entity:entity, entityId:entityId, createdAt:Date.now()}).catch(function(){});
+    var up = Promise.resolve(a.path||'');
+    if(cand && window.MOB_SB && a.dataUrl && a.dataUrl.indexOf('data:')===0){
+      try{
+        var blob = dataUrlToBlob(a.dataUrl);
+        var safe = (a.name||'comprovante').replace(/[^a-zA-Z0-9._-]/g,'_').slice(-60);
+        var path = cand+'/'+entity+'/'+entityId+'/'+a.id+'_'+safe;
+        up = window.MOB_SB.storage.from('comprovantes').upload(path, blob, {contentType:a.type||'application/octet-stream', upsert:true})
+              .then(function(r){ return (r && !r.error) ? path : (a.path||''); })
+              .catch(function(){ return a.path||''; });
+      }catch(e){ up = Promise.resolve(a.path||''); }
+    }
+    return Promise.all([localSave, up]).then(function(res){
+      return {id:a.id, path:res[1]||'', name:a.name, type:a.type, size:a.size};
+    });
+  }));
+}
+// Carrega anexos já gravados para dentro do modal (aceita objetos {id,path} ou IDs antigos)
+function attachLoad(items){
+  items = items||[];
+  if(!items.length){ attachReset([]); return Promise.resolve([]); }
+  return Promise.all(items.map(function(it){
+    var isObj = it && typeof it==='object';
+    var id = isObj ? it.id : it;
+    var path = isObj ? (it.path||'') : '';
+    return docGet(id).then(function(rec){
+      if(rec) return rec;
+      if(path && window.MOB_SB){
+        return window.MOB_SB.storage.from('comprovantes').createSignedUrl(path, 3600).then(function(r){
+          if(r && r.data && r.data.signedUrl) return {id:id, name:(isObj?it.name:'comprovante'), type:(isObj?it.type:'image/jpeg'), size:(isObj?it.size:0), dataUrl:r.data.signedUrl, path:path};
+          return null;
+        }).catch(function(){ return null; });
+      }
+      return null;
+    }).catch(function(){ return null; });
+  })).then(function(rows){
+    var ok = rows.filter(Boolean);
+    attachReset(ok);
+    var b = document.getElementById('att-list'); if(b) b.innerHTML = attachListHtml();
+    return ok;
+  });
+}
+// Abre um anexo (objeto {id,path} ou ID antigo) — prioriza o Storage, cai no cache local
+window.docOpenAtt = function(att){
+  if(att && typeof att==='object'){
+    if(att.path && window.MOB_SB){
+      window.MOB_SB.storage.from('comprovantes').createSignedUrl(att.path,3600).then(function(r){
+        if(r && r.data && r.data.signedUrl) window.open(r.data.signedUrl,'_blank');
+        else docOpen(att.id);
+      }).catch(function(){ docOpen(att.id); });
+      return;
+    }
+    return docOpen(att.id);
+  }
+  return docOpen(att);
+};
+// Abre o 1º comprovante de um lançamento/doação a partir do estado (evita passar objeto no onclick)
+window.docOpenFirstAtt = function(kind, id){
+  var rec = null;
+  if(kind==='transaction') rec=(state.transactions||[]).find(function(x){return x.id===id});
+  else if(kind==='donation') rec=(state.donations||[]).find(function(x){return x.id===id});
+  if(!rec || !rec.attachments || !rec.attachments.length){ toast('Sem comprovante','warn'); return; }
+  window.docOpenAtt(rec.attachments[0]);
+};
+// Miniatura clicavel nas tabelas
+window.docOpen = function(id){
+  docGet(id).then(function(d){
+    if(!d){ toast('Comprovante não encontrado','warn'); return; }
+    var w = window.open('','_blank');
+    if(!w){ toast('Permita pop-ups para ver o comprovante','warn'); return; }
+    if(/^image\//.test(d.type||'')) w.document.write('<title>'+esc(d.name)+'</title><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+d.dataUrl+'" style="max-width:100%;max-height:100vh"></body>');
+    else w.document.write('<title>'+esc(d.name)+'</title><body style="margin:0"><embed src="'+d.dataUrl+'" style="width:100%;height:100vh"></body>');
+  }).catch(function(e){ toast('Erro: '+e.message,'err'); });
+};
+
+// ============ NAVEGAÇÃO MOBILE ============
+// No celular o menu lateral vira gaveta; o rodapé traz os 4 atalhos mais usados.
+window.mobToggleNav = function(){
+  var sb = document.querySelector('.sidebar'), sc = document.getElementById('sb-scrim');
+  if(!sb) return;
+  var open = !sb.classList.contains('open');
+  sb.classList.toggle('open', open);
+  if(sc) sc.classList.toggle('show', open);
+  document.body.style.overflow = open ? 'hidden' : '';
+};
+window.mobCloseNav = function(){
+  var sb = document.querySelector('.sidebar'), sc = document.getElementById('sb-scrim');
+  if(sb) sb.classList.remove('open');
+  if(sc) sc.classList.remove('show');
+  document.body.style.overflow = '';
+};
+// ESC fecha a gaveta; girar/redimensionar para desktop também
+try {
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') mobCloseNav(); });
+  window.addEventListener('resize', function(){ if(window.innerWidth>900) mobCloseNav(); });
+} catch(e){}
+// Toda tabela dentro de card ganha rolagem horizontal no celular
+function mobWrapTables(root){
+  try {
+    var tbs = (root||document).querySelectorAll('.view table');
+    for(var i=0;i<tbs.length;i++){
+      var t = tbs[i];
+      if(t.parentElement && t.parentElement.classList.contains('tbl-wrap')) continue;
+      var w = document.createElement('div'); w.className = 'tbl-wrap';
+      t.parentNode.insertBefore(w, t); w.appendChild(t);
+    }
+  } catch(e){}
+}
+
+window.convBackToList = function(){
+  var g = document.getElementById('conv-grid'); if(g) g.classList.remove('thread-open');
+  window._convActive = null;
+};
+
+// ============ LOGÍSTICA — abas, distribuição e relatórios ============
+window._lgTab = 'comites';
+window.lgTab = function(t){
+  window._lgTab = t;
+  var secs = document.querySelectorAll('.lg-sec');
+  for(var i=0;i<secs.length;i++) secs[i].hidden = (secs[i].getAttribute('data-sec')!==t);
+  var tabs = document.querySelectorAll('.lg-tab');
+  for(var j=0;j<tabs.length;j++) tabs[j].classList.toggle('on', j===['comites','produtos','pedidos','distrib','relat'].indexOf(t));
+  var c = document.getElementById('content'); if(c) c.scrollTop = 0;
+};
+function lgStockByProduct(){
+  var out = {};
+  (state.stockEntries||[]).forEach(function(e){
+    if(!out[e.productId]) out[e.productId] = {inQty:0, outQty:0, byCommittee:{}};
+    var q = +e.qty||0;
+    if(e.type==='out'){ out[e.productId].outQty += q; }
+    else { out[e.productId].inQty += q; }
+    if(e.committeeId){
+      out[e.productId].byCommittee[e.committeeId] = (out[e.productId].byCommittee[e.committeeId]||0) + (e.type==='out'? q : 0);
+    }
+  });
+  return out;
+}
+// ---- Distribuição: quanto de cada material foi para cada comitê ----
+function lgDistribuicaoHtml(){
+  var committees = activeOnly(state.committees||[]);
+  var products = activeOnly(state.products||[]);
+  var stock = lgStockByProduct();
+  var h = '<div class="card"><div class="card-head"><div><div class="card-title" style="display:flex;align-items:center;gap:8px"><svg class="icon" width="16" height="16" style="color:var(--blue)"><use href="#i-truck"/></svg>Distribuição por comitê</div><div class="card-sub">Quanto de cada material já saiu para cada base</div></div>'
+    +'<button class="btn-ghost" onclick="modalProduct()"><svg class="icon" width="13" height="13"><use href="#i-plus"/></svg>Novo produto</button></div>';
+  if(!committees.length || !products.length){
+    h += '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;background:var(--soft-2);border-radius:10px">'
+      +'Cadastre comitês e produtos para acompanhar a distribuição.</div></div>';
+    return h;
+  }
+  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Produto</th>'
+    + committees.map(function(c){ return '<th style="text-align:right">'+esc(c.name)+'</th>'; }).join('')
+    + '<th style="text-align:right">Distribuído</th><th style="text-align:right">Em estoque</th></tr></thead><tbody>';
+  products.forEach(function(pr){
+    var st = stock[pr.id]||{inQty:0,outQty:0,byCommittee:{}};
+    h += '<tr><td><strong>'+esc(pr.name)+'</strong><br><small style="color:var(--muted)">'+esc(productCatLabel(pr.category)||'')+'</small></td>';
+    committees.forEach(function(c){
+      var q = st.byCommittee[c.id]||0;
+      h += '<td style="text-align:right'+(q?';font-weight:700':';color:var(--muted)')+'">'+(q?q.toLocaleString('pt-BR'):'—')+'</td>';
+    });
+    var saldo = (st.inQty||0)-(st.outQty||0);
+    h += '<td style="text-align:right;font-weight:700">'+(st.outQty||0).toLocaleString('pt-BR')+'</td>'
+      +'<td style="text-align:right;font-weight:700;color:'+(saldo<=0?'var(--coral)':'var(--brand-2)')+'">'+saldo.toLocaleString('pt-BR')+'</td></tr>';
+  });
+  h += '</tbody></table></div></div>';
+  // Cobertura: comitê x região, para achar buraco de operação
+  h += '<div class="card"><div class="card-head"><div class="card-title">Cobertura operacional</div><div class="card-sub">Comitês e equipe por cidade</div></div>';
+  var byCity = {};
+  committees.forEach(function(c){ var k = (c.city||'—'); byCity[k] = byCity[k]||{com:0,pes:0}; byCity[k].com++; });
+  activeOnly(state.leaders||[]).concat(activeOnly(state.militants||[])).forEach(function(x){
+    var k = (x.city||'—'); byCity[k] = byCity[k]||{com:0,pes:0}; byCity[k].pes++;
+  });
+  var rows = Object.keys(byCity).sort(function(a,b){ return byCity[b].pes-byCity[a].pes; });
+  if(!rows.length){ h += '<div style="color:var(--muted);font-size:13px">Sem dados ainda.</div>'; }
+  else {
+    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Cidade</th><th style="text-align:right">Comitês</th><th style="text-align:right">Pessoas</th><th>Situação</th></tr></thead><tbody>';
+    rows.forEach(function(k){
+      var v = byCity[k];
+      var alerta = v.pes>0 && v.com===0;
+      h += '<tr><td><strong>'+esc(k)+'</strong></td><td style="text-align:right">'+v.com+'</td><td style="text-align:right">'+v.pes+'</td>'
+        +'<td>'+(alerta? '<span style="color:var(--coral);font-weight:700">Equipe sem comitê</span>' : '<span style="color:var(--brand-2);font-weight:700">OK</span>')+'</td></tr>';
+    });
+    h += '</tbody></table></div>';
+  }
+  h += '</div>';
+  return h;
+}
+// ---- Relatórios de logística + financeiro + urna ----
+function lgRelatoriosHtml(){
+  var products = activeOnly(state.products||[]);
+  var orders = activeOnly(state.purchaseOrders||[]);
+  var stock = lgStockByProduct();
+  var tx = activeOnly(state.transactions||[]);
+  var money = function(v){ return fmtBRL(v); };
+
+  var valorEstoque = products.reduce(function(a,pr){
+    var st = stock[pr.id]||{inQty:0,outQty:0};
+    return a + ((st.inQty-st.outQty) * (+pr.unitCost||0));
+  },0);
+  var totalPedidos = orders.reduce(function(a,o){ return a+(+o.amount||0); },0);
+  var abertos = orders.filter(function(o){ return o.status!=='entregue' && o.status!=='cancelado'; });
+  var despesaLog = tx.filter(function(t){ return t.type==='expense' && (t.category==='material'||t.category==='evento'||t.category==='combustivel'); })
+                     .reduce(function(a,t){ return a+(+t.amount||0); },0);
+  var despesaTotal = tx.filter(function(t){ return t.type==='expense'; }).reduce(function(a,t){ return a+(+t.amount||0); },0);
+  var receitaTotal = tx.filter(function(t){ return t.type==='income'; }).reduce(function(a,t){ return a+(+t.amount||0); },0);
+  var proj = calcProjection();
+  var custoPorVoto = proj.projected>0 ? despesaTotal/proj.projected : 0;
+
+  var h = '<div class="card"><div class="card-head"><div><div class="card-title">Relatórios gerais</div><div class="card-sub">Logística e financeiro num só lugar · imprima ou exporte</div></div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="lgExportCsv()"><svg class="icon" width="13" height="13"><use href="#i-download"/></svg>Exportar CSV</button>'
+    +'<button class="btn-primary" onclick="window.print()"><svg class="icon" width="13" height="13"><use href="#i-note"/></svg>Imprimir</button></div></div>'
+    +'<div class="kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">'
+      +'<div style="padding:12px;background:var(--soft);border-radius:10px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700">Valor em estoque</div><div style="font-size:20px;font-weight:800">'+money(valorEstoque)+'</div></div>'
+      +'<div style="padding:12px;background:var(--soft);border-radius:10px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700">Pedidos (total)</div><div style="font-size:20px;font-weight:800">'+money(totalPedidos)+'</div></div>'
+      +'<div style="padding:12px;background:var(--soft);border-radius:10px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700">Pedidos abertos</div><div style="font-size:20px;font-weight:800">'+abertos.length+'</div></div>'
+      +'<div style="padding:12px;background:var(--soft);border-radius:10px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700">Gasto em material</div><div style="font-size:20px;font-weight:800">'+money(despesaLog)+'</div></div>'
+      +'<div style="padding:12px;background:var(--soft);border-radius:10px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700">Saldo de caixa</div><div style="font-size:20px;font-weight:800;color:'+((receitaTotal-despesaTotal)<0?'var(--coral)':'var(--brand-2)')+'">'+money(receitaTotal-despesaTotal)+'</div></div>'
+      +'<div style="padding:12px;background:var(--soft);border-radius:10px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700">Custo por voto projetado</div><div style="font-size:20px;font-weight:800">'+money(custoPorVoto)+'</div></div>'
+    +'</div></div>';
+
+  // Consumo por produto
+  h += '<div class="card"><div class="card-head"><div class="card-title">Consumo de material</div><div class="card-sub">Entradas, saídas e saldo por produto</div></div>';
+  if(!products.length) h += '<div style="color:var(--muted);font-size:13px">Nenhum produto cadastrado.</div>';
+  else {
+    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Produto</th><th>Categoria</th><th style="text-align:right">Entrou</th><th style="text-align:right">Saiu</th><th style="text-align:right">Saldo</th><th style="text-align:right">Custo unit.</th><th style="text-align:right">Valor do saldo</th></tr></thead><tbody>';
+    products.forEach(function(pr){
+      var st = stock[pr.id]||{inQty:0,outQty:0};
+      var saldo = st.inQty-st.outQty;
+      h += '<tr><td><strong>'+esc(pr.name)+'</strong></td><td>'+esc(productCatLabel(pr.category)||'—')+'</td>'
+        +'<td style="text-align:right">'+st.inQty.toLocaleString('pt-BR')+'</td>'
+        +'<td style="text-align:right">'+st.outQty.toLocaleString('pt-BR')+'</td>'
+        +'<td style="text-align:right;font-weight:700;color:'+(saldo<=0?'var(--coral)':'var(--ink)')+'">'+saldo.toLocaleString('pt-BR')+'</td>'
+        +'<td style="text-align:right">'+money(pr.unitCost)+'</td>'
+        +'<td style="text-align:right;font-weight:700">'+money(saldo*(+pr.unitCost||0))+'</td></tr>';
+    });
+    h += '</tbody></table></div>';
+  }
+  h += '</div>';
+
+  // Despesas por categoria
+  h += '<div class="card"><div class="card-head"><div class="card-title">Despesas por categoria</div><div class="card-sub">Para onde o dinheiro está indo</div></div>';
+  var byCat = {};
+  tx.filter(function(t){ return t.type==='expense'; }).forEach(function(t){ byCat[t.category||'outro'] = (byCat[t.category||'outro']||0)+(+t.amount||0); });
+  var cats = Object.keys(byCat).sort(function(a,b){ return byCat[b]-byCat[a]; });
+  if(!cats.length) h += '<div style="color:var(--muted);font-size:13px">Nenhuma despesa lançada.</div>';
+  else {
+    var catName = function(id){ var c=(state.expenseCategories||[]).find(function(x){return x.id===id}); return c?c.name:id; };
+    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Categoria</th><th style="text-align:right">Valor</th><th style="text-align:right">% do total</th><th style="width:34%">Peso</th></tr></thead><tbody>';
+    cats.forEach(function(k){
+      var pct = despesaTotal>0 ? (byCat[k]/despesaTotal*100) : 0;
+      h += '<tr><td><strong>'+esc(catName(k))+'</strong></td><td style="text-align:right;font-weight:700">'+money(byCat[k])+'</td>'
+        +'<td style="text-align:right">'+pct.toFixed(1).replace('.',',')+'%</td>'
+        +'<td><div style="height:8px;background:var(--soft);border-radius:5px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,pct)+'%;background:var(--brand)"></div></div></td></tr>';
+    });
+    h += '</tbody></table></div>';
+  }
+  h += '</div>';
+
+  // Força por local de votação — cruza logística com a urna
+  var pb = pollBreakdown();
+  h += '<div class="card"><div class="card-head"><div><div class="card-title">Força por local de votação</div><div class="card-sub">Onde a base vota — base do plano de urna e de boca de urna</div></div></div>';
+  if(pb.length===1 && pb[0].name==='Sem local informado'){
+    h += '<div style="color:var(--muted);font-size:13px">Ninguém tem local de votação preenchido ainda. O campo <strong>Onde vota</strong> está no cadastro de lideranças e militantes.</div>';
+  } else {
+    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Local</th><th>Bairro / cidade</th><th>Zona</th><th style="text-align:right">Pessoas</th><th style="text-align:right">Votos estimados</th></tr></thead><tbody>';
+    pb.slice(0,60).forEach(function(x){
+      h += '<tr><td><strong>'+esc(x.name)+'</strong></td><td>'+esc([x.bairro,x.city].filter(Boolean).join(' · ')||'—')+'</td>'
+        +'<td>'+esc(x.zona||'—')+'</td><td style="text-align:right;font-weight:700">'+x.n.toLocaleString('pt-BR')+'</td>'
+        +'<td style="text-align:right;font-weight:700">'+x.votos.toLocaleString('pt-BR')+'</td></tr>';
+    });
+    h += '</tbody></table></div>';
+  }
+  h += '</div>';
+  return h;
+}
+window.lgExportCsv = function(){
+  var products = activeOnly(state.products||[]);
+  var stock = lgStockByProduct();
+  var linhas = [['produto','categoria','entrou','saiu','saldo','custo_unitario','valor_saldo']];
+  products.forEach(function(pr){
+    var st = stock[pr.id]||{inQty:0,outQty:0};
+    var saldo = st.inQty-st.outQty;
+    linhas.push([pr.name, productCatLabel(pr.category)||'', st.inQty, st.outQty, saldo, (+pr.unitCost||0), saldo*(+pr.unitCost||0)]);
+  });
+  linhas.push([]);
+  linhas.push(['local_votacao','bairro','cidade','zona','pessoas','votos_estimados']);
+  pollBreakdown().forEach(function(x){ linhas.push([x.name,x.bairro,x.city,x.zona,x.n,x.votos]); });
+  var csv = linhas.map(function(r){ return r.map(function(v){ return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'; }).join(';'); }).join('\n');
+  var blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'relatorio_logistica_MOBILIZA.csv'; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+  toast('Relatório exportado');
+};
 
 // ============ HELPERS ============
 function emptyHTML(iconId,title,desc,actionFn,actionLabel){
@@ -5454,15 +6271,31 @@ function renderMilitancia(){
 // ============ VOTOS ============
 function renderVotos(){
   var p = calcProjection();
-  var html = '<div class="page-head"><div><h2>Projeção de Votos</h2><div class="sub">'+p.apoiadores+' apoiadores × '+p.multiplier.toFixed(1).replace('.',',')+' × '+(p.conversion*100).toFixed(0)+'%</div></div></div>';
-  html += '<div class="grid-2-1">';
-  html += '<div class="card"><div class="card-head"><div class="card-title">Funil de Projeção</div></div>'
-    +'<div class="funnel-row"><div class="n">1</div><div class="t"><h4>Apoiadores cadastrados</h4><p>Lideranças + militantes ativos</p></div><div class="val">'+p.apoiadores.toLocaleString('pt-BR')+'</div></div>'
-    +'<div class="funnel-row"><div class="n">2</div><div class="t"><h4>Influência média</h4><p>Votos influenciados por apoiador</p></div><div class="val">× '+p.multiplier.toFixed(1).replace('.',',')+'</div></div>'
-    +'<div class="funnel-row"><div class="n">3</div><div class="t"><h4>Potencial bruto</h4><p>Antes do fator de conversão</p></div><div class="val">'+Math.round(p.apoiadores*p.multiplier).toLocaleString('pt-BR')+'</div></div>'
-    +'<div class="funnel-row"><div class="n">4</div><div class="t"><h4>Fator de conversão</h4><p>% calibrado por região</p></div><div class="val">× '+(p.conversion*100).toFixed(0)+'%</div></div>'
-    +'<div class="funnel-row" style="background:rgba(0,200,150,.1);border:2px solid var(--brand)"><div class="n" style="background:var(--gold);display:flex;align-items:center;justify-content:center"><svg width="14" height="14" style="color:#fff"><use href="#i-trophy"/></svg></div><div class="t"><h4 style="color:var(--brand-2)">VOTOS PROJETADOS</h4><p>Meta: '+(p.target||0).toLocaleString('pt-BR')+'</p></div><div class="val" style="color:var(--brand-2);font-size:22px">'+p.projected.toLocaleString('pt-BR')+'</div></div>'
+  var html = '<div class="page-head"><div><h2>Projeção de Votos</h2><div class="sub">'
+    + p.comEst.toLocaleString('pt-BR')+' com estimativa declarada · '
+    + p.semEst.toLocaleString('pt-BR')+' pelo multiplicador ('+p.multiplier.toFixed(1).replace('.',',')+'×) · conversão '+(p.conversion*100).toFixed(0)+'%'
+    +'</div></div></div>';
+
+  html += '<div class="mob-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:10px;margin-bottom:14px">'
+    +'<div class="card" style="padding:12px;margin:0"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700">Prometido pela equipe</div><div style="font-size:22px;font-weight:800">'+p.somaPrometida.toLocaleString('pt-BR')+'</div><div style="font-size:11px;color:var(--muted)">o que as pessoas dizem que entregam</div></div>'
+    +'<div class="card" style="padding:12px;margin:0"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700">Estimado pela campanha</div><div style="font-size:22px;font-weight:800;color:var(--blue)">'+p.somaEstimada.toLocaleString('pt-BR')+'</div><div style="font-size:11px;color:var(--muted)">soma das estimativas nome a nome</div></div>'
+    +'<div class="card" style="padding:12px;margin:0"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700">Histórico da base</div><div style="font-size:22px;font-weight:800">'+p.somaHistorico.toLocaleString('pt-BR')+'</div><div style="font-size:11px;color:var(--muted)">votos na última eleição</div></div>'
+    +'<div class="card" style="padding:12px;margin:0"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700">Confiança da projeção</div><div style="font-size:22px;font-weight:800;color:'+(p.confianca>=60?'var(--brand-2)':p.confianca>=30?'var(--warning)':'var(--coral)')+'">'+p.confianca+'%</div><div style="font-size:11px;color:var(--muted)">'+p.coberturaEst+'% da equipe com estimativa</div></div>'
   +'</div>';
+
+  html += '<div class="grid-2-1">';
+  html += '<div class="card"><div class="card-head"><div class="card-title">Funil de Projeção</div><div style="font-size:11px;color:var(--muted)">estimativa declarada + modelo</div></div>'
+    +'<div class="funnel-row"><div class="n">1</div><div class="t"><h4>Apoiadores cadastrados</h4><p>Lideranças + militantes ativos</p></div><div class="val">'+p.apoiadores.toLocaleString('pt-BR')+'</div></div>'
+    +'<div class="funnel-row"><div class="n" style="background:var(--blue)">2</div><div class="t"><h4>Com estimativa declarada</h4><p>'+p.comEst.toLocaleString('pt-BR')+' pessoas somam '+p.somaEstimada.toLocaleString('pt-BR')+' votos estimados</p></div><div class="val" style="color:var(--blue)">'+p.declarado.toLocaleString('pt-BR')+'</div></div>'
+    +'<div class="funnel-row"><div class="n">3</div><div class="t"><h4>Sem estimativa ainda</h4><p>'+p.semEst.toLocaleString('pt-BR')+' pessoas × '+p.multiplier.toFixed(1).replace('.',',')+' de influência média</p></div><div class="val">'+p.modelado.toLocaleString('pt-BR')+'</div></div>'
+    +'<div class="funnel-row"><div class="n">4</div><div class="t"><h4>Fator de conversão</h4><p>Desconto de realismo nos dois blocos</p></div><div class="val">× '+(p.conversion*100).toFixed(0)+'%</div></div>'
+    +'<div class="funnel-row" style="background:rgba(0,200,150,.1);border:2px solid var(--brand)"><div class="n" style="background:var(--gold);display:flex;align-items:center;justify-content:center"><svg width="14" height="14" style="color:#fff"><use href="#i-trophy"/></svg></div><div class="t"><h4 style="color:var(--brand-2)">VOTOS PROJETADOS</h4><p>Meta: '+(p.target||0).toLocaleString('pt-BR')+'</p></div><div class="val" style="color:var(--brand-2);font-size:22px">'+p.projected.toLocaleString('pt-BR')+'</div></div>';
+  if(p.semEst>0 && p.apoiadores>0){
+    html += '<div style="margin-top:12px;padding:11px 12px;background:rgba(37,99,235,.06);border-left:3px solid var(--blue);border-radius:8px;font-size:12px;color:var(--ink-2);line-height:1.5">'
+      +'<strong>'+p.semEst.toLocaleString('pt-BR')+' pessoas ainda sem estimativa de votos.</strong> Enquanto não têm número declarado, a projeção usa o multiplicador médio. Preencha <em>votos estimados</em> na aba Equipe e a projeção passa a refletir a realidade de cada liderança.'
+      +'<div style="margin-top:8px"><button class="btn-ghost" style="padding:6px 12px;font-size:12px" onclick="setView(\'militancia\')">Ir para Equipe</button></div></div>';
+  }
+  html += '</div>';
 
   html += '<div class="card"><div class="card-head"><div class="card-title">Gap para a Vitória</div></div>';
   if(p.gap<=0) html += '<div style="text-align:center;padding:14px 0"><div style="font-size:11px;text-transform:uppercase;color:var(--brand-2);letter-spacing:.08em;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px"><svg class="icon" width="12" height="12"><use href="#i-check"/></svg>ACIMA DA META</div><div style="font-size:42px;font-weight:800;color:var(--brand-2)">+'+Math.abs(p.gap).toLocaleString('pt-BR')+'</div></div>';
@@ -5479,6 +6312,7 @@ function renderVotos(){
       +'<div><div style="font-size:10px;color:var(--brand-2);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Projeção do cenário</div><div style="font-size:28px;font-weight:800;color:var(--brand-2)" id="sim-result">'+p.projected.toLocaleString('pt-BR')+'</div></div>'
       +'<div id="sim-status" style="font-size:13px;font-weight:600">—</div>'
     +'</div>'
+    +'<div id="sim-breakdown" style="margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5"></div>'
     +'<div style="margin-top:12px;text-align:right"><button class="btn-primary" onclick="saveSimDefault()"><svg class="icon" width="13" height="13"><use href="#i-save"/></svg>Salvar parâmetros</button></div>'
   +'</div>';
 
@@ -5500,19 +6334,28 @@ function renderVotos(){
 }
 window.updateSim = function(){
   if(!document.getElementById('sl-base')) return;
+  var p = calcProjection();
   var base = +document.getElementById('sl-base').value;
   var mult = +document.getElementById('sl-mult').value/10;
   var conv = +document.getElementById('sl-conv').value/100;
-  var result = Math.round(base*mult*conv);
+  var comEst = Math.min(p.comEst, base);
+  var media = p.comEst>0 ? (p.somaEstimada/p.comEst) : 0;
+  var declarado = Math.round(comEst*media*conv);
+  var modelado  = Math.round(Math.max(0, base-comEst)*mult*conv);
+  var result = declarado + modelado;
   document.getElementById('sl-base-v').textContent = base.toLocaleString('pt-BR');
   document.getElementById('sl-mult-v').textContent = mult.toFixed(1).replace('.',',');
   document.getElementById('sl-conv-v').textContent = (conv*100).toFixed(0)+'%';
   document.getElementById('sim-result').textContent = result.toLocaleString('pt-BR');
+  var brk = document.getElementById('sim-breakdown');
+  if(brk) brk.innerHTML = comEst>0
+    ? '<strong>'+declarado.toLocaleString('pt-BR')+'</strong> vindos de '+comEst.toLocaleString('pt-BR')+' pessoas com estimativa declarada + <strong>'+modelado.toLocaleString('pt-BR')+'</strong> dos demais'
+    : 'Nenhuma estimativa declarada — cenário 100% pelo multiplicador';
   var target = state.election.victoryTarget||0;
   var diff = result-target;
   var st = document.getElementById('sim-status');
   if(diff>=0){st.innerHTML='+ '+diff.toLocaleString('pt-BR')+' acima';st.style.color='var(--brand-2)';}
-  else {st.innerHTML='− '+Math.abs(diff).toLocaleString('pt-BR')+' abaixo';st.style.color='var(--coral)';}
+  else {st.innerHTML='&minus; '+Math.abs(diff).toLocaleString('pt-BR')+' abaixo';st.style.color='var(--coral)';}
 };
 window.saveSimDefault = function(){
   state.parameters.multiplier = +document.getElementById('sl-mult').value/10;
@@ -6144,9 +6987,9 @@ window.renderConversas = function(){
   var el = document.getElementById('view-conversas');
   el.innerHTML = '<div class="page-head"><div><h2>Conversas</h2><div class="sub">Mensagens no WhatsApp oficial. Leia, responda, ligue — e finalize o cadastro de quem chegou pelo pré-cadastro.</div></div>'
     +'<div style="display:flex;gap:8px"><button class="btn-ghost" onclick="preCadastroQR()"><svg class="icon" width="14" height="14"><use href="#i-hashtag"/></svg> QR de pré-cadastro</button><button class="btn-ghost" onclick="convBuildKnown().then(convLoad)"><svg class="icon" width="14" height="14"><use href="#i-refresh"/></svg> Atualizar</button></div></div>'
-    +'<div style="display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start">'
-      +'<div id="conv-list" style="border:1px solid var(--border);border-radius:12px;max-height:70vh;overflow:auto"><div style="padding:16px;color:var(--muted)">Carregando…</div></div>'
-      +'<div id="conv-thread" style="border:1px solid var(--border);border-radius:12px;min-height:320px;display:flex;align-items:center;justify-content:center;color:var(--muted)">Selecione uma conversa à esquerda.</div>'
+    +'<div class="conv-grid" id="conv-grid">'
+      +'<div id="conv-list" style="border:1px solid var(--border);border-radius:12px;max-height:70vh;overflow:auto;background:#fff"><div style="padding:16px;color:var(--muted)">Carregando…</div></div>'
+      +'<div id="conv-thread" style="border:1px solid var(--border);border-radius:12px;min-height:320px;display:flex;align-items:center;justify-content:center;color:var(--muted);background:#fff"><span class="conv-empty">Selecione uma conversa na lista.</span></div>'
     +'</div>';
   convBuildKnown().then(convLoad);
   if(window._convPoll){ clearInterval(window._convPoll); }
@@ -6291,13 +7134,15 @@ window.dashLoadNewContacts = function(){
 };
 window.convOpen = function(phone, name){
   window._convActive = {phone:phone, name:name};
+  try{ var g=document.getElementById('conv-grid'); if(g) g.classList.add('thread-open'); }catch(e){}
   var th=document.getElementById('conv-thread'); if(!th) return;
   th.style.display='block'; th.style.alignItems='stretch'; th.style.justifyContent='flex-start';
   th.innerHTML='<div style="padding:16px;color:var(--muted)">Carregando…</div>';
   window.MOB_RPC('mob_wa_mark_read',{p_candidate:window._mobCandId,p_phone:phone}).then(function(){ convLoad(); }).catch(function(){});
   window.MOB_RPC('mob_wa_thread',{p_candidate:window._mobCandId,p_phone:phone}).then(function(r){
     var msgs=(r&&r.messages)||[]; var d=(phone||'').replace(/\D/g,'');
-    var head='<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border)"><div><strong>'+esc(name||phone)+'</strong><div style="font-size:11px;color:var(--muted)">'+esc(phone)+'</div></div>'
+    var head='<div style="padding:10px 14px 0"><button class="conv-back" onclick="convBackToList()"><svg class="icon" width="14" height="14" style="transform:rotate(180deg)"><use href="#i-arrow-right"/></svg>Voltar às conversas</button></div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border)"><div><strong>'+esc(name||phone)+'</strong><div style="font-size:11px;color:var(--muted)">'+esc(phone)+'</div></div>'
       +'<a class="btn-ghost" style="padding:6px 12px;font-size:12px;text-decoration:none" href="tel:'+d+'"><svg class="icon" width="13" height="13"><use href="#i-phone"/></svg>Ligar</a></div>';
     var body='<div style="padding:14px;max-height:50vh;overflow:auto;display:flex;flex-direction:column;gap:8px">'
       + (msgs.length? msgs.map(function(m){
@@ -6848,7 +7693,9 @@ function renderFinanceiro(){
         +'<td style="font-size:12px;max-width:220px"><strong>'+esc(t.description||'—')+'</strong></td>'
         +'<td><span class="badge '+(isExp?'danger':'success')+'">'+(cat?esc(cat.name):(isExp?'Despesa':'Receita'))+'</span></td>'
         +'<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:'+(isExp?'var(--coral-2)':'var(--brand-2)')+'">'+(isExp?'−':'+')+' '+fmtBRL(t.amount)+'</td>'
-        +'<td class="actions"><button onclick="modalTransaction(\''+t.id+'\')" title="Editar"><svg class="icon" width="12" height="12"><use href="#i-edit"/></svg></button></td></tr>';
+        +'<td class="actions">'
+          +((t.attachments&&t.attachments.length)?'<button onclick="docOpenFirstAtt(\'transaction\',\''+t.id+'\')" title="Ver comprovante ('+t.attachments.length+')" style="color:var(--brand-2)"><svg class="icon" width="12" height="12"><use href="#i-paperclip"/></svg></button>':'')
+          +'<button onclick="modalTransaction(\''+t.id+'\')" title="Editar"><svg class="icon" width="12" height="12"><use href="#i-edit"/></svg></button></td></tr>';
     });
     html += '</tbody></table></div>';
     if(transactions.length>30) html += '<div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted)">Mostrando 30 de '+transactions.length+'</div>';
@@ -6883,7 +7730,9 @@ function renderFinanceiro(){
         +'<td><span class="badge '+(d.type==='pj'?'info':'neutral')+'">'+(d.type==='pj'?'PJ':d.type==='partido'?'Partido':'PF')+'</span></td>'
         +'<td style="font-size:12px;color:var(--muted)">'+esc(d.date||'—')+'</td>'
         +'<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:var(--brand-2)">'+fmtBRL(d.amount)+'</td>'
-        +'<td class="actions"><button onclick="modalDonation(\''+d.id+'\')" title="Editar"><svg class="icon" width="12" height="12"><use href="#i-edit"/></svg></button><button class="danger" onclick="rmDonation(\''+d.id+'\')" title="Excluir"><svg class="icon" width="12" height="12"><use href="#i-trash"/></svg></button></td></tr>';
+        +'<td class="actions">'
+          +((d.attachments&&d.attachments.length)?'<button onclick="docOpenFirstAtt(\'donation\',\''+d.id+'\')" title="Ver comprovante ('+d.attachments.length+')" style="color:var(--brand-2)"><svg class="icon" width="12" height="12"><use href="#i-paperclip"/></svg></button>':'')
+          +'<button onclick="modalDonation(\''+d.id+'\')" title="Editar"><svg class="icon" width="12" height="12"><use href="#i-edit"/></svg></button><button class="danger" onclick="rmDonation(\''+d.id+'\')" title="Excluir"><svg class="icon" width="12" height="12"><use href="#i-trash"/></svg></button></td></tr>';
     });
     html += '</tbody></table></div>';
   }
@@ -6950,8 +7799,11 @@ window.modalTransaction = function(id){
     +'<div class="form-row"><div><label>Categoria</label><select id="tr-category">'+(isExp?expenseCats:incomeCats)+'</select></div><div><label>Conta</label><select id="tr-account"><option value="">—</option>'+accOpts+'</select></div></div>'
     +'<label>Nº comprovante / NF</label><input id="tr-receipt" value="'+esc(t.receipt||'')+'">'
     +'<label>Notas</label><textarea id="tr-notes">'+esc(t.notes||'')+'</textarea>'
+    +attachBlockHtml('Comprovante do lançamento','Fotografe a nota/recibo com a câmera ou envie um arquivo. Guardado na base de documentos, separada dos dados da campanha.')
     +'<div class="actions">'+(id?'<button class="btn-danger" onclick="rmTransaction(\''+id+'\');closeModal()">Excluir</button>':'')+'<button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="saveTransaction(\''+(id||'')+'\')">Salvar</button></div>',
     id?'tx-'+id:'tx-new');
+  attachReset([]);
+  if(id && t.attachments && t.attachments.length) attachLoad(t.attachments);
 };
 window._toggleTxType = function(type){
   var catSel = document.getElementById('tr-category');
@@ -6973,8 +7825,14 @@ window.saveTransaction = function(id){
   var type = typeRadio?typeRadio.value:'expense';
   var data = {type:type,description:desc,amount:amount,date:$('tr-date').value,category:$('tr-category').value,accountId:$('tr-account').value,receipt:$('tr-receipt').value.trim(),notes:$('tr-notes').value.trim()};
   state.transactions = state.transactions||[];
-  if(id){var idx = state.transactions.findIndex(function(t){return t.id===id});state.transactions[idx] = Object.assign(state.transactions[idx],data); logAction('edit','transaction',state.transactions[idx]);}
-  else { var newItem = Object.assign({id:genId(),createdAt:Date.now()},data); state.transactions.push(newItem); logAction('create','transaction',newItem);}
+  var saved;
+  if(id){var idx = state.transactions.findIndex(function(t){return t.id===id});state.transactions[idx] = Object.assign(state.transactions[idx],data); saved = state.transactions[idx]; logAction('edit','transaction',saved);}
+  else { var newItem = Object.assign({id:genId(),createdAt:Date.now()},data); state.transactions.push(newItem); saved = newItem; logAction('create','transaction',newItem);}
+  // Comprovantes vao para a base de documentos (IndexedDB); no estado ficam so os IDs.
+  attachCommit('transaction', saved.id).then(function(ids){
+    saved.attachments = ids;
+    saveState(); renderFinanceiro();
+  }).catch(function(e){ toast('Comprovante não salvo: '+(e.message||''),'err'); });
   saveState(); closeModal(); renderFinanceiro(); toast('Salvo');
 };
 window.rmTransaction = function(id){ if(!confirm('Excluir movimentação?'))return; var item=softDelete(state.transactions,id); logAction('delete','transaction',item); saveState(); renderFinanceiro(); toast('Excluído'); };
@@ -6991,8 +7849,11 @@ window.modalDonation = function(id){
     +'<label>Conta destino</label><select id="dn-account"><option value="">—</option>'+accOpts+'</select>'
     +'<label>Meio de pagamento</label><select id="dn-method"><option value="pix"'+(d.method==='pix'?' selected':'')+'>PIX</option><option value="ted"'+(d.method==='ted'?' selected':'')+'>TED</option><option value="deposito"'+(d.method==='deposito'?' selected':'')+'>Depósito</option><option value="cheque"'+(d.method==='cheque'?' selected':'')+'>Cheque</option><option value="dinheiro"'+(d.method==='dinheiro'?' selected':'')+'>Dinheiro</option></select>'
     +'<label>Notas</label><textarea id="dn-notes">'+esc(d.notes||'')+'</textarea>'
+    +attachBlockHtml('Comprovante da doação','Recibo, comprovante de PIX/TED ou documento do doador. Exigido na prestação de contas.')
     +'<div class="actions">'+(id?'<button class="btn-danger" onclick="rmDonation(\''+id+'\');closeModal()">Excluir</button>':'')+'<button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="saveDonation(\''+(id||'')+'\')">Salvar</button></div>',
     id?'donation-'+id:'donation-new');
+  attachReset([]);
+  if(id && d.attachments && d.attachments.length) attachLoad(d.attachments);
 };
 window.saveDonation = function(id){
   var $ = function(x){return document.getElementById(x)};
@@ -7009,6 +7870,9 @@ window.saveDonation = function(id){
     state.transactions = state.transactions||[];
     state.transactions.push({id:genId(),createdAt:Date.now(),type:'income',category:data.type==='pj'?'doacao_pj':(data.type==='partido'?'partido':'doacao_pf'),amount:data.amount,date:data.date,description:'Doação de '+donor+' ('+doc+')',accountId:data.accountId,linkedDonationId:newItem.id});
   }
+  var _dn = id ? state.donations.find(function(x){return x.id===id}) : state.donations[state.donations.length-1];
+  attachCommit('donation', _dn && _dn.id).then(function(ids){ if(_dn){ _dn.attachments = ids; saveState(); renderFinanceiro(); } })
+    .catch(function(e){ toast('Comprovante não salvo: '+(e.message||''),'err'); });
   saveState(); closeModal(); renderFinanceiro(); toast(isNew?'Doação registrada + receita lançada':'Salvo');
 };
 window.rmDonation = function(id){ if(!confirm('Excluir doação? A receita relacionada também será removida.'))return; var item=softDelete(state.donations,id); logAction('delete','donation',item); saveState(); renderFinanceiro(); toast('Excluído'); };
@@ -7466,6 +8330,14 @@ function renderLogistica(){
   +'</div>';
 
   // Comitês
+  // Abas: cada bloco na sua aba, em vez de tudo empilhado na mesma tela
+  var _lgTab = window._lgTab || 'comites';
+  html += '<div class="lg-tabs">'
+    + [['comites','Comitês','i-pin'],['produtos','Produtos & estoque','i-box'],['pedidos','Pedidos de compra','i-note'],['distrib','Distribuição','i-truck'],['relat','Relatórios','i-trending-up']]
+      .map(function(t){ return '<button class="lg-tab'+(_lgTab===t[0]?' on':'')+'" onclick="lgTab(\''+t[0]+'\')"><svg class="icon" width="14" height="14"><use href="#'+t[2]+'"/></svg>'+t[1]+'</button>'; }).join('')
+    + '</div>';
+
+  html += '<div class="lg-sec" data-sec="comites"'+(_lgTab==='comites'?'':' hidden')+'>';
   html += '<div class="card"><div class="card-head"><div><div class="card-title" style="display:flex;align-items:center;gap:8px"><svg class="icon" width="16" height="16" style="color:var(--brand-2)"><use href="#i-pin"/></svg>Comitês da campanha</div><div class="card-sub">Bases operacionais em cada região</div></div><button class="btn-ghost" onclick="modalCommittee()"><svg class="icon" width="13" height="13"><use href="#i-plus"/></svg>Novo comitê</button></div>';
   if(committees.length===0){
     html += '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;background:var(--soft-2);border-radius:10px"><svg width="32" height="32" style="opacity:.35;margin-bottom:6px"><use href="#i-pin"/></svg><div>Nenhum comitê cadastrado</div><button class="btn-primary" style="margin-top:12px" onclick="modalCommittee()"><svg class="icon" width="13" height="13"><use href="#i-plus"/></svg>Cadastrar primeiro comitê</button></div>';
@@ -7486,6 +8358,8 @@ function renderLogistica(){
   html += '</div>';
 
   // Catálogo de produtos
+  html += '</div>';
+  html += '<div class="lg-sec" data-sec="produtos"'+(_lgTab==='produtos'?'':' hidden')+'>';
   html += '<div class="card"><div class="card-head"><div><div class="card-title" style="display:flex;align-items:center;gap:8px"><svg class="icon" width="16" height="16" style="color:var(--gold-2)"><use href="#i-download"/></svg>Catálogo de produtos</div><div class="card-sub">Santinhos, camisas, adesivos e materiais</div></div><button class="btn-ghost" onclick="modalProduct()"><svg class="icon" width="13" height="13"><use href="#i-plus"/></svg>Novo produto</button></div>';
   if(products.length===0){
     html += '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;background:var(--soft-2);border-radius:10px"><div>Nenhum produto no catálogo</div></div>';
@@ -7506,6 +8380,8 @@ function renderLogistica(){
   html += '</div>';
 
   // Pedidos de compra
+  html += '</div>';
+  html += '<div class="lg-sec" data-sec="pedidos"'+(_lgTab==='pedidos'?'':' hidden')+'>';
   html += '<div class="card"><div class="card-head"><div><div class="card-title" style="display:flex;align-items:center;gap:8px"><svg class="icon" width="16" height="16" style="color:var(--coral)"><use href="#i-note"/></svg>Pedidos de compra</div><div class="card-sub">Ordens abertas, em produção ou entregues</div></div><button class="btn-ghost" onclick="modalOrder()"><svg class="icon" width="13" height="13"><use href="#i-plus"/></svg>Novo pedido</button></div>';
   if(orders.length===0){
     html += '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;background:var(--soft-2);border-radius:10px"><div>Nenhum pedido registrado</div></div>';
@@ -7527,6 +8403,9 @@ function renderLogistica(){
   }
   html += '</div>';
 
+  html += '</div>';
+  html += '<div class="lg-sec" data-sec="distrib"'+(_lgTab==='distrib'?'':' hidden')+'>'+lgDistribuicaoHtml()+'</div>';
+  html += '<div class="lg-sec" data-sec="relat"'+(_lgTab==='relat'?'':' hidden')+'>'+lgRelatoriosHtml()+'</div>';
   document.getElementById('view-logistica').innerHTML = html;
 }
 
@@ -7974,6 +8853,37 @@ function renderSettings(){
     +'<label>Meta de votos</label><input type="number" id="s-target" value="'+(state.election.victoryTarget||'')+'">'
     +'<div class="form-row"><div><label>Influência</label><input type="number" step="0.1" id="s-mult" value="'+state.parameters.multiplier+'"></div><div><label>Conversão %</label><input type="number" id="s-conv" value="'+Math.round(state.parameters.conversion*100)+'"></div></div>'
     +'<div style="margin-top:12px"><button class="btn-primary" onclick="saveElection()">Salvar</button></div></div>';
+
+  // ===== Locais de votação (base do TSE + base própria) =====
+  (function(){
+    var total = pollAll().length;
+    var doTSE = pollAll().filter(function(x){ return x.source==='tse'; }).length;
+    var doTime = total - doTSE;
+    var cidades = {};
+    pollAll().forEach(function(x){ if(x.city) cidades[pollNorm(x.city)] = 1; });
+    html += '<div class="config-section"><h3><svg class="icon" width="15" height="15"><use href="#i-pin"/></svg> Locais de votação</h3>'
+      +'<div class="sub">Alimenta o campo <strong>Onde vota</strong> no cadastro da equipe e os relatórios por seção.</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0">'
+        +'<div style="padding:10px;background:var(--soft);border-radius:8px"><div style="font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.05em">Total</div><div style="font-size:20px;font-weight:800">'+total.toLocaleString('pt-BR')+'</div></div>'
+        +'<div style="padding:10px;background:var(--soft);border-radius:8px"><div style="font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.05em">Do TSE</div><div style="font-size:20px;font-weight:800">'+doTSE.toLocaleString('pt-BR')+'</div></div>'
+        +'<div style="padding:10px;background:var(--soft);border-radius:8px"><div style="font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.05em">Da equipe</div><div style="font-size:20px;font-weight:800">'+doTime.toLocaleString('pt-BR')+'</div></div>'
+        +'<div style="padding:10px;background:var(--soft);border-radius:8px"><div style="font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.05em">Cidades</div><div style="font-size:20px;font-weight:800">'+Object.keys(cidades).length.toLocaleString('pt-BR')+'</div></div>'
+      +'</div>'
+      +'<div style="padding:12px;background:rgba(37,99,235,.05);border-left:3px solid var(--blue);border-radius:8px;font-size:12px;color:var(--ink-2);line-height:1.55">'
+        +'<strong>Importar a base oficial do TSE:</strong><br>'
+        +'1. Acesse <a href="https://dadosabertos.tse.jus.br/dataset/locais-de-votacao" target="_blank" rel="noopener" style="color:var(--brand-2);font-weight:600">dadosabertos.tse.jus.br → Locais de votação</a><br>'
+        +'2. Baixe o arquivo do seu estado e descompacte (vem um .csv)<br>'
+        +'3. Selecione o .csv abaixo — o sistema reconhece as colunas do TSE automaticamente.'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">'
+        +'<button class="btn-primary" onclick="pollImportPick()"><svg class="icon" width="13" height="13"><use href="#i-upload"/></svg> Importar CSV do TSE</button>'
+        +'<button class="btn-ghost" onclick="pollExport()"><svg class="icon" width="13" height="13"><use href="#i-download"/></svg> Exportar base atual</button>'
+        +(doTSE? '<button class="btn-ghost" onclick="pollClearTSE()">Limpar importados do TSE</button>':'')
+      +'</div>'
+      +'<div id="poll-import-status" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>'
+      +'<div style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.5">Não é obrigatório importar. Sem a base do TSE, o campo aceita digitação livre e vai aprendendo com o que a equipe cadastra.</div>'
+    +'</div>';
+  })();
   html += '</div>';
 
   // ===== Conectar WhatsApp (disparo oficial · Meta Cloud API) =====
@@ -8378,6 +9288,7 @@ window.modalLeader = function(id){
     +'<input type="hidden" id="ml-lat" value="'+esc(l.lat||'')+'"><input type="hidden" id="ml-lng" value="'+esc(l.lng||'')+'">'
     +'<label>Região política · agrupamento interno</label><select id="ml-region"><option value="">— Selecione uma região —</option>'+regions+'</select>'
     +'<div style="margin-top:4px;font-size:11px;color:var(--muted)">Use as regiões cadastradas para agrupar lideranças (ex: Zona Sul, RMR).</div>'
+    +pollBlockHtml('ml-', l)
     // Seção 3: Cargo & Partido
     +sec('Cargo, status e partido','i-flag','#B45309')
     +'<div class="form-row"><div><label>Cargo / Papel *</label><select id="ml-role" onchange="updateLeaderFormFields()">'+roles+'</select></div><div><label>Status</label><select id="ml-status"><option value="active"'+(l.status==='active'||!l.status?' selected':'')+'>Ativo</option><option value="inactive"'+(l.status==='inactive'?' selected':'')+'>Inativo</option></select></div></div>'
@@ -8431,16 +9342,18 @@ window.saveLeader = function(id){
       electoralNumber: ($('ml-elnum')?($('ml-elnum').value||'').trim():''),
       contactsGoal: withContact && $('ml-goal') ? (+$('ml-goal').value||0) : 0,
       contactsMade: withContact && $('ml-made') ? (+$('ml-made').value||0) : 0,
-      votesPromised: withVotes && $('ml-vp') ? (+$('ml-vp').value||0) : 0,
-      votesEstimated: withVotes && $('ml-ve') ? (+$('ml-ve').value||0) : 0,
-      votesDelivered: withVotes && $('ml-vd') ? (+$('ml-vd').value||0) : 0,
+      votesPromised: $('ml-vp') ? (+$('ml-vp').value||0) : 0,
+      votesEstimated: $('ml-ve') ? (+$('ml-ve').value||0) : 0,
+      votesDelivered: $('ml-vd') ? (+$('ml-vd').value||0) : 0,
       lastElectionVotes: withLast && $('ml-lastvotes') ? (+$('ml-lastvotes').value||0) : 0,
       lastElectionYear: withLast && $('ml-lastyear') ? ($('ml-lastyear').value||'').trim() : '',
       notes: ($('ml-notes')?($('ml-notes').value||'').trim():'')
     };
+    Object.assign(data, pollReadForm('ml-'));
     var savedLeader;
     if(id){var idx = state.leaders.findIndex(function(l){return l.id===id});state.leaders[idx] = Object.assign(state.leaders[idx],data); savedLeader = state.leaders[idx]; logAction('edit','leader',state.leaders[idx]); clearDraft('leader-'+id);}
     else { var newItem = Object.assign({id:genId(),createdAt:Date.now()},data); state.leaders.push(newItem); savedLeader = newItem; logAction('create','leader',newItem); clearDraft('leader-new'); }
+    try{ pollRegisterFromPerson(savedLeader); }catch(e){}
     saveState(); closeModal(); renderMilitancia(); updateSidebarCounters(); toast(id?'Liderança atualizada':'Liderança '+savedLeader.name+' cadastrada');
     // Nova liderança → avisar o candidato no WhatsApp cadastrado (compartilhamento)
     try { if(!id && typeof notifyCandidateNewLeader==='function') notifyCandidateNewLeader(savedLeader); } catch(e){}
@@ -8965,6 +9878,7 @@ window.modalMilitant = function(id){
     +'<div class="form-row">'+mobUFCityPair('mm-uf','mm-city',(m.uf||state.election.state||''),(m.city||state.election.city||''))+'</div>'
     +'<input type="hidden" id="mm-lat" value="'+esc(m.lat||'')+'"><input type="hidden" id="mm-lng" value="'+esc(m.lng||'')+'">'
     +'<label>Região política · agrupamento interno</label><select id="mm-region"><option value="">— sem região específica —</option>'+regions+'</select>'
+    +pollBlockHtml('mm-', m)
     // Seção 3: Perfil e Indicação
     +sec('Perfil e vínculo','i-users','#7C3AED')
     +'<div class="form-row"><div><label>Perfil / Cargo</label><select id="mm-profile" onchange="updateMilitantFormFields()">'+profiles+'</select></div><div><label>Status</label><select id="mm-status"><option value="active"'+(m.status==='active'||!m.status?' selected':'')+'>Ativo</option><option value="inactive"'+(m.status==='inactive'?' selected':'')+'>Inativo</option></select></div></div>'
@@ -9012,16 +9926,18 @@ window.saveMilitant = function(id){
       leaderId: ($('mm-leader')?$('mm-leader').value:''),
       profile:profile,
       status: ($('mm-status')?$('mm-status').value:'active'),
-      votesPromised: withVotes && $('mm-vp') ? (+$('mm-vp').value||0) : 0,
-      votesEstimated: withVotes && $('mm-ve') ? (+$('mm-ve').value||0) : 0,
-      votesDelivered: withVotes && $('mm-vd') ? (+$('mm-vd').value||0) : 0,
+      votesPromised: $('mm-vp') ? (+$('mm-vp').value||0) : 0,
+      votesEstimated: $('mm-ve') ? (+$('mm-ve').value||0) : 0,
+      votesDelivered: $('mm-vd') ? (+$('mm-vd').value||0) : 0,
       lastElectionVotes: withLastM && $('mm-lastvotes') ? (+$('mm-lastvotes').value||0) : 0,
       lastElectionYear: withLastM && $('mm-lastyear') ? ($('mm-lastyear').value||'').trim() : '',
       notes:($('mm-notes')?($('mm-notes').value||'').trim():'')
-    };
+    }
+    Object.assign(data, pollReadForm('mm-'));;
     var savedMil;
     if(id){var idx = state.militants.findIndex(function(m){return m.id===id});state.militants[idx] = Object.assign(state.militants[idx],data); savedMil = state.militants[idx]; logAction('edit','militant',state.militants[idx]); clearDraft('militant-'+id);}
     else { var newItem = Object.assign({id:genId(),createdAt:Date.now()},data); state.militants.push(newItem); savedMil = newItem; logAction('create','militant',newItem); clearDraft('militant-new'); }
+    try{ pollRegisterFromPerson(savedMil); }catch(e){}
     saveState(); closeModal(); renderMilitancia(); updateSidebarCounters(); toast(id?'Militante atualizado':'Militante '+savedMil.name+' cadastrado');
     // Geocodifica automaticamente pelo bairro → aparece no mapa na hora
     try {
@@ -9043,7 +9959,6 @@ window.modalEvent = function(id){
     +'<label>Local</label><input id="me-loc" value="'+esc(e.location||'')+'">'
     +'<label>Tipo</label><select id="me-type"><option value="publico"'+(e.type==='publico'||!e.type?' selected':'')+'>Público</option><option value="midia"'+(e.type==='midia'?' selected':'')+'>Mídia</option><option value="interno"'+(e.type==='interno'?' selected':'')+'>Interno</option><option value="pessoal"'+(e.type==='pessoal'?' selected':'')+'>Pessoal</option></select>'
     +'<label>Descrição</label><textarea id="me-desc">'+esc(e.description||'')+'</textarea>'
-    +'<div class="form-row"><div><label><input type="checkbox" id="me-email"'+(e.notifyEmail?' checked':'')+' style="width:auto;margin-right:6px">E-mail</label></div><div><label><input type="checkbox" id="me-sms"'+(e.notifySms?' checked':'')+' style="width:auto;margin-right:6px">SMS</label></div></div>'
     +'<div class="actions">'+(id?'<button class="btn-danger" onclick="rmEvent(\''+id+'\');closeModal()">Mover p/ lixeira</button>':'')+'<button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="saveEvent(\''+(id||'')+'\')">Salvar</button></div>',
     id?'event-'+id:'event-new');
 };
@@ -9052,7 +9967,7 @@ window.saveEvent = function(id){
   var title = $('me-title').value.trim();
   var date = $('me-date').value;
   if(!title||!date){toast('Título e data obrigatórios','warn');return;}
-  var data = {title:title,date:date,time:$('me-time').value,location:$('me-loc').value.trim(),type:$('me-type').value,description:$('me-desc').value.trim(),notifyEmail:$('me-email').checked,notifySms:$('me-sms').checked};
+  var data = {title:title,date:date,time:$('me-time').value,location:$('me-loc').value.trim(),type:$('me-type').value,description:$('me-desc').value.trim()};
   if(id){var idx = state.events.findIndex(function(e){return e.id===id});state.events[idx] = Object.assign(state.events[idx],data); logAction('edit','event',state.events[idx]); clearDraft('event-'+id);}
   else { var newItem = Object.assign({id:genId(),createdAt:Date.now()},data); state.events.push(newItem); logAction('create','event',newItem); clearDraft('event-new'); }
   saveState(); closeModal(); renderAgenda(); toast('Salvo');
