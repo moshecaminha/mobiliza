@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Cdefs%3E%3ClinearGradient id=%27g%27 x1=%270%27 y1=%270%27 x2=%271%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%2300E5A8%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300805F%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2764%27 height=%2764%27 rx=%2715%27 fill=%27url(%23g)%27/%3E%3Cpath d=%27M 13 50 L 13 22 L 22 13 L 32 25 L 42 13 L 51 22 L 51 50%27 stroke=%27%23fff%27 stroke-width=%275.5%27 fill=%27none%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3Ccircle cx=%2742%27 cy=%2713%27 r=%274%27 fill=%27%23FFB800%27 stroke=%27%23fff%27 stroke-width=%271.5%27/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Cdefs%3E%3ClinearGradient id=%27g%27 x1=%270%27 y1=%270%27 x2=%271%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%2300E5A8%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300805F%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2764%27 height=%2764%27 rx=%2715%27 fill=%27url(%23g)%27/%3E%3Cpath d=%27M 13 50 L 13 22 L 22 13 L 32 25 L 42 13 L 51 22 L 51 50%27 stroke=%27%23fff%27 stroke-width=%275.5%27 fill=%27none%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3Ccircle cx=%2742%27 cy=%2713%27 r=%274%27 fill=%27%23FFB800%27 stroke=%27%23fff%27 stroke-width=%271.5%27/%3E%3C/svg%3E">
+<meta name="theme-color" content="#00A878">
 <title>MOBILIZZA.ORG · Administração</title>
 <style>
 :root{--navy:#0A1628;--brand:#00A878;--brand-2:#00805F;--gold-2:#D97706;--coral:#DC2626;--blue:#2563EB;--purple:#6D28D9;--bg:#F5F7FA;--card:#fff;--ink:#0F172A;--ink-2:#1E293B;--muted:#64748B;--border:#E2E8F0;--soft:#F8FAFC}
@@ -164,6 +167,7 @@ async function renderOverview(){
     +'<div><h3>Visão geral da plataforma</h3><div class="sub">Somente leitura · consolidado de todas as campanhas · horário de Brasília</div></div>'
     +'<div style="display:flex;gap:8px;align-items:center"><label class="sub" style="text-transform:none">Filtrar:</label>'
     +'<select id="over-filter" onchange="setOverFilter(this.value)" style="padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px">'+opts+'</select> '
+    +'<button class="btn ghost sm" onclick="exportOverview()">⤓ Exportar CSV</button> '
     +'<button class="btn ghost sm" onclick="refreshOverview()">↻ Atualizar</button></div></div></div>';
   // KPIs gerais
   h += '<div class="card"><h3 style="margin-bottom:10px">Indicadores'+(selId?' · '+esc((list.find(c=>c.id===selId)||{}).name||''):'')+'</h3>'
@@ -186,6 +190,26 @@ async function renderOverview(){
   loadOverviewLogs(selId);
 }
 window.setOverFilter = function(v){ CACHE.overFilter = v||''; renderOverview(); };
+// Exporta o consolidado (respeitando o filtro por candidato) para planilha
+window.exportOverview = function(){
+  const list = CACHE.candidates||[];
+  const selId = CACHE.overFilter||'';
+  const scope = selId ? list.filter(c=>c.id===selId) : list;
+  const head = ['candidato','cargo','uf','cidade','ano','liderancas','militantes','leads','eventos','checkins','votos_estimados','receitas','despesas','doacoes','saldo'];
+  const rows = scope.map(c=>{ const r=c.report||{}, f=r.finance||{};
+    const saldo=(+f.income||0)+(+f.donations||0)-(+f.expense||0);
+    return [c.name, OFFICES[c.office]||c.office||'', c.uf||'', c.city||'', c.election_year||'',
+            r.leaders||0, r.militants||0, r.leads||0, r.events||0, r.checkins||0, r.votes_estimated||0,
+            (+f.income||0).toFixed(2), (+f.expense||0).toFixed(2), (+f.donations||0).toFixed(2), saldo.toFixed(2)];
+  });
+  const csv = [head].concat(rows).map(r=>r.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(';')).join('\n');
+  const stamp = new Date().toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}).replace(/[/:]/g,'-').replace(/, /,'_');
+  const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download = 'MOBILIZA_consolidado_'+stamp+'.csv'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  toast('Relatório exportado');
+};
 window.refreshOverview = async function(){ CACHE.candidates = await rpc('mob_admin_candidates'); renderOverview(); toast('Atualizado'); };
 async function loadOverviewLogs(candId){
   try{
@@ -247,8 +271,33 @@ window.modalCandidate = function(id){
     +'<div class="form-row"><div><label>Cargo</label><select id="c-office"><option value="">—</option>'+opt+'</select></div><div><label>Ano da eleição</label><select id="c-year"><option'+(c.election_year===2026?' selected':'')+'>2026</option><option'+(c.election_year===2028?' selected':'')+'>2028</option></select></div></div>'
     +'<div class="form-row"><div><label>UF</label><input id="c-uf" maxlength="2" style="text-transform:uppercase" value="'+esc(c.uf||'')+'"></div><div><label>Cidade</label><input id="c-city" value="'+esc(c.city||'')+'"></div></div>'
     +'<div class="form-row"><div><label>Partido</label><input id="c-party" value="'+esc(c.party||'')+'"></div><div><label>Número</label><input id="c-num" value="'+esc(c.party_number||'')+'"></div></div>'
-    +'<div class="form-row"><div><label>Cor do tema</label><input id="c-color" type="color" value="'+(esc(c.theme_color||'#00A878'))+'" style="height:44px;padding:4px"></div><div><label>Foto (URL)</label><input id="c-photo" value="'+esc(c.photo_url||'')+'" placeholder="https://…"></div></div>'
+    +'<label>Foto do candidato</label>'
+    +'<div style="display:flex;gap:12px;align-items:center;margin-bottom:6px">'
+      +'<img id="c-photo-prev" src="'+esc(c.photo_url||'')+'" alt="" style="width:56px;height:56px;border-radius:10px;object-fit:cover;background:#F1F5F9;border:1px solid var(--border)'+(c.photo_url?'':';display:none')+'">'
+      +'<input type="file" id="c-photo-file" accept="image/*" style="display:none" onchange="uploadCandPhoto(this.files,'+(id?"'"+id+"'":'null')+')">'
+      +'<button type="button" class="btn ghost sm" onclick="document.getElementById(\'c-photo-file\').click()">Enviar foto</button>'
+      +'<span id="c-photo-status" class="sub"></span>'
+    +'</div>'
+    +'<input id="c-photo" value="'+esc(c.photo_url||'')+'" placeholder="ou cole uma URL https://…" style="font-size:12px">'
+    +'<div class="form-row" style="margin-top:10px"><div><label>Cor do tema</label><input id="c-color" type="color" value="'+(esc(c.theme_color||'#00A878'))+'" style="height:44px;padding:4px"></div><div></div></div>'
     +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn" onclick="saveCandidate('+(id?"'"+id+"'":'null')+')">Salvar</button></div>');
+};
+window.uploadCandPhoto = async function(files, id){
+  if(!files || !files.length) return;
+  const f = files[0];
+  const st = $('c-photo-status'); if(st) st.textContent = 'Enviando…';
+  try{
+    const folder = id || (crypto.randomUUID ? crypto.randomUUID() : (Date.now()+''+Math.random()).replace(/\D/g,''));
+    const ext = (f.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+    const path = folder+'/photo_'+Date.now()+'.'+ext;
+    const up = await sb.storage.from('candidate-photos').upload(path, f, {contentType:f.type||undefined, upsert:true});
+    if(up.error) throw new Error(up.error.message||'falha no upload');
+    const pub = sb.storage.from('candidate-photos').getPublicUrl(path);
+    const url = pub.data.publicUrl;
+    $('c-photo').value = url;
+    const prev = $('c-photo-prev'); if(prev){ prev.src = url; prev.style.display=''; }
+    if(st) st.textContent = 'Foto enviada';
+  }catch(e){ if(st) st.textContent = 'Erro: '+(e.message||''); }
 };
 window.saveCandidate = async function(id){
   const p = { name:$('c-name').value.trim(), office:$('c-office').value, election_year:+$('c-year').value,

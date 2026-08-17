@@ -8906,6 +8906,14 @@ function renderSettings(){
     +'<label>Nome</label><input id="s-name" value="'+esc(state.candidate.name)+'">'
     +'<div class="form-row-3"><div><label>Partido</label><input id="s-party" value="'+esc(state.candidate.party)+'"></div><div><label>Sigla</label><input id="s-psigla" value="'+esc(state.candidate.partyNumberSigla||'')+'"></div><div><label>Número</label><input id="s-pnum" value="'+esc(state.candidate.partyNumber)+'"></div></div>'
     +'<label>Slogan</label><input id="s-bio" value="'+esc(state.candidate.bio||'')+'">'
+    +'<label>Foto do candidato</label>'
+    +'<div style="display:flex;gap:12px;align-items:center;margin-bottom:6px">'
+      +'<img id="s-photo-prev" src="'+esc(state.candidate.photo||'')+'" alt="" style="width:52px;height:52px;border-radius:10px;object-fit:cover;background:var(--soft);border:1px solid var(--border)'+(state.candidate.photo?'':';display:none')+'">'
+      +'<input type="file" id="s-photo-file" accept="image/*" capture="user" style="display:none" onchange="uploadCandidatePhoto(this.files)">'
+      +'<button type="button" class="btn-ghost" style="padding:8px 12px" onclick="document.getElementById(\'s-photo-file\').click()"><svg class="icon" width="14" height="14"><use href="#i-camera"/></svg> Enviar foto</button>'
+      +'<span id="s-photo-status" class="sub"></span>'
+    +'</div>'
+    +'<input type="hidden" id="s-photo" value="'+esc(state.candidate.photo||'')+'">'
     +'<label>Cor</label><input id="s-color" type="color" value="'+state.candidate.color+'" style="height:38px">'
     +'<div style="margin-top:12px"><button class="btn-primary" onclick="saveCandidate()">Salvar</button></div></div>';
   html += '<div class="config-section"><h3><svg class="icon" width="15" height="15"><use href="#i-vote"/></svg> Eleição</h3><div class="sub">Contexto e meta</div>'
@@ -9188,6 +9196,23 @@ window.searchSocialReal = async function(query){
     });
   }catch(e){ return []; }
 };
+// Upload da foto do candidato (bucket público candidate-photos, por candidato). Coord/assessor/gestor com acesso podem trocar.
+window.uploadCandidatePhoto = function(files){
+  if(!files || !files.length) return;
+  var f = files[0];
+  if(!window.MOB_SB || !window._mobCandId){ toast('Sessão não iniciada','err'); return; }
+  var st = document.getElementById('s-photo-status'); if(st) st.textContent = 'Enviando…';
+  var ext = ((f.name||'foto.jpg').split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+  var path = window._mobCandId+'/photo_'+Date.now()+'.'+ext;
+  window.MOB_SB.storage.from('candidate-photos').upload(path, f, {contentType:f.type||undefined, upsert:true}).then(function(r){
+    if(r && r.error) throw new Error(r.error.message||'falha no upload');
+    var url = window.MOB_SB.storage.from('candidate-photos').getPublicUrl(path).data.publicUrl;
+    var hid=document.getElementById('s-photo'); if(hid) hid.value=url;
+    var prev=document.getElementById('s-photo-prev'); if(prev){ prev.src=url; prev.style.display=''; }
+    state.candidate = state.candidate||{}; state.candidate.photo = url;
+    if(st) st.textContent = 'Foto enviada — clique em Salvar';
+  }).catch(function(e){ if(st) st.textContent='Erro: '+(e.message||''); toast(e.message||'Erro no upload','err'); });
+};
 window.saveCandidate = function(){
   state.candidate.name = document.getElementById('s-name').value.trim();
   state.candidate.party = document.getElementById('s-party').value.trim();
@@ -9195,7 +9220,10 @@ window.saveCandidate = function(){
   state.candidate.partyNumber = document.getElementById('s-pnum').value.trim();
   state.candidate.bio = document.getElementById('s-bio').value.trim();
   state.candidate.color = document.getElementById('s-color').value;
-  saveState(); bootApp(); renderSettings(); toast('Candidato atualizado');
+  var ph=document.getElementById('s-photo'); if(ph) state.candidate.photo = ph.value.trim();
+  // Persiste no banco (foto e dados básicos) para aparecer no painel e nos outros dispositivos
+  try{ if(window._mobCandId && window.MOB_RPC){ window.MOB_RPC('mob_update_candidate_self',{p_id:window._mobCandId,p_data:{name:state.candidate.name,party:state.candidate.party,party_number:state.candidate.partyNumber,theme_color:state.candidate.color,photo_url:state.candidate.photo||'',bio:state.candidate.bio}}).catch(function(){}); } }catch(e){}
+  saveState(); bootApp(); mobApplyCandidatePhoto(); renderSettings(); toast('Candidato atualizado');
 };
 window.saveElection = function(){
   state.election.position = document.getElementById('s-pos').value.trim();
