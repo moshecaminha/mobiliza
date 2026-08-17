@@ -795,9 +795,18 @@ input,select,textarea{font-family:inherit;outline:none;color:var(--ink)}
 <!-- APP -->
 <div id="app">
   <aside class="sidebar">
-    <div class="brand">
-      <div class="logo"><svg viewBox="0 0 64 64"><use href="#i-logo"/></svg></div>
-      <div>MOBILIZZA<span style="opacity:.55;font-weight:600">.org</span></div>
+    <div class="brand" style="flex-direction:column;align-items:stretch;gap:10px;padding:18px 18px 14px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div id="brand-photo" style="width:48px;height:48px;border-radius:13px;flex-shrink:0;background:linear-gradient(135deg,#FFB800,#FF6B6B);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;color:#fff;overflow:hidden">?</div>
+        <div style="min-width:0;flex:1">
+          <div id="brand-name" style="font-size:17px;font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Candidato</div>
+          <div id="brand-sub" style="font-size:11px;font-weight:500;color:rgba(255,255,255,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;opacity:.45;font-size:10px;font-weight:600;letter-spacing:.03em;padding-left:2px">
+        <div style="width:15px;height:15px;border-radius:4px;overflow:hidden;flex-shrink:0"><svg viewBox="0 0 64 64" style="width:100%;height:100%;display:block"><use href="#i-logo"/></svg></div>
+        <span>powered by MOBILIZZA<span style="opacity:.7">.org</span></span>
+      </div>
     </div>
     <div class="nav-section">
       <div class="nav-label">Inteligência</div>
@@ -1704,6 +1713,18 @@ function mobApplyCandidatePhoto(){
     var av=document.getElementById('sidebar-av');
     if(av && state.candidate && state.candidate.photo){ av.innerHTML='<img src="'+esc(state.candidate.photo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">'; }
   }catch(e){}
+  mobSyncBrand();
+}
+// Sincroniza o cabeçalho da barra lateral: candidato em destaque (foto + nome) e MOBILIZZA pequeno embaixo
+function mobSyncBrand(){
+  try{
+    var c=state.candidate||{}, e=state.election||{};
+    var ini=(c.name||'?').split(' ').map(function(p){return p[0]||''}).slice(0,2).join('').toUpperCase();
+    var bp=document.getElementById('brand-photo');
+    if(bp){ bp.innerHTML = c.photo ? '<img src="'+esc(c.photo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">' : ini; }
+    var bn=document.getElementById('brand-name'); if(bn) bn.textContent = c.name||'Candidato';
+    var bs=document.getElementById('brand-sub'); if(bs) bs.textContent = (e.position||'—')+' · '+(e.city||'—')+'/'+(e.state||'--');
+  }catch(err){}
 }
 
 // Sincroniza o estado inteiro do candidato no banco (debounce), a cada saveState()
@@ -2577,6 +2598,7 @@ function bootApp(){
   document.getElementById('sidebar-av').textContent = (state.candidate.name||'?').split(' ').map(function(p){return p[0]||''}).slice(0,2).join('').toUpperCase();
   document.getElementById('sidebar-name').textContent = state.candidate.name||'Candidato';
   document.getElementById('sidebar-role').textContent = (state.election.position||'—')+' · '+(state.election.city||'—')+'/'+(state.election.state||'--');
+  mobSyncBrand();
   var undismissed = state.insights.filter(function(i){return state.dismissedInsights.indexOf(i.id)===-1}).length;
   var navIA = document.querySelector('.nav-item[data-view="ia"]');
   var existing = navIA.querySelector('.badge');
@@ -2602,6 +2624,7 @@ function updateSidebarCounters(){
     if(avEl) avEl.textContent = (state.candidate.name||'?').split(' ').map(function(p){return p[0]||''}).slice(0,2).join('').toUpperCase();
     if(nmEl) nmEl.textContent = state.candidate.name||'Candidato';
     if(rlEl) rlEl.textContent = (state.election.position||'—')+' · '+(state.election.city||'—')+'/'+(state.election.state||'--');
+    mobSyncBrand();
     // Badge do IA
     var undismissed = state.insights.filter(function(i){return state.dismissedInsights.indexOf(i.id)===-1}).length;
     var navIA = document.querySelector('.nav-item[data-view="ia"]');
