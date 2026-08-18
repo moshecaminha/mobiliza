@@ -1327,6 +1327,7 @@ function attachDraftAutosave(modalKey){
   var draft = loadDraft(modalKey);
   if(draft){
     inputs.forEach(function(el){
+      if(el.type==='file') return; // inputs de arquivo não aceitam setar value (erro de segurança do navegador)
       if(el.id && draft[el.id]!==undefined && !el.value){
         if(el.type==='checkbox') el.checked = !!draft[el.id];
         else el.value = draft[el.id];
@@ -1335,7 +1336,7 @@ function attachDraftAutosave(modalKey){
   }
   // Hookar inputs para salvar
   inputs.forEach(function(el){
-    if(!el.id) return;
+    if(!el.id || el.type==='file') return;
     var handler = function(){
       var current = loadDraft(modalKey)||{};
       current[el.id] = el.type==='checkbox'?el.checked:el.value;
@@ -9476,6 +9477,7 @@ function showModalHtml(html, draftKey){
       if(draft && draftKey.indexOf('-new')>=0){
         for(var i=0;i<inputs.length;i++){
           var el = inputs[i];
+          if(el.type==='file') continue; // input de arquivo não aceita setar value
           if(el.id && draft[el.id]!==undefined){
             if(el.type==='checkbox') el.checked = !!draft[el.id];
             else if(!el.value || el.value==='') { el.value = draft[el.id]; restored = true; }
@@ -9495,7 +9497,7 @@ function showModalHtml(html, draftKey){
       }
       // Hookar autosave
       inputs.forEach(function(el){
-        if(!el.id) return;
+        if(!el.id || el.type==='file') return;
         var handler = function(){
           var current = loadDraft(draftKey)||{};
           current[el.id] = el.type==='checkbox'?el.checked:el.value;
@@ -9511,7 +9513,7 @@ window.clearDraftAndReset = function(draftKey){
   clearDraft(draftKey);
   var modal = document.getElementById('modal-content');
   var inputs = modal.querySelectorAll('input,select,textarea');
-  inputs.forEach(function(el){ if(el.id) { if(el.type==='checkbox') el.checked=false; else el.value=''; } });
+  inputs.forEach(function(el){ if(el.id && el.type!=='file') { if(el.type==='checkbox') el.checked=false; else el.value=''; } });
   var banner = modal.querySelector('.draft-banner');
   if(banner) banner.remove();
   toast('Rascunho descartado');
