@@ -7840,7 +7840,7 @@ function renderFinanceiro(){
   var totalBalance = accounts.reduce(function(s,a){return s+(+a.initialBalance||0)},0) + totalIncome - totalExpense;
   var totalDonations = donations.reduce(function(s,d){return s+(+d.amount||0)},0);
 
-  var html = '<div class="page-head"><div><h2>Financeiro</h2><div class="sub">'+accounts.length+' conta(s) · '+transactions.length+' movimentação(ões) · '+donations.length+' doação(ões)</div></div><div style="display:flex;gap:8px"><button class="btn-ghost" onclick="modalAccount()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Conta</button><button class="btn-ghost" onclick="modalDonation()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Doação</button><button class="btn-primary" onclick="modalTransaction()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Lançamento</button></div></div>';
+  var html = '<div class="page-head"><div><h2>Financeiro</h2><div class="sub">'+accounts.length+' conta(s) · '+transactions.length+' movimentação(ões) · '+donations.length+' doação(ões)</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="finReportPick()"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg>Prestação de contas</button><button class="btn-ghost" onclick="modalAccount()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Conta</button><button class="btn-ghost" onclick="modalDonation()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Doação</button><button class="btn-primary" onclick="modalTransaction()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Lançamento</button></div></div>';
 
   // KPIs
   html += '<div class="kpi-grid">'
@@ -7940,6 +7940,56 @@ function renderFinanceiro(){
 }
 
 // Modais Financeiro
+// ===== Prestação de contas / Relatório financeiro (imprimível → PDF) =====
+window.finReportPick = function(){
+  showModalHtml('<h3>Prestação de contas</h3><div class="sub" style="margin-bottom:12px">Gere o relatório financeiro para conferência e apoio à prestação de contas. Abre em nova aba; use Imprimir → Salvar como PDF.</div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px">'
+    +'<button class="btn-primary" onclick="finReport(15)"><svg class="icon" width="13" height="13"><use href="#i-download"/></svg> Parcial · últimos 15 dias</button>'
+    +'<button class="btn-primary" onclick="finReport(0)"><svg class="icon" width="13" height="13"><use href="#i-download"/></svg> Completa · todo o período</button>'
+    +'</div>'
+    +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Fechar</button></div>','finreport');
+};
+window.finReport = function(days){
+  closeModal();
+  var esc2 = function(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+  var money = function(v){ return 'R$ '+(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  var cand=(state.candidate&&state.candidate.name)||'', num=(state.candidate&&state.candidate.partyNumber)||'';
+  var uf=(state.election&&state.election.state)||'', city=(state.election&&state.election.city)||'';
+  var now=new Date(); var since = days>0 ? new Date(Date.now()-days*86400000) : null;
+  var inPeriod=function(dstr){ if(!since) return true; var d=dstr?new Date(dstr+'T00:00:00'):null; return d?d>=since:true; };
+  var accounts=activeOnly(state.bankAccounts||[]);
+  var txs=activeOnly(state.transactions||[]).filter(function(t){return inPeriod(t.date);});
+  var dons=activeOnly(state.donations||[]).filter(function(d){return inPeriod(d.date);});
+  var cats=state.expenseCategories||[]; var catName=function(id){var c=cats.find(function(x){return x.id===id;});return c?c.name:(id||'—');};
+  var typeName=function(t){return t==='pj'?'Pessoa Jurídica':t==='partido'?'Partido/Fundo':'Pessoa Física';};
+  var inc=txs.filter(function(t){return t.type==='income';}).reduce(function(s,t){return s+(+t.amount||0);},0);
+  var exp=txs.filter(function(t){return t.type==='expense';}).reduce(function(s,t){return s+(+t.amount||0);},0);
+  var don=dons.reduce(function(s,d){return s+(+d.amount||0);},0);
+  var saldo=inc-exp;
+  var byCat={}; txs.filter(function(t){return t.type==='expense';}).forEach(function(t){var k=catName(t.category);byCat[k]=(byCat[k]||0)+(+t.amount||0);});
+  var rowsTx=txs.slice().sort(function(a,b){return (a.date||'')<(b.date||'')?-1:1;}).map(function(t){
+    var acc=accounts.find(function(a){return a.id===t.accountId;});
+    return '<tr><td>'+esc2(t.date||'')+'</td><td>'+esc2(t.description||'')+'</td><td>'+esc2(catName(t.category))+'</td><td>'+esc2(acc?acc.name:'—')+'</td><td>'+esc2(t.receipt||'')+'</td><td class="r '+(t.type==='expense'?'neg':'pos')+'">'+(t.type==='expense'?'- ':'+ ')+money(t.amount)+'</td></tr>';
+  }).join('')||'<tr><td colspan="6" style="text-align:center;color:#888">Sem movimentações no período.</td></tr>';
+  var rowsDon=dons.slice().sort(function(a,b){return (a.date||'')<(b.date||'')?-1:1;}).map(function(d){
+    return '<tr><td>'+esc2(d.date||'')+'</td><td>'+esc2(d.donor||'')+'</td><td>'+esc2(d.cpfCnpj||'')+'</td><td>'+esc2(typeName(d.type))+'</td><td class="r pos">'+money(d.amount)+'</td></tr>';
+  }).join('')||'<tr><td colspan="5" style="text-align:center;color:#888">Sem doações no período.</td></tr>';
+  var catRows=Object.keys(byCat).sort(function(a,b){return byCat[b]-byCat[a];}).map(function(k){return '<tr><td>'+esc2(k)+'</td><td class="r neg">'+money(byCat[k])+'</td></tr>';}).join('')||'<tr><td colspan="2" style="text-align:center;color:#888">—</td></tr>';
+  var periodoTxt=days>0?('Parcial · últimos '+days+' dias (desde '+since.toLocaleDateString('pt-BR')+')'):'Completa · todo o período';
+  var w=window.open('','_blank'); if(!w){ toast('Permita pop-ups para gerar o relatório','warn'); return; }
+  w.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Prestação de contas · '+esc2(cand)+'</title>'
+    +'<style>body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:32px;font-size:13px}h1{font-size:20px;margin:0 0 2px}h2{font-size:15px;margin:22px 0 8px;border-bottom:2px solid #00805F;padding-bottom:4px;color:#00805F}.sub{color:#555;font-size:12px}table{width:100%;border-collapse:collapse;margin-top:6px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;font-size:12px}th{background:#f3f4f6}.r{text-align:right}.neg{color:#b91c1c}.pos{color:#047857}.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}.kpi{border:1px solid #ddd;border-radius:8px;padding:10px 14px;min-width:150px}.kpi .l{font-size:10px;text-transform:uppercase;color:#777}.kpi .v{font-size:18px;font-weight:bold}.foot{margin-top:34px;font-size:11px;color:#777}@media print{.noprint{display:none}}</style></head><body>'
+    +'<div class="noprint" style="margin-bottom:14px"><button onclick="window.print()" style="padding:8px 16px;background:#00805F;color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer">Imprimir / Salvar PDF</button></div>'
+    +'<h1>Prestação de contas — '+esc2(cand)+(num?' ('+esc2(num)+')':'')+'</h1>'
+    +'<div class="sub">'+esc2(city)+(uf?'/'+esc2(uf):'')+' · '+periodoTxt+' · emitido em '+now.toLocaleString('pt-BR')+'</div>'
+    +'<div class="kpis"><div class="kpi"><div class="l">Receitas</div><div class="v pos">'+money(inc)+'</div></div><div class="kpi"><div class="l">Despesas</div><div class="v neg">'+money(exp)+'</div></div><div class="kpi"><div class="l">Doações</div><div class="v">'+money(don)+'</div></div><div class="kpi"><div class="l">Saldo</div><div class="v" style="color:'+(saldo<0?'#b91c1c':'#047857')+'">'+money(saldo)+'</div></div></div>'
+    +'<h2>Movimentações ('+txs.length+')</h2><table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Nº comprovante</th><th class="r">Valor</th></tr></thead><tbody>'+rowsTx+'</tbody></table>'
+    +'<h2>Despesas por categoria</h2><table><thead><tr><th>Categoria</th><th class="r">Total</th></tr></thead><tbody>'+catRows+'</tbody></table>'
+    +'<h2>Doações recebidas ('+dons.length+')</h2><table><thead><tr><th>Data</th><th>Doador</th><th>CPF/CNPJ</th><th>Tipo</th><th class="r">Valor</th></tr></thead><tbody>'+rowsDon+'</tbody></table>'
+    +'<div class="foot">Relatório gerado pela plataforma MOBILIZZA para conferência interna e apoio à prestação de contas. Confira valores e comprovantes antes do envio oficial ao TSE.</div>'
+    +'</body></html>');
+  w.document.close();
+};
 window.modalAccount = function(id){
   state.bankAccounts = state.bankAccounts||[];
   var a = id?state.bankAccounts.find(function(x){return x.id===id}):{};
