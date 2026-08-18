@@ -359,16 +359,33 @@ window.viewData = async function(id){
   }catch(e){ showModal('<h3>Erro</h3><div class="err">'+esc(e.message)+'</div><div style="text-align:right;margin-top:14px"><button class="btn ghost" onclick="closeModal()">Fechar</button></div>'); }
 };
 
+// Módulos disponíveis (id da view → rótulo) para a hierarquia de acesso
+const MODULES = [
+  ['dashboard','Painel'],['conversas','Conversas'],['whatsapp','Comunicação'],['agenda','Agenda'],
+  ['militancia','Equipe'],['eventos','Eventos & QR'],['leads','Leads'],['geo','Inteligência Geo'],
+  ['social','Radar Social'],['competitive','Radar Eleitoral'],['votos','Projeção'],
+  ['logistica','Logística'],['financeiro','Financeiro'],['trends','Tendências'],['ia','Estratégia IA'],['settings','Configurações']
+];
+function moduleChecksHtml(prefix, selected){
+  const sel = new Set(selected||[]);
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px">'
+    + MODULES.map(m=>'<label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:12px;font-weight:500;color:var(--ink-2);margin:0;padding:5px 7px;border:1px solid var(--border);border-radius:7px;cursor:pointer"><input type="checkbox" class="'+prefix+'" value="'+m[0]+'" style="width:auto"'+(sel.has(m[0])?' checked':'')+'> '+m[1]+'</label>').join('')
+    + '</div>';
+}
 window.manageTeam = function(id){
   const c = CACHE.candidates.find(x=>x.id===id)||{};
-  const team=(c.team||[]).map(m=>'<tr><td>'+esc(m.email||'?')+'</td><td><span class="badge '+(m.role==='admin'?'admin':m.role==='coordenador'?'coord':'assessor')+'">'+m.role+'</span></td>'
-    +'<td style="text-align:right"><button class="btn ghost sm" onclick="changeRole(\''+id+'\',\''+m.user_id+'\')">Papel</button> <button class="btn danger sm" onclick="removeMember(\''+id+'\',\''+m.user_id+'\')">Remover</button></td></tr>').join('')
-    ||'<tr><td colspan="3" class="sub">Sem equipe ainda.</td></tr>';
+  const roleBadge = r => 'badge '+(r==='admin'?'admin':r==='coordenador'?'coord':r==='gestor'?'super':'assessor');
+  const modInfo = m => { const mods=m.modules; if(!mods||!mods.length) return '<span class="sub">todos os módulos</span>'; return mods.map(x=>{const f=MODULES.find(z=>z[0]===x);return '<span class="chip">'+esc(f?f[1]:x)+'</span>';}).join(''); };
+  const team=(c.team||[]).map(m=>'<tr><td>'+esc(m.email||'?')+'</td><td><span class="'+roleBadge(m.role)+'">'+m.role+'</span></td><td>'+modInfo(m)+'</td>'
+    +'<td style="text-align:right;white-space:nowrap"><button class="btn ghost sm" onclick="changeRole(\''+id+'\',\''+m.user_id+'\')">Papel</button> <button class="btn ghost sm" onclick="editModules(\''+id+'\',\''+m.user_id+'\')">Módulos</button> <button class="btn danger sm" onclick="removeMember(\''+id+'\',\''+m.user_id+'\')">Remover</button></td></tr>').join('')
+    ||'<tr><td colspan="4" class="sub">Sem equipe ainda.</td></tr>';
   showModal('<h3>Equipe · '+esc(c.name)+'</h3>'
-    +'<table style="margin-top:10px"><thead><tr><th>E-mail</th><th>Papel</th><th></th></tr></thead><tbody>'+team+'</tbody></table>'
+    +'<div style="overflow-x:auto"><table style="margin-top:10px"><thead><tr><th>E-mail</th><th>Papel</th><th>Módulos</th><th></th></tr></thead><tbody>'+team+'</tbody></table></div>'
     +'<div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px"><strong>Adicionar membro</strong>'
-      +'<div class="form-row" style="margin-top:8px"><div><label>E-mail</label><input id="m-email" placeholder="pessoa@email.com"></div><div><label>Papel</label><select id="m-role"><option value="coordenador">Coordenador</option><option value="assessor">Assessor</option><option value="admin">Admin da campanha</option></select></div></div>'
+      +'<div class="form-row" style="margin-top:8px"><div><label>E-mail</label><input id="m-email" placeholder="pessoa@email.com"></div><div><label>Papel</label><select id="m-role"><option value="coordenador">Coordenador</option><option value="assessor">Assessor</option><option value="time">Time (acesso limitado)</option><option value="admin">Admin da campanha</option></select></div></div>'
       +'<label>Senha inicial (se a conta ainda não existe)</label><input id="m-pass" placeholder="opcional — padrão mobiliza123">'
+      +'<label style="margin-top:10px">Módulos que pode acessar <span style="text-transform:none;font-weight:500;color:var(--muted)">(nada marcado = acesso total; marque para limitar, ex.: só Agenda)</span></label>'
+      + moduleChecksHtml('m-mod', [])
       +'<div style="text-align:right;margin-top:12px"><button class="btn" onclick="addMember(\''+id+'\')">Adicionar</button></div>'
     +'</div>'
     +'<div style="text-align:right;margin-top:8px"><button class="btn ghost" onclick="closeModal()">Fechar</button></div>');
@@ -376,12 +393,25 @@ window.manageTeam = function(id){
 window.addMember = async function(cid){
   const email=$('m-email').value.trim(), role=$('m-role').value, password=$('m-pass').value.trim();
   if(!email){ toast('Informe o e-mail'); return; }
-  try{ const r=await rpc('mob_admin_add_member',{ p_candidate:cid, p_email:email, p_role:role, p_password:password||null });
+  const mods=[...document.querySelectorAll('.m-mod:checked')].map(x=>x.value);
+  try{ const r=await rpc('mob_admin_add_member',{ p_candidate:cid, p_email:email, p_role:role, p_password:password||null, p_modules: mods.length?mods:null });
     toast(r.created?'Conta criada e vinculada':'Vinculado'); await refreshCandidates(); manageTeam(cid); }
   catch(e){ toast(e.message); }
 };
+window.editModules = function(cid, uid){
+  const c = CACHE.candidates.find(x=>x.id===cid)||{};
+  const m = (c.team||[]).find(x=>x.user_id===uid)||{};
+  showModal('<h3>Módulos · '+esc(m.email||'')+'</h3>'
+    +'<div class="sub" style="margin-bottom:8px">Marque o que este usuário pode acessar. Nada marcado = acesso total.</div>'
+    + moduleChecksHtml('em-mod', m.modules||[])
+    +'<div style="text-align:right;margin-top:16px"><button class="btn ghost" onclick="manageTeam(\''+cid+'\')">Voltar</button> <button class="btn" onclick="saveModules(\''+cid+'\',\''+uid+'\')">Salvar</button></div>');
+};
+window.saveModules = async function(cid, uid){
+  const mods=[...document.querySelectorAll('.em-mod:checked')].map(x=>x.value);
+  try{ await rpc('mob_admin_set_member_modules',{ p_user_id:uid, p_candidate:cid, p_modules: mods.length?mods:null }); toast('Módulos atualizados'); await refreshCandidates(); manageTeam(cid); }catch(e){ toast(e.message); }
+};
 window.changeRole = async function(cid,uid){
-  const role = prompt('Novo papel (admin / coordenador / assessor):'); if(!role) return;
+  const role = prompt('Novo papel (admin / coordenador / assessor / gestor / time):'); if(!role) return;
   try{ await rpc('mob_admin_set_member_role',{ p_candidate:cid, p_user_id:uid, p_role:role.trim() }); toast('Papel atualizado'); await refreshCandidates(); manageTeam(cid); }catch(e){ toast(e.message); }
 };
 window.removeMember = async function(cid,uid){

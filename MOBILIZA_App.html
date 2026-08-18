@@ -1633,7 +1633,7 @@ window.loginPassword = function(){
 
 function mobAfterAuth(){
   // Sinalizador: só o superadmin da plataforma vê a "Zona de risco"
-  try{ window.MOB_RPC('mob_is_platform_admin').then(function(v){ window.MOB_IS_ADMIN=(v===true); if(window._mobView==='settings' && typeof renderSettings==='function'){ try{renderSettings();}catch(e){} } }).catch(function(){ window.MOB_IS_ADMIN=false; }); }catch(e){ window.MOB_IS_ADMIN=false; }
+  try{ window.MOB_RPC('mob_is_platform_admin').then(function(v){ window.MOB_IS_ADMIN=(v===true); if(window._mobView==='settings' && typeof renderSettings==='function'){ try{renderSettings();}catch(e){} } try{ if(typeof mobUpdateAccountSwitcher==='function') mobUpdateAccountSwitcher(); }catch(e){} }).catch(function(){ window.MOB_IS_ADMIN=false; }); }catch(e){ window.MOB_IS_ADMIN=false; }
   window.MOB_RPC('mob_my_candidates').then(function(cands){
     _mobCands = cands||[];
     var list=document.getElementById('cand-list');
@@ -1681,6 +1681,9 @@ function mobOpenCandidate(cand){
     if(c.theme_color) state.candidate.color = c.theme_color;
     if(c.photo_url) state.candidate.photo = c.photo_url;
     state.session = state.session || {}; state.session.loggedIn = true; state.session.candidateId = cand.id;
+    // Permissões por módulo (null/vazio = acesso total) + papel do usuário nesta campanha
+    window._mobModules = (cand && cand.modules && cand.modules.length) ? cand.modules.slice() : null;
+    window._mobRole = (cand && cand.role) || '';
     // Semear/atualizar templates e insights padrão para campanhas abertas do banco
     try{ if(typeof seedDefaultTemplatesIfEmpty==='function') seedDefaultTemplatesIfEmpty(); }catch(e){}
     try{ if(typeof seedDefaultInsightsIfEmpty==='function') seedDefaultInsightsIfEmpty(); }catch(e){}
@@ -1692,6 +1695,8 @@ function mobOpenCandidate(cand){
     document.getElementById('login-step-1').style.display='block';
     showApp();
     mobApplyCandidatePhoto();
+    try{ applyModulePermissions(); }catch(e){}
+    try{ mobUpdateAccountSwitcher(); }catch(e){}
     try { saveState(); } catch(e){}
     // Log de acesso (aparece no painel do administrador, horário de Brasília)
     try{ if(window.MOB_RPC) window.MOB_RPC('mob_activity_log',{p_candidate:cand.id, p_action:'acesso', p_entity:'login', p_detail:(c.name||'')}).catch(function(){}); }catch(e){}
@@ -1726,6 +1731,59 @@ function mobSyncBrand(){
     var bs=document.getElementById('brand-sub'); if(bs) bs.textContent = (e.position||'—')+' · '+(e.city||'—')+'/'+(e.state||'--');
   }catch(err){}
 }
+
+// ===== ALTERAÇÃO 2: permissões por módulo =====
+function moduleAllowed(v){
+  var mods = window._mobModules;
+  if(!mods || !mods.length) return true;   // sem restrição = acesso total
+  return mods.indexOf(v) >= 0;
+}
+function firstAllowedView(){
+  var order = ['dashboard','conversas','whatsapp','agenda','militancia','eventos','leads','geo','social','competitive','votos','logistica','financeiro','trends','ia','settings'];
+  for(var i=0;i<order.length;i++){ if(moduleAllowed(order[i])) return order[i]; }
+  return 'dashboard';
+}
+function applyModulePermissions(){
+  var navs = document.querySelectorAll('.nav-item[data-view]');
+  for(var i=0;i<navs.length;i++){ var v=navs[i].getAttribute('data-view'); navs[i].style.display = moduleAllowed(v)?'':'none'; }
+  var tabs = document.querySelectorAll('#mob-tabs button[data-mv]');
+  for(var j=0;j<tabs.length;j++){ var mv=tabs[j].getAttribute('data-mv'); tabs[j].style.display = moduleAllowed(mv)?'':'none'; }
+  try{ var labels=document.querySelectorAll('.sidebar .nav-label'); for(var k=0;k<labels.length;k++){ var vis=false,n=labels[k].nextElementSibling; while(n&&n.classList&&n.classList.contains('nav-item')){ if(n.style.display!=='none'){vis=true;break;} n=n.nextElementSibling; } labels[k].style.display=vis?'':'none'; } }catch(e){}
+  if(window._mobModules && window._mobModules.length){ var cur=window._mobView; if(cur && !moduleAllowed(cur)){ var f=firstAllowedView(); if(f) setView(f); } }
+}
+
+// ===== ALTERAÇÃO 3: trocar de conta sem deslogar (só GESTOR e SUPERADMIN) =====
+function mobUpdateAccountSwitcher(){
+  var isGestor = (_mobCands||[]).some(function(c){ return c.role==='gestor'; });
+  window._mobCanSwitch = (window.MOB_IS_ADMIN===true || isGestor) && (_mobCands||[]).length>1;
+  var brand = document.querySelector('.brand');
+  if(!brand) return;
+  brand.style.cursor = window._mobCanSwitch ? 'pointer' : '';
+  brand.title = window._mobCanSwitch ? 'Alterar conta' : '';
+  brand.onclick = window._mobCanSwitch ? function(e){ mobAccountMenu(e); } : null;
+  var name = document.getElementById('brand-name');
+  if(name){ var chev=document.getElementById('brand-chev'); if(window._mobCanSwitch && !chev){ name.insertAdjacentHTML('beforeend',' <span id="brand-chev" style="opacity:.6;font-size:11px">▾</span>'); } else if(!window._mobCanSwitch && chev){ chev.remove(); } }
+}
+window.mobAccountMenu = function(ev){
+  if(ev){ try{ ev.stopPropagation(); }catch(e){} }
+  if(!window._mobCanSwitch) return;
+  var list = (_mobCands||[]).map(function(c){
+    var active = c.id===window._mobCandId, ini=(c.name||'?').slice(0,1).toUpperCase();
+    return '<button onclick="mobSwitchAccount(\''+c.id+'\')" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;background:'+(active?'rgba(0,168,120,.08)':'#fff')+';cursor:pointer">'
+      +'<div style="width:34px;height:34px;border-radius:9px;background:'+(esc(c.theme_color||'#00A878'))+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;overflow:hidden;flex-shrink:0">'+(c.photo_url?'<img src="'+esc(c.photo_url)+'" style="width:100%;height:100%;object-fit:cover">':ini)+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">'+esc(c.name)+'</div><div style="font-size:11px;color:var(--muted)">'+esc(c.uf||'')+(c.city?'/'+esc(c.city):'')+' · '+esc(c.role||'')+'</div></div>'
+      +(active?'<span style="font-size:10px;font-weight:800;color:var(--brand-2)">ATUAL</span>':'')+'</button>';
+  }).join('');
+  showModalHtml('<h3>Alterar conta</h3><div class="sub" style="margin-bottom:12px">Escolha a campanha que deseja administrar. Não é preciso sair da sua conta.</div>'+list+'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Fechar</button></div>','acctswitch');
+};
+window.mobSwitchAccount = function(id){
+  var c = (_mobCands||[]).find(function(x){ return x.id===id; });
+  if(!c) return;
+  try{ closeModal(); }catch(e){}
+  if(id===window._mobCandId) return;
+  try{ localStorage.setItem('mob_cur_candidate', id); }catch(e){}
+  mobOpenCandidate(c);
+};
 
 // Sincroniza o estado inteiro do candidato no banco (debounce), a cada saveState()
 function mobStateSyncPush(){
@@ -2525,6 +2583,8 @@ var VIEW_LABELS = {
   ia:['Estratégia','IA Insights'], settings:['Estratégia','Configurações']
 };
 window.setView = function(v, skipHashUpdate){
+  // Bloqueia módulos sem permissão (usuário "Time" restrito)
+  if(typeof moduleAllowed==='function' && window._mobModules && window._mobModules.length && !moduleAllowed(v)){ v = firstAllowedView(); }
   window._mobView = v;
   Object.keys(charts).forEach(function(k){ try{charts[k].destroy()}catch(e){} delete charts[k]; });
   var views = document.querySelectorAll('.view');
@@ -4221,14 +4281,16 @@ function initStateMap(){
   var urlMuns = 'https://servicodados.ibge.gov.br/api/v1/localidades/estados/'+codeUF+'/municipios';
   // Agregado 6579 = População residente estimada; variável 9324
   var urlPop  = 'https://servicodados.ibge.gov.br/api/v3/agregados/6579/periodos/-1/variaveis/9324?localidades=N6[N3['+codeUF+']]';
+  var _sig = function(ms){ try{ return (typeof AbortSignal!=='undefined' && AbortSignal.timeout) ? AbortSignal.timeout(ms) : undefined; }catch(e){ return undefined; } };
   Promise.all([
-    fetch(urlGeo).then(function(r){ if(!r.ok) throw new Error('IBGE malhas '+r.status); return r.json(); }),
-    fetch(urlMuns).then(function(r){ if(!r.ok) throw new Error('IBGE localidades '+r.status); return r.json(); }),
-    fetch(urlPop).then(function(r){ if(!r.ok) return null; return r.json(); }).catch(function(){return null;})
+    fetch(urlGeo, {signal:_sig(12000)}).then(function(r){ return r.ok?r.json():null; }).catch(function(){return null;}),
+    fetch(urlMuns, {signal:_sig(12000)}).then(function(r){ return r.ok?r.json():null; }).catch(function(){return null;}),
+    fetch(urlPop, {signal:_sig(12000)}).then(function(r){ if(!r.ok) return null; return r.json(); }).catch(function(){return null;})
   ]).then(function(results){
     var geo = results[0];
-    var muns = results[1];
+    var muns = Array.isArray(results[1]) ? results[1] : [];
     var pop = results[2];
+    if(!geo && !muns.length){ try{ console.warn('[MAPA] IBGE indisponível — exibindo só os pinos'); }catch(e){} }
     var names = {}, mesos = {}, populations = {};
     muns.forEach(function(mn){
       names[String(mn.id)] = mn.nome;
@@ -4284,13 +4346,16 @@ function buildCityPin(cityName, ibgeCode, s, latLng){
 }
 
 function renderStateGeo(cache, m){
-  var geo = cache.geo, names = cache.names, mesos = cache.mesos || {}, populations = cache.populations || {};
-  var features = geo.features || [];
+  var geo = (cache && cache.geo) || null, names = (cache && cache.names) || {}, mesos = (cache && cache.mesos) || {}, populations = (cache && cache.populations) || {};
+  var hasMalha = !!(geo && geo.features);
+  var features = hasMalha ? geo.features : [];
+  if(!hasMalha){ try{ console.warn('[MAPA] malha do estado indisponível — exibindo só os pinos'); }catch(e){} }
   var withCadastro = 0;
   var mesoSet = {};
   var citySummary = []; // usado pra tabela abaixo do mapa
   _cityMarkers.forEach(function(mk){ try{ m.removeLayer(mk); }catch(e){} });
   _cityMarkers = [];
+  if(hasMalha){
   var layer = L.geoJSON(geo, {
     style: function(feat){
       var code = feat.properties && (feat.properties.codarea || feat.id);
@@ -4338,7 +4403,8 @@ function renderStateGeo(cache, m){
       }
     }
   }).addTo(m);
-  m.fitBounds(layer.getBounds(), { padding:[20,20] });
+  try{ m.fitBounds(layer.getBounds(), { padding:[20,20] }); }catch(e){}
+  } // fim do bloco da malha (hasMalha)
 
   // Também adiciona markers individuais pra cada leader/militant com lat/lng (Estado view)
   var individualMarkers = 0;
@@ -4374,8 +4440,11 @@ function renderStateGeo(cache, m){
     }
   });
 
+  // Sem a malha do IBGE, enquadra o mapa pelos próprios pinos
+  if(!hasMalha && _cityMarkers.length){ try{ m.fitBounds(L.featureGroup(_cityMarkers).getBounds(), { padding:[30,30], maxZoom:14 }); }catch(e){} }
+
   var badge = document.getElementById('map-loaded-count');
-  if(badge){ badge.textContent = features.length+' municípios · '+withCadastro+' com base · '+individualMarkers+' pino(s)'; badge.className = 'badge brand'; }
+  if(badge){ badge.textContent = (hasMalha?features.length+' municípios · ':'')+withCadastro+' com base · '+individualMarkers+' pino(s)'; badge.className = 'badge brand'; }
   var loading = document.getElementById('map-loading');
   if(loading) loading.style.display = 'none';
   injectRoleLegend();
