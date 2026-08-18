@@ -1685,7 +1685,7 @@ function mobOpenCandidate(cand){
     try{ if(typeof seedDefaultTemplatesIfEmpty==='function') seedDefaultTemplatesIfEmpty(); }catch(e){}
     try{ if(typeof seedDefaultInsightsIfEmpty==='function') seedDefaultInsightsIfEmpty(); }catch(e){}
     // Sincroniza o número OFICIAL conectado no estado (para QR de pré-cadastro e compartilhamentos)
-    try{ if(window._mobCandId && window.MOB_RPC){ window.MOB_RPC('mob_wa_config_get',{p_candidate:window._mobCandId}).then(function(cfg){ if(cfg && cfg.connected && cfg.display_number){ state.candidate=state.candidate||{}; state.candidate.whatsapp=cfg.display_number; try{saveState();}catch(e){} } }).catch(function(){}); } }catch(e){}
+    try{ if(window._mobCandId && window.MOB_RPC){ window.MOB_RPC('mob_wa_config_get',{p_candidate:window._mobCandId, p_purpose:'conversas'}).then(function(cfg){ if(cfg && cfg.connected && cfg.display_number){ state.candidate=state.candidate||{}; state.candidate.whatsapp=cfg.display_number; try{saveState();}catch(e){} } }).catch(function(){}); } }catch(e){}
     mobApplyTheme(state.candidate.color);
     document.getElementById('login-screen').classList.remove('show');
     document.getElementById('login-step-cand').style.display='none';
@@ -4709,7 +4709,7 @@ function renderGeo(){
   var disputa = regions.filter(function(r){var i=r.intensity||50;return i>=40 && i<65}).length;
   var adversario = regions.filter(function(r){return (r.intensity||50)<40}).length;
 
-  var html = '<div class="page-head"><div><h2>Inteligência Territorial</h2><div class="sub">Densidade de apoiadores por região · intensidade competitiva · lacunas de cobertura</div></div><div style="display:flex;gap:8px"><button class="btn-ghost" onclick="setView(\'dashboard\')" title="Ver mapa principal"><svg class="icon" width="14" height="14"><use href="#i-map"/></svg>Mapa principal</button><button class="btn-primary" onclick="modalRegion()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Região</button></div></div>';
+  var html = '<div class="page-head"><div><h2>Inteligência Territorial</h2><div class="sub">Densidade de apoiadores por região · intensidade competitiva · lacunas de cobertura</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="regeocodeAll()" title="Recalcular a posição de todos no mapa pelo endereço/CEP"><svg class="icon" width="14" height="14"><use href="#i-refresh"/></svg>Refazer posições</button><button class="btn-ghost" onclick="setView(\'dashboard\')" title="Ver mapa principal"><svg class="icon" width="14" height="14"><use href="#i-map"/></svg>Mapa principal</button><button class="btn-primary" onclick="modalRegion()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Região</button></div></div>';
 
   if(regions.length===0){
     html += '<div class="card">'+emptyHTML('i-map','Nenhuma região cadastrada','Cadastre os bairros/cidades onde sua campanha atua para começar a monitorar a intensidade competitiva.','modalRegion()','+ Cadastrar primeira região')+'</div>';
@@ -7060,7 +7060,7 @@ window.preCadastroQR = function(){
   var num = mobPhone55((window._evtCand&&window._evtCand.whatsapp)||(state.candidate&&state.candidate.whatsapp)||'');
   if(num && num.length>=12){ return _preCadShow(num); }
   if(window._mobCandId && window.MOB_RPC){
-    window.MOB_RPC('mob_wa_config_get',{p_candidate:window._mobCandId}).then(function(cfg){
+    window.MOB_RPC('mob_wa_config_get',{p_candidate:window._mobCandId, p_purpose:'conversas'}).then(function(cfg){
       var n = mobPhone55((cfg&&cfg.display_number)||'');
       if(n && n.length>=12){
         try{ state.candidate=state.candidate||{}; if(!state.candidate.whatsapp){ state.candidate.whatsapp=cfg.display_number; saveState(); } }catch(e){}
@@ -7208,13 +7208,13 @@ window.waUploadAndSend = function(file, kind, target){
 window.convAttachSend = function(files, kind){
   if(!files || !files.length || !window._convActive) return;
   var a = window._convActive;
-  waUploadAndSend(files[0], kind, {phone:a.phone, name:a.name}).then(function(){ convOpen(a.phone, a.name); }).catch(function(){});
+  waUploadAndSend(files[0], kind, {phone:a.phone, name:a.name, purpose:'conversas'}).then(function(){ convOpen(a.phone, a.name); }).catch(function(){});
 };
 window.convSend = function(){
   var inp=document.getElementById('conv-reply'); if(!inp||!window._convActive) return;
   var txt=(inp.value||'').trim(); if(!txt) return;
   var a=window._convActive; inp.disabled=true;
-  waPlatformSend({phone:a.phone, name:a.name, text:txt}).then(function(d){
+  waPlatformSend({phone:a.phone, name:a.name, text:txt, purpose:'conversas'}).then(function(d){
     inp.disabled=false;
     if(d && d.sent){ inp.value=''; convOpen(a.phone, a.name); }
     else { toast((d && d.results && d.results[0] && d.results[0].error) || 'Não enviada — a Meta exige janela de 24h ou template aprovado','warn'); convOpen(a.phone, a.name); }
@@ -7502,7 +7502,7 @@ window.saveCampaign = function(){
       return { phone:p.phone, name:p.name, text:t };
     });
     if(!recipients.length){ toast('Campanha registrada, mas nenhum contato tem telefone válido para disparo.','warn'); return; }
-    var sendBody = {recipients:recipients};
+    var sendBody = {recipients:recipients, purpose:'comunicacao'};
     if(_waComposeMedia && _waComposeMedia.path){ sendBody.media = {path:_waComposeMedia.path, mime:_waComposeMedia.mime, filename:_waComposeMedia.filename}; camp.media = _waComposeMedia.kind; }
     toast('Disparando '+recipients.length+' pelo número oficial…');
     waPlatformSend(sendBody).then(function(d){
@@ -8285,7 +8285,7 @@ window.geocodePendingRecords = function(){
   var byId = {};
   var payload = pend.map(function(p){
     byId[p.id] = p;
-    return { id:p.id, bairro:p.bairro||'', city:p.city||state.election.city||'', uf:p.uf||state.election.state||'', cep:p.cep||'' };
+    return { id:p.id, bairro:p.bairro||'', city:p.city||state.election.city||'', uf:p.uf||state.election.state||'', cep:p.cep||'', street:p.address||'', number:p.number||'' };
   });
   var chunks = [];
   for(var i=0;i<payload.length;i+=30) chunks.push(payload.slice(i,i+30));
@@ -8310,7 +8310,7 @@ window.geocodePerson = function(person, silent){
   if(!person.bairro && !person.city && !person.cep) return Promise.resolve(false);
   return geoFetchBatch([{
     id: person.id, bairro: person.bairro||'', city: person.city||state.election.city||'',
-    uf: person.uf||state.election.state||'', cep: person.cep||''
+    uf: person.uf||state.election.state||'', cep: person.cep||'', street: person.address||'', number: person.number||''
   }]).then(function(results){
     var ok = geoApply(person, results && results[0]);
     if(ok){
@@ -8327,6 +8327,16 @@ window.geocodePerson = function(person, silent){
   });
 };
 
+// Refaz a posição de TODOS os cadastros (corrige quem ficou no centro/lugar errado)
+window.regeocodeAll = function(){
+  var all = activeOnly(state.leaders).concat(activeOnly(state.militants));
+  var comEndereco = all.filter(function(p){ return p.bairro||p.city||p.cep; });
+  if(!comEndereco.length){ toast('Nenhum cadastro com endereço para posicionar','warn'); return; }
+  if(!confirm('Refazer a posição de '+comEndereco.length+' cadastro(s) no mapa? Cada ponto é recalculado pelo endereço/CEP (pode levar alguns minutos).')) return;
+  all.forEach(function(p){ p.lat=null; p.lng=null; p.geoSource=null; });
+  saveState();
+  forceGeocodeAll();
+};
 // Botão "Geocodificar agora" — com progresso visível
 window.forceGeocodeAll = function(){
   var pend = geoPendingList();
@@ -8341,7 +8351,7 @@ window.forceGeocodeAll = function(){
   var summary = document.getElementById('geo-progress-summary');
   var byId = {}; pend.forEach(function(p){ byId[p.id] = p; });
   var payload = pend.map(function(p){
-    return { id:p.id, bairro:p.bairro||'', city:p.city||state.election.city||'', uf:p.uf||state.election.state||'', cep:p.cep||'' };
+    return { id:p.id, bairro:p.bairro||'', city:p.city||state.election.city||'', uf:p.uf||state.election.state||'', cep:p.cep||'', street:p.address||'', number:p.number||'' };
   });
   var chunks = [];
   for(var i=0;i<payload.length;i+=30) chunks.push(payload.slice(i,i+30));
@@ -9101,55 +9111,77 @@ function renderSettings(){
   try{ if(typeof socialLoadConfig==='function') socialLoadConfig(); }catch(e){}
   try{ if(window.MOB_SB && window.MOB_SB.auth){ window.MOB_SB.auth.getUser().then(function(u){ var el=document.getElementById('mc-email'); if(el && u && u.data && u.data.user) el.textContent=u.data.user.email||''; }).catch(function(){}); } }catch(e){}
 }
-// ===== WhatsApp Business — conectar / status / desconectar =====
+// ===== WhatsApp Business — até 2 números por candidato, com papéis (Eventos/Conversas/Comunicação) =====
 window.waLoadConfig = function(){
   var box = document.getElementById('wa-connect-box'); if(!box) return;
-  if(!window._mobCandId || !window.MOB_RPC){ box.innerHTML = waConnectFormHtml({}); return; }
-  window.MOB_RPC('mob_wa_config_get',{p_candidate:window._mobCandId}).then(function(cfg){
-    box.innerHTML = (cfg && cfg.connected) ? waConnectedHtml(cfg) : waConnectFormHtml(cfg||{});
-  }).catch(function(){ box.innerHTML = waConnectFormHtml({}); });
+  if(!window._mobCandId || !window.MOB_RPC){ box.innerHTML = waSlotHtml(1,null)+waSlotHtml(2,null); return; }
+  window.MOB_RPC('mob_wa_configs_list',{p_candidate:window._mobCandId}).then(function(r){
+    var nums=(r&&r.numbers)||[]; var bySlot={}; nums.forEach(function(n){ bySlot[n.slot]=n; });
+    box.innerHTML = '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">Conecte até <strong>2 números</strong> e marque o papel de cada um: <strong>Eventos</strong> (QR de evento), <strong>Conversas</strong> (inbox + QR de pré-cadastro) e <strong>Comunicação</strong> (disparos em massa). Um número pode ter mais de um papel.</div>'
+      + waSlotHtml(1, bySlot[1]) + waSlotHtml(2, bySlot[2]);
+  }).catch(function(){ box.innerHTML = waSlotHtml(1,null)+waSlotHtml(2,null); });
 };
-function waConnectedHtml(cfg){
-  return '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:16px;border:1px solid rgba(0,168,120,.4);border-radius:12px;background:rgba(0,168,120,.07)">'
-    +'<div style="display:flex;align-items:center;gap:12px">'
-      +'<div style="width:44px;height:44px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.2-.7-2.7-1.1-4.4-3.9-4.6-4.1-.1-.2-1-1.4-1-2.6s.6-1.8.9-2.1c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.5c-.2.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.2.1.4.1.6-.1l.7-.9c.2-.2.4-.2.6-.1l1.9.9c.3.1.4.2.5.3.1.3.1.7-.1 1.3Z"/></svg></div>'
-      +'<div><div style="font-weight:800;font-size:15px;display:flex;align-items:center;flex-wrap:wrap;gap:8px">'+esc(cfg.display_number||'Número conectado')+'<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:#0B7A46;background:#DCFCE7;padding:3px 10px;border-radius:999px"><span style="width:7px;height:7px;border-radius:50%;background:#16A34A;display:inline-block"></span>LIGADO</span></div>'
-      +'<div style="font-size:12px;color:var(--muted);margin-top:3px">Phone ID: '+esc(cfg.phone_number_id||'—')+(cfg.waba_id?' · WABA: '+esc(cfg.waba_id):'')+(cfg.has_token?' · token ✓':' · token pendente')+'</div></div>'
-    +'</div>'
-    +'<button class="btn-danger" onclick="waDisconnect()"><svg class="icon" width="13" height="13"><use href="#i-x-close"/></svg> Desconectar</button>'
-  +'</div>'
-  +'<div style="margin-top:8px;font-size:12px;color:var(--muted)">Número conectado e pronto para disparo — não é preciso mexer. Para trocar o número, desconecte primeiro.</div>';
+function waPurposeChecks(slot, cfg){
+  var ev, cv, cm;
+  if(cfg){ ev=cfg.for_eventos; cv=cfg.for_conversas; cm=cfg.for_comunicacao; }
+  else if(slot===1){ ev=cv=cm=true; } else { ev=cv=cm=false; }
+  var chk=function(id,lbl,on){ return '<label style="display:inline-flex;align-items:center;gap:6px;text-transform:none;font-size:13px;font-weight:600;color:var(--ink-2);margin:0;padding:6px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer"><input type="checkbox" id="'+id+'" style="width:auto"'+(on?' checked':'')+'> '+lbl+'</label>'; };
+  return '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px">'
+    +chk('wa-ev-'+slot,'Eventos',ev)+chk('wa-cv-'+slot,'Conversas',cv)+chk('wa-cm-'+slot,'Comunicação',cm)+'</div>';
 }
-function waConnectFormHtml(cfg){
-  cfg = cfg||{};
-  return '<div style="padding:16px;border:1px dashed var(--border);border-radius:12px">'
-    +'<div style="font-size:13px;color:var(--ink-2);margin-bottom:12px;line-height:1.5">Crie a <strong>WABA + número + token</strong> no painel da Meta (passo a passo no manual de endpoints) e cole os identificadores abaixo.</div>'
-    +'<label>Número (com DDI/DDD, como será exibido)</label><input id="wa-num" value="'+esc(cfg.display_number||'')+'" placeholder="+55 81 99999-9999">'
-    +'<div class="form-row"><div><label>Phone Number ID *</label><input id="wa-pnid" value="'+esc(cfg.phone_number_id||'')+'" placeholder="Ex: 123456789012345"></div><div><label>WABA ID</label><input id="wa-waba" value="'+esc(cfg.waba_id||'')+'" placeholder="Ex: 987654321098765"></div></div>'
-    +'<label>Token permanente (System User)'+(cfg.has_token?' <span style="color:var(--brand-2);font-weight:600;text-transform:none;letter-spacing:0">· já salvo — deixe em branco para manter</span>':'')+'</label><input id="wa-token" type="password" placeholder="EAAG..." style="font-family:monospace;font-size:12px" autocomplete="off">'
-    +'<div style="margin-top:6px;font-size:11px;color:var(--muted)">O token é guardado no servidor e nunca é exibido de volta por segurança.</div>'
-    +'<div style="margin-top:14px"><button class="btn-primary" onclick="waConnect()"><svg class="icon" width="14" height="14"><use href="#i-whatsapp"/></svg> Conectar agora</button></div>'
+function waSlotHtml(slot, cfg){
+  var tag=function(t){ return '<span style="font-size:10px;font-weight:800;color:#0B7A46;background:#DCFCE7;padding:2px 8px;border-radius:999px;margin-right:4px">'+t+'</span>'; };
+  if(cfg && cfg.connected){
+    var papeis=''; if(cfg.for_eventos)papeis+=tag('EVENTOS'); if(cfg.for_conversas)papeis+=tag('CONVERSAS'); if(cfg.for_comunicacao)papeis+=tag('COMUNICAÇÃO'); if(!papeis)papeis='<span style="font-size:11px;color:var(--coral)">sem papel — marque abaixo</span>';
+    return '<div style="padding:16px;border:1px solid rgba(0,168,120,.4);border-radius:12px;background:rgba(0,168,120,.06);margin-bottom:12px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">'
+        +'<div style="display:flex;align-items:center;gap:12px">'
+          +'<div style="width:40px;height:40px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.2-.7-2.7-1.1-4.4-3.9-4.6-4.1-.1-.2-1-1.4-1-2.6s.6-1.8.9-2.1c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.5c-.2.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.2.1.4.1.6-.1l.7-.9c.2-.2.4-.2.6-.1l1.9.9c.3.1.4.2.5.3.1.3.1.7-.1 1.3Z"/></svg></div>'
+          +'<div><div style="font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">Número '+slot+' · '+esc(cfg.display_number||'')+'<span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;color:#0B7A46;background:#DCFCE7;padding:2px 8px;border-radius:999px"><span style="width:6px;height:6px;border-radius:50%;background:#16A34A;display:inline-block"></span>LIGADO</span></div>'
+          +'<div style="font-size:11px;color:var(--muted);margin-top:3px">Phone ID: '+esc(cfg.phone_number_id||'—')+(cfg.has_token?' · token ✓':' · token pendente')+'</div></div>'
+        +'</div>'
+        +'<button class="btn-danger" style="padding:7px 12px" onclick="waDisconnect('+slot+')"><svg class="icon" width="12" height="12"><use href="#i-x-close"/></svg> Desconectar</button>'
+      +'</div>'
+      +'<div style="margin-top:10px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700">Papéis ativos: '+papeis+'</div>'
+      +waPurposeChecks(slot, cfg)
+      +'<input type="hidden" id="wa-num-'+slot+'" value="'+esc(cfg.display_number||'')+'"><input type="hidden" id="wa-pnid-'+slot+'" value="'+esc(cfg.phone_number_id||'')+'"><input type="hidden" id="wa-waba-'+slot+'" value="'+esc(cfg.waba_id||'')+'"><input type="hidden" id="wa-token-'+slot+'" value="">'
+      +'<div style="margin-top:8px"><button class="btn-ghost" style="padding:7px 12px" onclick="waConnect('+slot+')"><svg class="icon" width="13" height="13"><use href="#i-check"/></svg> Salvar papéis</button></div>'
+    +'</div>';
+  }
+  return '<div style="padding:16px;border:1px dashed var(--border);border-radius:12px;margin-bottom:12px">'
+    +'<div style="font-weight:800;font-size:14px;margin-bottom:4px">Número '+slot+(slot===2?' <span style="font-weight:500;color:var(--muted);font-size:12px">(opcional — 2º número)</span>':'')+'</div>'
+    +'<div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">Cole os identificadores da <strong>WABA + número + token</strong> do painel da Meta.</div>'
+    +'<label>Número (com DDI/DDD, como será exibido)</label><input id="wa-num-'+slot+'" placeholder="+55 81 99999-9999">'
+    +'<div class="form-row"><div><label>Phone Number ID *</label><input id="wa-pnid-'+slot+'" placeholder="Ex: 123456789012345"></div><div><label>WABA ID</label><input id="wa-waba-'+slot+'" placeholder="Ex: 987654321098765"></div></div>'
+    +'<label>Token permanente (System User)</label><input id="wa-token-'+slot+'" type="password" placeholder="EAAG..." style="font-family:monospace;font-size:12px" autocomplete="off">'
+    +'<div style="font-size:11px;color:var(--muted);margin-top:5px">Marque os papéis deste número:</div>'
+    +waPurposeChecks(slot, null)
+    +'<div style="margin-top:12px"><button class="btn-primary" onclick="waConnect('+slot+')"><svg class="icon" width="14" height="14"><use href="#i-whatsapp"/></svg> Conectar número '+slot+'</button></div>'
   +'</div>';
 }
-window.waConnect = function(){
+window.waConnect = function(slot){
+  slot = slot||1;
   var g=function(x){var el=document.getElementById(x);return el?el.value.trim():'';};
-  var data={ display_number:g('wa-num'), phone_number_id:g('wa-pnid'), waba_id:g('wa-waba'), access_token:g('wa-token') };
+  var gc=function(x){var el=document.getElementById(x);return el?el.checked:false;};
+  var data={ slot:slot, display_number:g('wa-num-'+slot), phone_number_id:g('wa-pnid-'+slot), waba_id:g('wa-waba-'+slot), access_token:g('wa-token-'+slot),
+    for_eventos:gc('wa-ev-'+slot), for_conversas:gc('wa-cv-'+slot), for_comunicacao:gc('wa-cm-'+slot) };
   if(!data.display_number || !data.phone_number_id){ toast('Informe ao menos o número e o Phone Number ID','warn'); return; }
   if(!window._mobCandId){ toast('Abra uma campanha primeiro','warn'); return; }
   window.MOB_RPC('mob_wa_config_save',{p_candidate:window._mobCandId, p_data:data}).then(function(r){
     if(r && r.ok){
-      // O número oficial passa a ser o número do candidato usado nos QR/compartilhamentos
-      try{ state.candidate = state.candidate||{}; state.candidate.whatsapp = data.display_number; saveState();
-           window.MOB_RPC('mob_update_candidate_self',{p_id:window._mobCandId,p_data:{whatsapp:data.display_number}}).catch(function(){}); }catch(e){}
-      toast('WhatsApp conectado'); waLoadConfig();
+      // O número de Conversas é o "oficial" exibido nos QR de pré-cadastro/compartilhamentos
+      if(data.for_conversas){ try{ state.candidate=state.candidate||{}; state.candidate.whatsapp=data.display_number; saveState();
+           window.MOB_RPC('mob_update_candidate_self',{p_id:window._mobCandId,p_data:{whatsapp:data.display_number}}).catch(function(){}); }catch(e){} }
+      toast('Número '+slot+' salvo'); waLoadConfig();
     }
     else toast((r&&r.error)||'Erro ao conectar','err');
   }).catch(function(e){ toast(e.message||'Erro','err'); });
 };
-window.waDisconnect = function(){
-  if(!confirm('Desconectar o WhatsApp desta campanha? O disparo oficial ficará indisponível até reconectar.')) return;
-  window.MOB_RPC('mob_wa_config_disconnect',{p_candidate:window._mobCandId}).then(function(r){
-    if(r && r.ok){ toast('WhatsApp desconectado'); waLoadConfig(); }
+window.waDisconnect = function(slot){
+  slot = slot||1;
+  if(!confirm('Desconectar o número '+slot+' desta campanha?')) return;
+  window.MOB_RPC('mob_wa_config_disconnect',{p_candidate:window._mobCandId, p_slot:slot}).then(function(r){
+    if(r && r.ok){ toast('Número '+slot+' desconectado'); waLoadConfig(); }
     else toast((r&&r.error)||'Erro','err');
   }).catch(function(e){ toast(e.message||'Erro','err'); });
 };
