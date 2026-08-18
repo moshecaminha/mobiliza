@@ -830,6 +830,9 @@ input,select,textarea{font-family:inherit;outline:none;color:var(--ink)}
       <div class="nav-item" data-view="ia" onclick="setView('ia')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-ai"/></svg>Estratégia IA<kbd class="nav-kbd">9</kbd></div>
       <div class="nav-item" data-view="settings" onclick="setView('settings')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-settings"/></svg>Configurações<kbd class="nav-kbd">0</kbd></div>
     </div>
+    <div id="nav-create-time" onclick="openCreateTime()" style="display:none;margin:8px 16px 4px;padding:11px 14px;border-radius:11px;background:linear-gradient(135deg,#F97316,#EA580C);color:#fff;font-weight:800;font-size:13px;cursor:pointer;align-items:center;gap:10px;box-shadow:0 8px 18px -6px rgba(234,88,12,.6)">
+      <svg class="icon" width="17" height="17" style="flex-shrink:0"><use href="#i-plus"/></svg>Criar acesso (Time)
+    </div>
     <div class="sidebar-foot">
       <div class="av" id="sidebar-av">?</div>
       <div class="info" style="flex:1;min-width:0">
@@ -1763,7 +1766,44 @@ function mobUpdateAccountSwitcher(){
   brand.onclick = window._mobCanSwitch ? function(e){ mobAccountMenu(e); } : null;
   var name = document.getElementById('brand-name');
   if(name){ var chev=document.getElementById('brand-chev'); if(window._mobCanSwitch && !chev){ name.insertAdjacentHTML('beforeend',' <span id="brand-chev" style="opacity:.6;font-size:11px">▾</span>'); } else if(!window._mobCanSwitch && chev){ chev.remove(); } }
+  // Botão "Criar acesso (Time)" — só GESTOR e SUPERADMIN
+  var canCreate = (window.MOB_IS_ADMIN===true) || (window._mobRole==='gestor');
+  var ct = document.getElementById('nav-create-time'); if(ct) ct.style.display = canCreate ? 'flex' : 'none';
 }
+// ===== Criar acesso "Time" (gestor/superadmin) direto no app =====
+var MOB_MODULES = [
+  ['dashboard','Painel'],['conversas','Conversas'],['whatsapp','Comunicação'],['agenda','Agenda'],
+  ['militancia','Equipe'],['eventos','Eventos & QR'],['leads','Leads'],['geo','Inteligência Geo'],
+  ['social','Radar Social'],['competitive','Radar Eleitoral'],['votos','Projeção'],
+  ['logistica','Logística'],['financeiro','Financeiro'],['trends','Tendências'],['ia','Estratégia IA'],['settings','Configurações']
+];
+window.openCreateTime = function(){
+  var canCreate = (window.MOB_IS_ADMIN===true) || (window._mobRole==='gestor');
+  if(!canCreate){ toast('Apenas gestor ou administrador','warn'); return; }
+  var checks = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">'
+    + MOB_MODULES.map(function(m){ return '<label style="display:flex;align-items:center;gap:7px;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin:0"><input type="checkbox" class="ct-mod" value="'+m[0]+'" style="width:auto"> '+m[1]+'</label>'; }).join('')
+    + '</div>';
+  showModalHtml('<h3>Criar acesso · Time</h3>'
+    +'<div class="sub" style="margin-bottom:12px">Crie um login para um membro do time de <strong>'+esc((state.candidate&&state.candidate.name)||'')+'</strong>. Ele acessa só as funções que você marcar.</div>'
+    +'<label>Nome</label><input id="ct-name" placeholder="Nome da pessoa">'
+    +'<div class="form-row"><div><label>E-mail *</label><input id="ct-email" type="email" placeholder="pessoa@email.com"></div><div><label>Senha *</label><input id="ct-pass" type="text" placeholder="mín. 6 caracteres"></div></div>'
+    +'<label style="margin-top:12px">Funções que ele vai exercer <span style="text-transform:none;font-weight:500;color:var(--muted)">(marque uma ou mais)</span></label>'
+    + checks
+    +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="saveCreateTime()"><svg class="icon" width="13" height="13"><use href="#i-plus"/></svg> Criar acesso</button></div>','createtime');
+};
+window.saveCreateTime = function(){
+  var g=function(x){var e=document.getElementById(x);return e?(e.value||'').trim():'';};
+  var email=g('ct-email'), pass=g('ct-pass'), nome=g('ct-name');
+  var mods=[].slice.call(document.querySelectorAll('.ct-mod:checked')).map(function(x){return x.value;});
+  if(!email){ toast('Informe o e-mail','warn'); return; }
+  if(pass.length<6){ toast('Senha mínima de 6 caracteres','warn'); return; }
+  if(!mods.length){ toast('Marque ao menos uma função','warn'); return; }
+  if(!window._mobCandId || !window.MOB_RPC){ toast('Sessão não iniciada','err'); return; }
+  window.MOB_RPC('mob_gestor_create_time',{ p_candidate:window._mobCandId, p_email:email, p_password:pass, p_name:nome, p_modules:mods }).then(function(r){
+    if(r && r.ok){ closeModal(); toast(r.created?'Acesso criado para '+email:'Acesso atualizado para '+email); }
+    else toast((r&&r.error)||'Erro ao criar acesso','err');
+  }).catch(function(e){ toast(e.message||'Erro','err'); });
+};
 window.mobAccountMenu = function(ev){
   if(ev){ try{ ev.stopPropagation(); }catch(e){} }
   if(!window._mobCanSwitch) return;
@@ -4635,9 +4675,9 @@ function renderDashboard(){
 
   // MAPA INTERATIVO — bloco principal do dashboard
   var stateName = (typeof ESTADO_NAME !== 'undefined' && ESTADO_NAME[state.election.state]) || state.election.state || 'Brasil';
-  // Determina modo inicial: municipal se election.level for municipal E city preenchida
-  var isMun = state.election.level==='municipal' && !!state.election.city;
-  var mapMode = state.session && state.session.mapMode ? state.session.mapMode : (isMun?'municipal':'state');
+  // Padrão para TODOS os candidatos: visão ESTADO (municípios coloridos por mesorregião).
+  // O usuário ainda pode alternar para Município no botão; a escolha fica salva na sessão.
+  var mapMode = state.session && state.session.mapMode ? state.session.mapMode : 'state';
   // Card compacto de cadastros sem coordenadas (se houver)
   var _allDash = activeOnly(state.leaders).concat(activeOnly(state.militants));
   var _sinCoord = _allDash.filter(function(x){return !x.lat||!x.lng});
@@ -4740,7 +4780,7 @@ function renderDashboard(){
   }
   // Renderiza o mapa IMEDIATAMENTE com os pins que já têm coordenadas
   var initFn = function(){
-    var mode = (state.session && state.session.mapMode) ? state.session.mapMode : (state.election.level==='municipal' && state.election.city ? 'municipal' : 'state');
+    var mode = (state.session && state.session.mapMode) ? state.session.mapMode : 'state';
     if(mode==='municipal') initMunicipalMap();
     else initStateMap();
   };
