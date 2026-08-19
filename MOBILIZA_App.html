@@ -1685,7 +1685,12 @@ function mobOpenCandidate(cand){
     }
     if(c.theme_color) state.candidate.color = c.theme_color;
     if(c.photo_url) state.candidate.photo = c.photo_url;
+    // Garante a UF/cidade do candidato (banco é a fonte da verdade) para o mapa de Estado abrir sempre
+    state.election = state.election || {};
+    if(c.uf) state.election.state = c.uf;
+    if(c.city && !state.election.city) state.election.city = c.city;
     state.session = state.session || {}; state.session.loggedIn = true; state.session.candidateId = cand.id;
+    state.session.mapMode = 'state'; // todos os candidatos abrem o mapa na visão macro do Estado
     // Permissões por módulo (null/vazio = acesso total) + papel do usuário nesta campanha
     window._mobModules = (cand && cand.modules && cand.modules.length) ? cand.modules.slice() : null;
     window._mobRole = (cand && cand.role) || '';
@@ -6342,6 +6347,14 @@ function renderMilitancia(){
   var candCargo = state.election.position||'Candidato(a)';
 
   var html = '<div class="page-head"><div><h2>Equipe da Campanha</h2><div class="sub">'+(leaders.length+militants.length+1)+' pessoas no total <span id="sync-status" style="margin-left:10px;font-size:11px;color:var(--muted)"></span></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="syncFromServer(true)" title="Puxar cadastros feitos via QR code"><svg class="icon" width="14" height="14"><use href="#i-refresh"/></svg>Sincronizar</button><button class="btn-ghost" onclick="importContacts(\'equipe\')"><svg class="icon" width="14" height="14"><use href="#i-upload"/></svg> Importar equipe</button><button class="btn-ghost" onclick="modalMilitant()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Militante</button><button class="btn-primary" onclick="modalLeader()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Liderança</button></div></div>';
+  // Ordenação + busca por nome (valem para todas as seções abaixo)
+  var _ts = window._teamSort||'votos';
+  var _sortBtn = function(k,l){ return '<button onclick="setTeamSort(\''+k+'\')" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:'+(_ts===k?'var(--brand)':'#fff')+';color:'+(_ts===k?'#fff':'var(--muted)')+'">'+l+'</button>'; };
+  html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">'
+    +'<span class="sub" style="text-transform:uppercase;letter-spacing:.05em;font-weight:700">Ordenar</span>'
+    +_sortBtn('votos','Por votos')+_sortBtn('nome','A–Z')+_sortBtn('recentes','Recentes')
+    +'<input id="team-search" placeholder="Buscar por nome…" value="'+esc(window._teamSearch||'')+'" oninput="setTeamSearch(this.value)" style="flex:1;min-width:160px;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px">'
+    +'</div>';
   // Auto-sync silencioso ao abrir a Militância se houver backend + token
   setTimeout(function(){ syncFromServer(false); }, 200);
   // KPIs: Prefeito/Candidato + 4 grupos
@@ -6355,9 +6368,20 @@ function renderMilitancia(){
 
   // Helper pra render uma seção
   function _renderSection(title, iconRef, iconColor, items, entityType, showQR, showLastVotes){
-    var out = '<div class="card"><div class="card-head"><div><div class="card-title" style="display:flex;align-items:center;gap:8px"><svg class="icon" width="16" height="16" style="color:'+iconColor+'"><use href="#'+iconRef+'"/></svg>'+title+'</div><div class="card-sub">'+items.length+' cadastrado(s)</div></div></div>';
+    var _q = (window._teamSearch||'').trim().toLowerCase();
+    var _sortMode = window._teamSort||'votos';
+    var shown = items.slice();
+    if(_q) shown = shown.filter(function(p){ return ((p.name||'')+' '+(p.phone||'')+' '+(p.bairro||'')+' '+(p.city||'')).toLowerCase().indexOf(_q)>=0; });
+    shown.sort(function(a,b){
+      if(_sortMode==='nome') return (a.name||'').localeCompare(b.name||'','pt',{sensitivity:'base'});
+      if(_sortMode==='recentes') return (b.createdAt||0)-(a.createdAt||0);
+      return ((b.lastElectionVotes||0)+(b.votesEstimated||0))-((a.lastElectionVotes||0)+(a.votesEstimated||0));
+    });
+    var out = '<div class="card"><div class="card-head"><div><div class="card-title" style="display:flex;align-items:center;gap:8px"><svg class="icon" width="16" height="16" style="color:'+iconColor+'"><use href="#'+iconRef+'"/></svg>'+title+'</div><div class="card-sub">'+items.length+' cadastrado(s)'+(_q?' · '+shown.length+' no filtro':'')+'</div></div></div>';
     if(items.length===0){
       out += '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;background:var(--soft-2);border-radius:10px"><svg width="32" height="32" style="opacity:.35;margin-bottom:6px"><use href="#'+iconRef+'"/></svg><div>Nenhum '+title.toLowerCase()+' ainda</div><button class="btn-ghost" style="margin-top:8px" onclick="'+(entityType==='leader'?'modalLeader()':'modalMilitant()')+'"><svg class="icon" width="12" height="12"><use href="#i-plus"/></svg>Cadastrar</button></div>';
+    } else if(shown.length===0){
+      out += '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhum resultado para "'+esc(window._teamSearch||'')+'" nesta seção.</div>';
     } else {
       var totalLast = items.reduce(function(s,p){ return s+(+p.lastElectionVotes||0); },0);
       out += '<div style="overflow:auto;max-height:560px"><table class="tbl"><thead><tr><th>Nome</th><th>Região</th><th>Contato</th>'
@@ -6365,7 +6389,7 @@ function renderMilitancia(){
         +'<th style="text-align:right">Est. Votos</th>'
         +(showLastVotes?'<th style="text-align:right">Retenção</th>':'')
         +'<th></th></tr></thead><tbody>';
-      items.slice().sort(function(a,b){return ((b.lastElectionVotes||0)+(b.votesEstimated||0))-((a.lastElectionVotes||0)+(a.votesEstimated||0))}).slice(0,1000).forEach(function(p){
+      shown.slice(0,1000).forEach(function(p){
         var region = state.regions.find(function(r){return r.id===p.regionId});
         var initials = (p.name||'?').split(' ').map(function(x){return x[0]||''}).slice(0,2).join('').toUpperCase();
         var ve = +p.votesEstimated||0;
@@ -6384,7 +6408,7 @@ function renderMilitancia(){
       });
       out += '</tbody></table></div>';
       if(showLastVotes && totalLast>0) out += '<div style="margin-top:10px;padding:10px 12px;background:var(--soft-2);border-radius:8px;font-size:12px;color:var(--ink-2)"><strong>Base histórica somada:</strong> '+totalLast.toLocaleString('pt-BR')+' votos na última eleição · <span style="color:var(--muted)">retenção média projetada de 65% = <strong>'+Math.round(totalLast*0.65).toLocaleString('pt-BR')+'</strong> votos transferíveis</span></div>';
-      out += '<div style="text-align:center;margin-top:8px;font-size:12px;color:var(--muted)">'+(items.length>1000?('Mostrando 1000 de '+items.length):(items.length+' cadastrado(s) · lista completa'))+'</div>';
+      out += '<div style="text-align:center;margin-top:8px;font-size:12px;color:var(--muted)">'+(shown.length>1000?('Mostrando 1000 de '+shown.length):(shown.length+(_q?' resultado(s)':' cadastrado(s) · lista completa')))+'</div>';
     }
     out += '</div>';
     return out;
@@ -6402,6 +6426,16 @@ function renderMilitancia(){
 
   document.getElementById('view-militancia').innerHTML = html;
 }
+// Ordenar/buscar na Equipe (vale para todas as seções)
+window.setTeamSort = function(k){ window._teamSort=k; renderMilitancia(); };
+window.setTeamSearch = function(v){
+  window._teamSearch=v;
+  if(window._teamSearchT) clearTimeout(window._teamSearchT);
+  window._teamSearchT = setTimeout(function(){
+    renderMilitancia();
+    var el=document.getElementById('team-search'); if(el){ el.focus(); var val=el.value; el.value=''; el.value=val; }
+  }, 220);
+};
 
 // ============ VOTOS ============
 function renderVotos(){
