@@ -7883,11 +7883,10 @@ function renderFinanceiro(){
   } else {
     html += '<div style="max-height:420px;overflow-y:auto"><table class="tbl"><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th style="text-align:right">Valor</th><th></th></tr></thead><tbody>';
     transactions.slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'')}).slice(0,30).forEach(function(t){
-      var cat = categories.find(function(c){return c.id===t.category});
       var isExp = t.type==='expense';
       html += '<tr><td style="font-size:11px;color:var(--muted)">'+esc(t.date||'—')+'</td>'
         +'<td style="font-size:12px;max-width:220px"><strong>'+esc(t.description||'—')+'</strong></td>'
-        +'<td><span class="badge '+(isExp?'danger':'success')+'">'+(cat?esc(cat.name):(isExp?'Despesa':'Receita'))+'</span></td>'
+        +'<td><span class="badge '+(isExp?'danger':'success')+'">'+(t.category?esc(catLabel(t.category)):(isExp?'Despesa':'Receita'))+'</span></td>'
         +'<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:'+(isExp?'var(--coral-2)':'var(--brand-2)')+'">'+(isExp?'−':'+')+' '+fmtBRL(t.amount)+'</td>'
         +'<td class="actions">'
           +((t.attachments&&t.attachments.length)?'<button onclick="docOpenFirstAtt(\'transaction\',\''+t.id+'\')" title="Ver comprovante ('+t.attachments.length+')" style="color:var(--brand-2)"><svg class="icon" width="12" height="12"><use href="#i-paperclip"/></svg></button>':'')
@@ -7902,7 +7901,7 @@ function renderFinanceiro(){
   html += '<div class="card"><div class="card-head"><div class="card-title">Despesas por categoria</div></div>';
   var byCat = {};
   transactions.filter(function(t){return t.type==='expense'}).forEach(function(t){ byCat[t.category] = (byCat[t.category]||0)+(+t.amount||0); });
-  var catEntries = Object.keys(byCat).map(function(k){ var c = categories.find(function(x){return x.id===k}); return {name:c?c.name:k, value:byCat[k]}; }).sort(function(a,b){return b.value-a.value});
+  var catEntries = Object.keys(byCat).map(function(k){ return {name:catLabel(k), value:byCat[k]}; }).sort(function(a,b){return b.value-a.value});
   if(catEntries.length===0){
     html += '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Sem despesas</div>';
   } else {
@@ -7941,6 +7940,45 @@ function renderFinanceiro(){
 }
 
 // Modais Financeiro
+// ===== Classificação oficial TSE (SPCE) — tipos de despesa e origens de receita =====
+var TSE_DESPESAS = [
+  ['D01','Advogados e serviços jurídicos'],['D02','Contabilidade e serviços contábeis'],
+  ['D03','Pessoal (contratação e prestação de serviços)'],['D04','Alimentação'],['D05','Água e bebidas'],
+  ['D06','Combustíveis e lubrificantes'],['D07','Locação/cessão de veículos'],['D08','Passagens aéreas'],
+  ['D09','Transporte ou deslocamento'],['D10','Aluguel de bens imóveis'],['D11','Aluguel de bens móveis'],
+  ['D12','Instalação e funcionamento de comitês'],['D13','Material de expediente'],
+  ['D14','Materiais impressos (produção)'],['D15','Publicidade por materiais impressos'],
+  ['D16','Publicidade por adesivos'],['D17','Publicidade por carro de som / trio elétrico'],
+  ['D18','Produção de programas de rádio, TV ou vídeo'],['D19','Produção de jingles, vinhetas e slogans'],
+  ['D20','Criação e manutenção de páginas na internet'],['D21','Impulsionamento de conteúdo na internet'],
+  ['D22','Pesquisas e testes pré-eleitorais'],['D23','Atividades de militância e mobilização de rua'],
+  ['D24','Reuniões e eventos'],['D25','Serviços de terceiros (pessoa jurídica)'],
+  ['D26','Serviços de terceiros (pessoa física)'],['D27','Telefonia e comunicação de dados'],
+  ['D28','Encargos financeiros, taxas bancárias e juros'],['D29','Multas eleitorais'],
+  ['D30','Doações financeiras a outros candidatos/partidos'],['D31','Bens/serviços estimáveis em dinheiro'],
+  ['D99','Outras despesas']
+];
+var TSE_RECEITAS = [
+  ['R01','Recursos próprios do candidato'],['R02','Doações de pessoas físicas'],
+  ['R03','Recursos do partido (Fundo Partidário)'],['R04','Fundo Especial de Financiamento de Campanha (FEFC)'],
+  ['R05','Doações de outros candidatos ou partidos'],['R06','Doações via internet (financiamento coletivo)'],
+  ['R07','Comercialização de bens e/ou eventos'],['R08','Rendimentos de aplicações financeiras'],
+  ['R09','Sobras de campanhas anteriores'],['R10','Recursos estimáveis em dinheiro (bens/serviços)'],
+  ['R99','Outras receitas']
+];
+function tseList(type){ return type==='income' ? TSE_RECEITAS : TSE_DESPESAS; }
+// Origem TSE padrão a partir do tipo de doador (fallback quando o campo origem fica vazio)
+function data_type_origin(t){ return t==='partido' ? 'R03 · Recursos do partido (Fundo Partidário)' : t==='pj' ? 'R99 · Outras receitas' : 'R02 · Doações de pessoas físicas'; }
+function tseDatalistOptions(type){ return tseList(type).map(function(c){ return '<option value="'+c[0]+' · '+esc(c[1])+'">'; }).join(''); }
+// Nome amigável de uma categoria (aceita o novo texto TSE ou os ids antigos)
+function catLabel(v){
+  if(!v) return '—';
+  var cats = state.expenseCategories||[];
+  var c = cats.find(function(x){ return x.id===v; });
+  if(c) return c.name;
+  return v; // já é o rótulo TSE ("D13 · Material de expediente")
+}
+
 // ===== Prestação de contas / Relatório financeiro (imprimível → PDF) =====
 window.finReportPick = function(){
   showModalHtml('<h3>Prestação de contas</h3><div class="sub" style="margin-bottom:12px">Gere o relatório financeiro para conferência e apoio à prestação de contas. Abre em nova aba; use Imprimir → Salvar como PDF.</div>'
@@ -7961,7 +7999,7 @@ window.finReport = function(days){
   var accounts=activeOnly(state.bankAccounts||[]);
   var txs=activeOnly(state.transactions||[]).filter(function(t){return inPeriod(t.date);});
   var dons=activeOnly(state.donations||[]).filter(function(d){return inPeriod(d.date);});
-  var cats=state.expenseCategories||[]; var catName=function(id){var c=cats.find(function(x){return x.id===id;});return c?c.name:(id||'—');};
+  var catName=function(id){ return catLabel(id); };
   var typeName=function(t){return t==='pj'?'Pessoa Jurídica':t==='partido'?'Partido/Fundo':'Pessoa Física';};
   var inc=txs.filter(function(t){return t.type==='income';}).reduce(function(s,t){return s+(+t.amount||0);},0);
   var exp=txs.filter(function(t){return t.type==='expense';}).reduce(function(s,t){return s+(+t.amount||0);},0);
@@ -8042,7 +8080,7 @@ window.modalTransaction = function(id){
     +'<label>Tipo</label><div style="display:flex;gap:8px;margin-bottom:12px"><label style="flex:1;padding:12px;border:2px solid '+(isExp?'var(--coral)':'var(--border)')+';border-radius:10px;cursor:pointer;text-align:center;font-weight:700;color:'+(isExp?'var(--coral-2)':'var(--muted)')+'"><input type="radio" name="tr-type" value="expense" '+(isExp?'checked':'')+' onchange="_toggleTxType(\'expense\')" style="display:none">Despesa</label><label style="flex:1;padding:12px;border:2px solid '+(!isExp?'var(--brand-2)':'var(--border)')+';border-radius:10px;cursor:pointer;text-align:center;font-weight:700;color:'+(!isExp?'var(--brand-2)':'var(--muted)')+'"><input type="radio" name="tr-type" value="income" '+(!isExp?'checked':'')+' onchange="_toggleTxType(\'income\')" style="display:none">Receita</label></div>'
     +'<label>Descrição *</label><input id="tr-desc" value="'+esc(t.description||'')+'" placeholder="Ex: Pagamento gráfica, doação PF">'
     +'<div class="form-row"><div><label>Valor (R$) *</label><input type="number" step="0.01" id="tr-amount" value="'+(t.amount||0)+'"></div><div><label>Data</label><input type="date" id="tr-date" value="'+esc(t.date||new Date().toISOString().slice(0,10))+'"></div></div>'
-    +'<div class="form-row"><div><label>Categoria</label><select id="tr-category">'+(isExp?expenseCats:incomeCats)+'</select></div><div><label>Conta</label><select id="tr-account"><option value="">—</option>'+accOpts+'</select></div></div>'
+    +'<div class="form-row"><div><label>Categoria (classificação TSE)</label><input id="tr-category" list="tr-cat-dl" value="'+esc(t.category||'')+'" placeholder="Digite ou escolha…" autocomplete="off"><datalist id="tr-cat-dl">'+tseDatalistOptions(isExp?'expense':'income')+'</datalist></div><div><label>Conta</label><select id="tr-account"><option value="">—</option>'+accOpts+'</select></div></div>'
     +'<label>Nº comprovante / NF</label><input id="tr-receipt" value="'+esc(t.receipt||'')+'">'
     +'<label>Notas</label><textarea id="tr-notes">'+esc(t.notes||'')+'</textarea>'
     +attachBlockHtml('Comprovante do lançamento','Fotografe a nota/recibo com a câmera ou envie um arquivo. Guardado na base de documentos, separada dos dados da campanha.')
@@ -8052,9 +8090,9 @@ window.modalTransaction = function(id){
   if(id && t.attachments && t.attachments.length) attachLoad(t.attachments);
 };
 window._toggleTxType = function(type){
-  var catSel = document.getElementById('tr-category');
-  var cats = (state.expenseCategories||[]).filter(function(c){return c.type===type});
-  catSel.innerHTML = cats.map(function(c){return '<option value="'+c.id+'">'+esc(c.name)+'</option>'}).join('');
+  var dl = document.getElementById('tr-cat-dl');
+  if(dl) dl.innerHTML = tseDatalistOptions(type);
+  var catEl = document.getElementById('tr-category'); if(catEl) catEl.value=''; // limpa ao trocar tipo
   // Atualizar cores dos radios
   document.querySelectorAll('input[name="tr-type"]').forEach(function(r){
     var isCheck = r.value===type;
@@ -8092,6 +8130,7 @@ window.modalDonation = function(id){
     +'<label>Nome do doador *</label><input id="dn-donor" value="'+esc(d.donor||'')+'">'
     +'<div class="form-row"><div><label>CPF ou CNPJ *</label><input id="dn-doc" value="'+esc(d.cpfCnpj||'')+'" placeholder="000.000.000-00"></div><div><label>Tipo</label><select id="dn-type"><option value="pf"'+((d.type||'pf')==='pf'?' selected':'')+'>Pessoa Física</option><option value="pj"'+(d.type==='pj'?' selected':'')+'>Pessoa Jurídica</option><option value="partido"'+(d.type==='partido'?' selected':'')+'>Partido / Fundo</option></select></div></div>'
     +'<div class="form-row"><div><label>Valor (R$) *</label><input type="number" step="0.01" id="dn-amount" value="'+(d.amount||0)+'"></div><div><label>Data</label><input type="date" id="dn-date" value="'+esc(d.date||new Date().toISOString().slice(0,10))+'"></div></div>'
+    +'<label>Origem do recurso (classificação TSE)</label><input id="dn-origin" list="dn-origin-dl" value="'+esc(d.origin||'')+'" placeholder="Ex.: R02 · Doações de pessoas físicas" autocomplete="off"><datalist id="dn-origin-dl">'+tseDatalistOptions('income')+'</datalist>'
     +'<label>Conta destino</label><select id="dn-account"><option value="">—</option>'+accOpts+'</select>'
     +'<label>Meio de pagamento</label><select id="dn-method"><option value="pix"'+(d.method==='pix'?' selected':'')+'>PIX</option><option value="ted"'+(d.method==='ted'?' selected':'')+'>TED</option><option value="deposito"'+(d.method==='deposito'?' selected':'')+'>Depósito</option><option value="cheque"'+(d.method==='cheque'?' selected':'')+'>Cheque</option><option value="dinheiro"'+(d.method==='dinheiro'?' selected':'')+'>Dinheiro</option></select>'
     +'<label>Notas</label><textarea id="dn-notes">'+esc(d.notes||'')+'</textarea>'
@@ -8107,14 +8146,15 @@ window.saveDonation = function(id){
   var doc = $('dn-doc').value.trim();
   var amount = +$('dn-amount').value||0;
   if(!donor||!doc||amount<=0){toast('Doador, CPF/CNPJ e valor são obrigatórios','warn');return;}
-  var data = {donor:donor,cpfCnpj:doc,type:$('dn-type').value,amount:amount,date:$('dn-date').value,accountId:$('dn-account').value,method:$('dn-method').value,notes:$('dn-notes').value.trim()};
+  var origin = ($('dn-origin')?$('dn-origin').value.trim():'') || (data_type_origin($('dn-type').value));
+  var data = {donor:donor,cpfCnpj:doc,type:$('dn-type').value,origin:origin,amount:amount,date:$('dn-date').value,accountId:$('dn-account').value,method:$('dn-method').value,notes:$('dn-notes').value.trim()};
   state.donations = state.donations||[];
   var isNew = !id;
   if(id){var idx = state.donations.findIndex(function(d){return d.id===id});state.donations[idx] = Object.assign(state.donations[idx],data); logAction('edit','donation',state.donations[idx]);}
   else { var newItem = Object.assign({id:genId(),createdAt:Date.now()},data); state.donations.push(newItem); logAction('create','donation',newItem);
-    // Auto-registrar como receita
+    // Auto-registrar como receita, já com a classificação TSE da origem
     state.transactions = state.transactions||[];
-    state.transactions.push({id:genId(),createdAt:Date.now(),type:'income',category:data.type==='pj'?'doacao_pj':(data.type==='partido'?'partido':'doacao_pf'),amount:data.amount,date:data.date,description:'Doação de '+donor+' ('+doc+')',accountId:data.accountId,linkedDonationId:newItem.id});
+    state.transactions.push({id:genId(),createdAt:Date.now(),type:'income',category:origin,amount:data.amount,date:data.date,description:'Doação de '+donor+' ('+doc+')',accountId:data.accountId,linkedDonationId:newItem.id});
   }
   var _dn = id ? state.donations.find(function(x){return x.id===id}) : state.donations[state.donations.length-1];
   attachCommit('donation', _dn && _dn.id).then(function(ids){ if(_dn){ _dn.attachments = ids; saveState(); renderFinanceiro(); } })
