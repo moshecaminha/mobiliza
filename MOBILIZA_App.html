@@ -7876,26 +7876,19 @@ function renderFinanceiro(){
   }
   html += '</div>';
 
-  // Últimas movimentações
-  html += '<div class="grid-2"><div class="card"><div class="card-head"><div><div class="card-title" style="display:flex;align-items:center;gap:8px"><svg class="icon" width="16" height="16" style="color:var(--ink-2)"><use href="#i-history"/></svg>Últimas movimentações</div><div class="card-sub">Receitas e despesas registradas</div></div><button class="btn-ghost" onclick="modalTransaction()"><svg class="icon" width="13" height="13"><use href="#i-plus"/></svg>Novo</button></div>';
-  if(transactions.length===0){
-    html += '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhuma movimentação</div>';
-  } else {
-    html += '<div style="max-height:420px;overflow-y:auto"><table class="tbl"><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th style="text-align:right">Valor</th><th></th></tr></thead><tbody>';
-    transactions.slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'')}).slice(0,30).forEach(function(t){
-      var isExp = t.type==='expense';
-      html += '<tr><td style="font-size:11px;color:var(--muted)">'+esc(t.date||'—')+'</td>'
-        +'<td style="font-size:12px;max-width:220px"><strong>'+esc(t.description||'—')+'</strong></td>'
-        +'<td><span class="badge '+(isExp?'danger':'success')+'">'+(t.category?esc(catLabel(t.category)):(isExp?'Despesa':'Receita'))+'</span></td>'
-        +'<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:'+(isExp?'var(--coral-2)':'var(--brand-2)')+'">'+(isExp?'−':'+')+' '+fmtBRL(t.amount)+'</td>'
-        +'<td class="actions">'
-          +((t.attachments&&t.attachments.length)?'<button onclick="docOpenFirstAtt(\'transaction\',\''+t.id+'\')" title="Ver comprovante ('+t.attachments.length+')" style="color:var(--brand-2)"><svg class="icon" width="12" height="12"><use href="#i-paperclip"/></svg></button>':'')
-          +'<button onclick="modalTransaction(\''+t.id+'\')" title="Editar"><svg class="icon" width="12" height="12"><use href="#i-edit"/></svg></button></td></tr>';
-    });
-    html += '</tbody></table></div>';
-    if(transactions.length>30) html += '<div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted)">Mostrando 30 de '+transactions.length+'</div>';
-  }
-  html += '</div>';
+  // Últimas movimentações (com filtros cruzados)
+  var _ff = window._finFilter||{};
+  var accFilterOpts = '<option value="">Conta: todas</option>'+accounts.map(function(a){return '<option value="'+a.id+'"'+(_ff.account===a.id?' selected':'')+'>'+esc(a.name)+'</option>';}).join('');
+  html += '<div class="grid-2"><div class="card"><div class="card-head"><div><div class="card-title" style="display:flex;align-items:center;gap:8px"><svg class="icon" width="16" height="16" style="color:var(--ink-2)"><use href="#i-history"/></svg>Movimentações</div><div class="card-sub">Filtre por tipo, categoria, período e conta</div></div><button class="btn-ghost" onclick="modalTransaction()"><svg class="icon" width="13" height="13"><use href="#i-plus"/></svg>Novo</button></div>';
+  html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px">'
+    +'<input id="finf-q" placeholder="Buscar descrição ou categoria" value="'+esc(_ff.q||'')+'" oninput="finFilterApply()" style="flex:1;min-width:150px;padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-size:12px">'
+    +'<select id="finf-type" onchange="finFilterApply()" style="padding:7px;border:1px solid var(--border);border-radius:8px;font-size:12px"><option value="">Tipo: todos</option><option value="expense"'+(_ff.type==='expense'?' selected':'')+'>Despesas</option><option value="income"'+(_ff.type==='income'?' selected':'')+'>Receitas</option></select>'
+    +'<input type="date" id="finf-from" value="'+esc(_ff.from||'')+'" onchange="finFilterApply()" title="De" style="padding:7px;border:1px solid var(--border);border-radius:8px;font-size:12px">'
+    +'<input type="date" id="finf-to" value="'+esc(_ff.to||'')+'" onchange="finFilterApply()" title="Até" style="padding:7px;border:1px solid var(--border);border-radius:8px;font-size:12px">'
+    +'<select id="finf-acc" onchange="finFilterApply()" style="padding:7px;border:1px solid var(--border);border-radius:8px;font-size:12px">'+accFilterOpts+'</select>'
+    +'<button class="btn-ghost" onclick="finFilterClear()" style="padding:6px 10px;font-size:12px">Limpar</button>'
+  +'</div>';
+  html += '<div id="fin-tx-list"></div></div>';
 
   // Gastos por categoria
   html += '<div class="card"><div class="card-head"><div class="card-title">Despesas por categoria</div></div>';
@@ -7937,7 +7930,45 @@ function renderFinanceiro(){
   html += '<div style="background:linear-gradient(135deg,rgba(59,130,246,.06),rgba(59,130,246,.02));border:1px solid rgba(59,130,246,.2);border-left:4px solid var(--blue);padding:12px 16px;border-radius:10px;font-size:12px;color:var(--ink-2);line-height:1.6;display:flex;gap:12px;align-items:flex-start"><svg class="icon" width="18" height="18" style="color:var(--blue);flex-shrink:0;margin-top:1px"><use href="#i-lightbulb"/></svg><div><strong style="color:#1D4ED8">Compliance eleitoral:</strong> a Lei 9.504/97 exige conta bancária exclusiva de campanha, registro de todas as movimentações e prestação de contas ao TSE. Este módulo registra dados de forma estruturada para exportação futura no padrão TSE.</div></div>';
 
   document.getElementById('view-financeiro').innerHTML = html;
+  finRenderTxList();
 }
+// Filtros cruzados das movimentações (tipo, categoria/descrição, período, conta) — atualiza só a lista, sem perder o foco
+window.finFilterApply = function(){
+  window._finFilter = {
+    q:(document.getElementById('finf-q')||{}).value||'',
+    type:(document.getElementById('finf-type')||{}).value||'',
+    from:(document.getElementById('finf-from')||{}).value||'',
+    to:(document.getElementById('finf-to')||{}).value||'',
+    account:(document.getElementById('finf-acc')||{}).value||''
+  };
+  finRenderTxList();
+};
+window.finFilterClear = function(){ window._finFilter={}; try{renderFinanceiro();}catch(e){} };
+window.finRenderTxList = function(){
+  var box=document.getElementById('fin-tx-list'); if(!box) return;
+  var f=window._finFilter||{};
+  var list=activeOnly(state.transactions||[]).filter(function(t){
+    if(f.type && t.type!==f.type) return false;
+    if(f.from && (t.date||'')<f.from) return false;
+    if(f.to && (t.date||'')>f.to) return false;
+    if(f.account && t.accountId!==f.account) return false;
+    if(f.q){ var q=f.q.toLowerCase(); if((((t.description||'')+' '+catLabel(t.category||''))).toLowerCase().indexOf(q)<0) return false; }
+    return true;
+  }).sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  if(!list.length){ box.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhuma movimentação'+((f.q||f.type||f.from||f.to||f.account)?' no filtro':'')+'.</div>'; return; }
+  var inc=list.filter(function(t){return t.type==='income';}).reduce(function(s,t){return s+(+t.amount||0);},0);
+  var exp=list.filter(function(t){return t.type==='expense';}).reduce(function(s,t){return s+(+t.amount||0);},0);
+  var rows=list.slice(0,300).map(function(t){ var isExp=t.type==='expense';
+    return '<tr><td style="font-size:11px;color:var(--muted)">'+esc(t.date||'—')+'</td>'
+      +'<td style="font-size:12px;max-width:220px"><strong>'+esc(t.description||'—')+'</strong></td>'
+      +'<td><span class="badge '+(isExp?'danger':'success')+'">'+(t.category?esc(catLabel(t.category)):(isExp?'Despesa':'Receita'))+'</span></td>'
+      +'<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:'+(isExp?'var(--coral-2)':'var(--brand-2)')+'">'+(isExp?'−':'+')+' '+fmtBRL(t.amount)+'</td>'
+      +'<td class="actions">'+((t.attachments&&t.attachments.length)?'<button onclick="docOpenFirstAtt(\'transaction\',\''+t.id+'\')" title="Ver comprovante" style="color:var(--brand-2)"><svg class="icon" width="12" height="12"><use href="#i-paperclip"/></svg></button>':'')+'<button onclick="modalTransaction(\''+t.id+'\')" title="Editar"><svg class="icon" width="12" height="12"><use href="#i-edit"/></svg></button></td></tr>';
+  }).join('');
+  box.innerHTML = '<div style="font-size:11px;color:var(--muted);margin-bottom:6px">'+list.length+' lançamento(s) · receitas '+fmtBRL(inc)+' · despesas '+fmtBRL(exp)+' · saldo '+fmtBRL(inc-exp)+'</div>'
+    +'<div style="max-height:420px;overflow-y:auto"><table class="tbl"><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th style="text-align:right">Valor</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+    +(list.length>300?'<div style="text-align:center;margin-top:8px;font-size:11px;color:var(--muted)">Mostrando 300 de '+list.length+'</div>':'');
+};
 
 // Modais Financeiro
 // ===== Classificação oficial TSE (SPCE) — tipos de despesa e origens de receita =====
@@ -8601,6 +8632,53 @@ window.forceGeocodeAll = function(){
   });
 };
 
+// ===== Relatório de Logística (pedidos) com filtros: período, fornecedor, comitê, item, status =====
+window.lgReportPick = function(){
+  var committees = activeOnly(state.committees||[]);
+  var comOpts = '<option value="">Todos os comitês</option>'+committees.map(function(c){return '<option value="'+c.id+'">'+esc(c.name)+'</option>';}).join('');
+  var sups = {}; activeOnly(state.purchaseOrders||[]).forEach(function(o){ if(o.supplier) sups[o.supplier]=1; });
+  var supDl = Object.keys(sups).sort().map(function(s){return '<option value="'+esc(s)+'">';}).join('');
+  showModalHtml('<h3>Relatório de logística</h3><div class="sub" style="margin-bottom:12px">Filtre os pedidos de compra e gere o relatório para impressão/PDF.</div>'
+    +'<div class="form-row"><div><label>De</label><input type="date" id="lgr-from"></div><div><label>Até</label><input type="date" id="lgr-to"></div></div>'
+    +'<div class="form-row"><div><label>Fornecedor</label><input id="lgr-sup" list="lgr-sup-dl" placeholder="Todos"><datalist id="lgr-sup-dl">'+supDl+'</datalist></div><div><label>Comitê</label><select id="lgr-com">'+comOpts+'</select></div></div>'
+    +'<div class="form-row"><div><label>Item / descrição contém</label><input id="lgr-item" placeholder="Ex.: santinho, camisa…"></div><div><label>Status</label><select id="lgr-status"><option value="">Todos</option><option value="pending">Pendente</option><option value="approved">Aprovado</option><option value="delivered">Entregue</option><option value="cancelled">Cancelado</option></select></div></div>'
+    +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="lgReport()"><svg class="icon" width="13" height="13"><use href="#i-download"/></svg> Gerar relatório</button></div>','lgreport');
+};
+window.lgReport = function(){
+  var g=function(x){var e=document.getElementById(x);return e?(e.value||'').trim():'';};
+  var from=g('lgr-from'), to=g('lgr-to'), sup=g('lgr-sup').toLowerCase(), com=g('lgr-com'), item=g('lgr-item').toLowerCase(), st=g('lgr-status');
+  closeModal();
+  var esc2=function(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+  var money=function(v){return 'R$ '+(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});};
+  var stLbl={pending:'Pendente',approved:'Aprovado',delivered:'Entregue',cancelled:'Cancelado'};
+  var comName=function(id){var c=(state.committees||[]).find(function(x){return x.id===id;});return c?c.name:'—';};
+  var orders=activeOnly(state.purchaseOrders||[]).filter(function(o){
+    if(from && (o.date||'')<from) return false;
+    if(to && (o.date||'')>to) return false;
+    if(sup && (o.supplier||'').toLowerCase().indexOf(sup)<0) return false;
+    if(com && o.committeeId!==com) return false;
+    if(st && (o.status||'')!==st) return false;
+    if(item && (o.description||'').toLowerCase().indexOf(item)<0) return false;
+    return true;
+  }).sort(function(a,b){return (a.date||'')<(b.date||'')?-1:1;});
+  var total=orders.reduce(function(s,o){return s+(+o.totalValue||0);},0);
+  var byStatus={}; orders.forEach(function(o){var k=stLbl[o.status]||o.status||'—';byStatus[k]=(byStatus[k]||0)+(+o.totalValue||0);});
+  var bySup={}; orders.forEach(function(o){var k=o.supplier||'—';bySup[k]=(bySup[k]||0)+(+o.totalValue||0);});
+  var rows=orders.map(function(o){ return '<tr><td>#'+(o.number||'')+'</td><td>'+esc2(o.date||'')+'</td><td>'+esc2(o.supplier||'')+'</td><td>'+esc2(o.description||'')+'</td><td>'+esc2(comName(o.committeeId))+'</td><td>'+esc2(stLbl[o.status]||o.status||'')+'</td><td>'+esc2(o.invoice||'')+'</td><td class="r">'+money(o.totalValue)+'</td></tr>'; }).join('')||'<tr><td colspan="8" style="text-align:center;color:#888">Nenhum pedido no filtro.</td></tr>';
+  var supRows=Object.keys(bySup).sort(function(a,b){return bySup[b]-bySup[a];}).map(function(k){return '<tr><td>'+esc2(k)+'</td><td class="r">'+money(bySup[k])+'</td></tr>';}).join('')||'';
+  var cand=(state.candidate&&state.candidate.name)||'';
+  var filtros=[from?('de '+from):'',to?('até '+to):'',sup?('fornecedor "'+sup+'"'):'',com?('comitê '+comName(com)):'',item?('item "'+item+'"'):'',st?('status '+(stLbl[st]||st)):''].filter(Boolean).join(' · ')||'sem filtros (todos os pedidos)';
+  var w=window.open('','_blank'); if(!w){ toast('Permita pop-ups para gerar o relatório','warn'); return; }
+  w.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório de logística · '+esc2(cand)+'</title>'
+    +'<style>body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:32px;font-size:13px}h1{font-size:20px;margin:0 0 2px}h2{font-size:15px;margin:22px 0 8px;border-bottom:2px solid #00805F;padding-bottom:4px;color:#00805F}.sub{color:#555;font-size:12px}table{width:100%;border-collapse:collapse;margin-top:6px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;font-size:12px}th{background:#f3f4f6}.r{text-align:right}.tot{font-weight:bold;background:#f3f4f6}@media print{.noprint{display:none}}</style></head><body>'
+    +'<div class="noprint" style="margin-bottom:14px"><button onclick="window.print()" style="padding:8px 16px;background:#00805F;color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer">Imprimir / Salvar PDF</button></div>'
+    +'<h1>Relatório de logística — '+esc2(cand)+'</h1><div class="sub">'+esc2(filtros)+' · '+orders.length+' pedido(s) · total '+money(total)+' · emitido em '+new Date().toLocaleString('pt-BR')+'</div>'
+    +'<h2>Pedidos de compra</h2><table><thead><tr><th>#</th><th>Data</th><th>Fornecedor</th><th>Itens / descrição</th><th>Comitê</th><th>Status</th><th>NF</th><th class="r">Valor</th></tr></thead><tbody>'+rows+'<tr class="tot"><td colspan="7" class="r">TOTAL</td><td class="r">'+money(total)+'</td></tr></tbody></table>'
+    +'<h2>Total por fornecedor</h2><table><thead><tr><th>Fornecedor</th><th class="r">Total</th></tr></thead><tbody>'+supRows+'</tbody></table>'
+    +'</body></html>');
+  w.document.close();
+};
+
 function renderLogistica(){
   var committees = activeOnly(state.committees||[]);
   var products = activeOnly(state.products||[]);
@@ -8615,7 +8693,7 @@ function renderLogistica(){
   var totalOrderValue = orders.reduce(function(s,o){return s+(+o.totalValue||0)},0);
   var pendingOrders = orders.filter(function(o){return o.status==='pending'||o.status==='approved'}).length;
 
-  var html = '<div class="page-head"><div><h2>Logística</h2><div class="sub">'+committees.length+' comitê(s) · '+products.length+' produto(s) no catálogo · '+orders.length+' pedido(s)</div></div><div style="display:flex;gap:8px"><button class="btn-ghost" onclick="modalCommittee()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Comitê</button><button class="btn-ghost" onclick="modalProduct()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Produto</button><button class="btn-primary" onclick="modalOrder()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Pedido de compra</button></div></div>';
+  var html = '<div class="page-head"><div><h2>Logística</h2><div class="sub">'+committees.length+' comitê(s) · '+products.length+' produto(s) no catálogo · '+orders.length+' pedido(s)</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="lgReportPick()"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg>Relatório</button><button class="btn-ghost" onclick="modalCommittee()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Comitê</button><button class="btn-ghost" onclick="modalProduct()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Produto</button><button class="btn-primary" onclick="modalOrder()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Pedido de compra</button></div></div>';
 
   // KPIs
   html += '<div class="kpi-grid">'
@@ -8838,8 +8916,11 @@ window.modalOrder = function(id){
     +'<div class="form-row"><div><label>Comitê destino</label><select id="or-committee"><option value="">—</option>'+comOpts+'</select></div><div><label>Valor total (R$)</label><input type="number" step="0.01" id="or-value" value="'+(o.totalValue||0)+'"></div></div>'
     +'<div class="form-row"><div><label>Status</label><select id="or-status">'+statusOpts+'</select></div><div><label>Nota fiscal</label><input id="or-nf" value="'+esc(o.invoice||'')+'" placeholder="Nº NF"></div></div>'
     +'<label>Notas</label><textarea id="or-notes">'+esc(o.notes||'')+'</textarea>'
+    +attachBlockHtml('Comprovante / NF do pedido','Fotografe a nota fiscal ou anexe o arquivo. Guardado na base de documentos, para a prestação de contas.')
     +'<div class="actions">'+(id?'<button class="btn-danger" onclick="rmOrder(\''+id+'\');closeModal()">Excluir</button>':'')+'<button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="saveOrder(\''+(id||'')+'\')">Salvar</button></div>',
     id?'order-'+id:'order-new');
+  attachReset([]);
+  if(id && o.attachments && o.attachments.length) attachLoad(o.attachments);
 };
 window.saveOrder = function(id){
   var $ = function(x){return document.getElementById(x)};
@@ -8848,25 +8929,28 @@ window.saveOrder = function(id){
   if(!supplier || !desc){toast('Fornecedor e descrição são obrigatórios','warn');return;}
   var data = {supplier:supplier,description:desc,date:$('or-date').value,committeeId:$('or-committee').value,totalValue:+$('or-value').value||0,status:$('or-status').value||'pending',invoice:$('or-nf').value.trim(),notes:$('or-notes').value.trim()};
   state.purchaseOrders = state.purchaseOrders||[];
-  if(id){var idx = state.purchaseOrders.findIndex(function(o){return o.id===id});state.purchaseOrders[idx] = Object.assign(state.purchaseOrders[idx],data); logAction('edit','order',state.purchaseOrders[idx]);}
+  var saved;
+  if(id){var idx = state.purchaseOrders.findIndex(function(o){return o.id===id});state.purchaseOrders[idx] = Object.assign(state.purchaseOrders[idx],data); saved=state.purchaseOrders[idx]; logAction('edit','order',saved);}
   else {
     var maxNum = state.purchaseOrders.reduce(function(m,o){return Math.max(m,o.number||0)},0);
     var newItem = Object.assign({id:genId(),createdAt:Date.now(),number:maxNum+1},data);
-    state.purchaseOrders.push(newItem);
+    state.purchaseOrders.push(newItem); saved=newItem;
     logAction('create','order',newItem);
-    // Auto-registra despesa correspondente no financeiro
+    // Auto-registra despesa correspondente no financeiro, já com classificação TSE
     if(data.totalValue>0){
+      var dl=data.description.toLowerCase();
+      var tseCat = (dl.indexOf('camisa')>=0||dl.indexOf('santinho')>=0||dl.indexOf('adesivo')>=0||dl.indexOf('panfleto')>=0||dl.indexOf('impress')>=0) ? 'D14 · Materiais impressos (produção)' : 'D99 · Outras despesas';
       state.transactions = state.transactions||[];
       state.transactions.push({
-        id:genId(),createdAt:Date.now(),
-        type:'expense',
-        category:data.description.toLowerCase().indexOf('camisa')>=0||data.description.toLowerCase().indexOf('santinho')>=0?'material':'outro',
+        id:genId(),createdAt:Date.now(), type:'expense', category:tseCat,
         amount:data.totalValue, date:data.date,
         description:'Pedido #'+newItem.number+' · '+data.supplier,
-        linkedOrderId:newItem.id
+        receipt:data.invoice||'', linkedOrderId:newItem.id
       });
     }
   }
+  // Grava o comprovante do pedido na base de documentos
+  attachCommit('order', saved && saved.id).then(function(ids){ if(saved){ saved.attachments=ids; saveState(); } }).catch(function(){});
   saveState(); closeModal(); renderLogistica(); toast('Salvo');
 };
 window.rmOrder = function(id){ if(!confirm('Mover para lixeira?'))return; var item=softDelete(state.purchaseOrders,id); logAction('delete','order',item); saveState(); renderLogistica(); toast('Movido para lixeira'); };
