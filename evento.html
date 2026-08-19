@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Cdefs%3E%3ClinearGradient id=%27g%27 x1=%270%27 y1=%270%27 x2=%271%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%2300E5A8%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300805F%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2764%27 height=%2764%27 rx=%2715%27 fill=%27url(%23g)%27/%3E%3Cpath d=%27M 13 50 L 13 22 L 22 13 L 32 25 L 42 13 L 51 22 L 51 50%27 stroke=%27%23fff%27 stroke-width=%275.5%27 fill=%27none%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3Ccircle cx=%2742%27 cy=%2713%27 r=%274%27 fill=%27%23FFB800%27 stroke=%27%23fff%27 stroke-width=%271.5%27/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Cdefs%3E%3ClinearGradient id=%27g%27 x1=%270%27 y1=%270%27 x2=%271%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%2300E5A8%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300805F%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2764%27 height=%2764%27 rx=%2715%27 fill=%27url(%23g)%27/%3E%3Cpath d=%27M 13 50 L 13 22 L 22 13 L 32 25 L 42 13 L 51 22 L 51 50%27 stroke=%27%23fff%27 stroke-width=%275.5%27 fill=%27none%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3Ccircle cx=%2742%27 cy=%2713%27 r=%274%27 fill=%27%23FFB800%27 stroke=%27%23fff%27 stroke-width=%271.5%27/%3E%3C/svg%3E">
+<meta name="theme-color" content="#00A878">
 <title>Cadastro no evento · MOBILIZZA.ORG</title>
 <style>
 :root{--brand:#00A878;--brand-2:#00805F;--ink:#0F172A;--ink-2:#1E293B;--muted:#64748B;--border:#E2E8F0;--soft:#F8FAFC;--coral:#DC2626}
@@ -62,15 +65,18 @@ let EV=null, CAND=null;
 
 async function rpc(fn,args){ const{data,error}=await sb.rpc(fn,args||{}); if(error) throw new Error(error.message); return data; }
 
-// Link de confirmação por WhatsApp: abre a conversa da própria pessoa com os dados dela
+// Confirmação por WhatsApp: abre a conversa com o NÚMERO DO CANDIDATO (não o da pessoa),
+// para o candidato receber a mensagem, abrir a janela de 24h e o contato cair nas Conversas.
 function waNum(phone){ var d=(phone||'').replace(/\D/g,''); if(d.length<=11) d='55'+d; return d; }
 window.waConfirm=function(phone,name,city){
-  var linhas=['✅ Cadastro confirmado — '+(CAND&&CAND.name?CAND.name:'campanha')];
+  var num = waNum(CAND&&CAND.whatsapp);
+  if(!num){ alert('O número de WhatsApp do candidato ainda não foi configurado.'); return; }
+  var linhas=['✅ Confirmo meu cadastro na campanha de '+(CAND&&CAND.name?CAND.name:'')];
   if(EV&&EV.title) linhas.push('📍 Evento: '+EV.title);
   linhas.push('👤 Nome: '+(name||''));
   if(city) linhas.push('🏙️ Cidade: '+city);
-  linhas.push('','Confira se seus dados estão certos e guarde esta confirmação. 💚');
-  window.open('https://wa.me/'+waNum(phone)+'?text='+encodeURIComponent(linhas.join('\n')),'_blank');
+  linhas.push('','Quero receber as novidades da campanha. 💚');
+  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(linhas.join('\n')),'_blank');
 };
 // Opt-in: abre a conversa com o número OFICIAL do candidato (ativa a janela de 24h + vira lead nas Conversas)
 window.waOptIn=function(){
