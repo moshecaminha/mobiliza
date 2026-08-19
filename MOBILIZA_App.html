@@ -6360,12 +6360,12 @@ function renderMilitancia(){
       out += '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;background:var(--soft-2);border-radius:10px"><svg width="32" height="32" style="opacity:.35;margin-bottom:6px"><use href="#'+iconRef+'"/></svg><div>Nenhum '+title.toLowerCase()+' ainda</div><button class="btn-ghost" style="margin-top:8px" onclick="'+(entityType==='leader'?'modalLeader()':'modalMilitant()')+'"><svg class="icon" width="12" height="12"><use href="#i-plus"/></svg>Cadastrar</button></div>';
     } else {
       var totalLast = items.reduce(function(s,p){ return s+(+p.lastElectionVotes||0); },0);
-      out += '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Nome</th><th>Região</th><th>Contato</th>'
+      out += '<div style="overflow:auto;max-height:560px"><table class="tbl"><thead><tr><th>Nome</th><th>Região</th><th>Contato</th>'
         +(showLastVotes?'<th style="text-align:right">Votos últ. eleição</th>':'')
         +'<th style="text-align:right">Est. Votos</th>'
         +(showLastVotes?'<th style="text-align:right">Retenção</th>':'')
         +'<th></th></tr></thead><tbody>';
-      items.slice().sort(function(a,b){return ((b.lastElectionVotes||0)+(b.votesEstimated||0))-((a.lastElectionVotes||0)+(a.votesEstimated||0))}).slice(0,20).forEach(function(p){
+      items.slice().sort(function(a,b){return ((b.lastElectionVotes||0)+(b.votesEstimated||0))-((a.lastElectionVotes||0)+(a.votesEstimated||0))}).slice(0,1000).forEach(function(p){
         var region = state.regions.find(function(r){return r.id===p.regionId});
         var initials = (p.name||'?').split(' ').map(function(x){return x[0]||''}).slice(0,2).join('').toUpperCase();
         var ve = +p.votesEstimated||0;
@@ -6384,7 +6384,7 @@ function renderMilitancia(){
       });
       out += '</tbody></table></div>';
       if(showLastVotes && totalLast>0) out += '<div style="margin-top:10px;padding:10px 12px;background:var(--soft-2);border-radius:8px;font-size:12px;color:var(--ink-2)"><strong>Base histórica somada:</strong> '+totalLast.toLocaleString('pt-BR')+' votos na última eleição · <span style="color:var(--muted)">retenção média projetada de 65% = <strong>'+Math.round(totalLast*0.65).toLocaleString('pt-BR')+'</strong> votos transferíveis</span></div>';
-      if(items.length>20) out += '<div style="text-align:center;margin-top:10px;font-size:12px;color:var(--muted)">Mostrando 20 de '+items.length+'</div>';
+      out += '<div style="text-align:center;margin-top:8px;font-size:12px;color:var(--muted)">'+(items.length>1000?('Mostrando 1000 de '+items.length):(items.length+' cadastrado(s) · lista completa'))+'</div>';
     }
     out += '</div>';
     return out;
