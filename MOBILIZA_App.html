@@ -1256,6 +1256,13 @@ window.mobWaCanonical = function(p){
   if(d.length===13 && d.slice(0,2)==='55' && d.charAt(4)==='9') return d.slice(0,4)+d.slice(5);
   return d;
 };
+// Procura uma pessoa (liderança ou militante) já cadastrada com o mesmo número canônico
+window.mobFindPerson = function(phone, excludeId){
+  var c = mobWaCanonical(phone||''); if(!c || c.length<12) return null;
+  var all = (state.leaders||[]).map(function(x){return {t:'leader',o:x};}).concat((state.militants||[]).map(function(x){return {t:'militant',o:x};}));
+  for(var i=0;i<all.length;i++){ var p=all[i].o; if(excludeId && p.id===excludeId) continue; if(p.deleted) continue; if(mobWaCanonical(p.phone||'')===c) return all[i]; }
+  return null;
+};
 
 // Fator eleitores aptos sobre população total (Brasil ~70-72%)
 function estimateVotersFromPopulation(pop){ return Math.round(pop*0.71); }
@@ -6346,7 +6353,7 @@ function renderMilitancia(){
   var candidato = state.candidate;
   var candCargo = state.election.position||'Candidato(a)';
 
-  var html = '<div class="page-head"><div><h2>Equipe da Campanha</h2><div class="sub">'+(leaders.length+militants.length+1)+' pessoas no total <span id="sync-status" style="margin-left:10px;font-size:11px;color:var(--muted)"></span></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="syncFromServer(true)" title="Puxar cadastros feitos via QR code"><svg class="icon" width="14" height="14"><use href="#i-refresh"/></svg>Sincronizar</button><button class="btn-ghost" onclick="importContacts(\'equipe\')"><svg class="icon" width="14" height="14"><use href="#i-upload"/></svg> Importar equipe</button><button class="btn-ghost" onclick="modalMilitant()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Militante</button><button class="btn-primary" onclick="modalLeader()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Liderança</button></div></div>';
+  var html = '<div class="page-head"><div><h2>Equipe da Campanha</h2><div class="sub">'+(leaders.length+militants.length+1)+' pessoas no total <span id="sync-status" style="margin-left:10px;font-size:11px;color:var(--muted)"></span></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="syncFromServer(true)" title="Puxar cadastros feitos via QR code"><svg class="icon" width="14" height="14"><use href="#i-refresh"/></svg>Sincronizar</button><button class="btn-ghost" onclick="importContacts(\'equipe\')"><svg class="icon" width="14" height="14"><use href="#i-upload"/></svg> Importar equipe</button><button class="btn-ghost" onclick="mobDedupTeam()" title="Remover cadastros duplicados (mesmo número)"><svg class="icon" width="14" height="14"><use href="#i-trash"/></svg> Remover duplicados</button><button class="btn-ghost" onclick="modalMilitant()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Militante</button><button class="btn-primary" onclick="modalLeader()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Liderança</button></div></div>';
   // Ordenação + busca por nome (valem para todas as seções abaixo)
   var _ts = window._teamSort||'votos';
   var _sortBtn = function(k,l){ return '<button onclick="setTeamSort(\''+k+'\')" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:'+(_ts===k?'var(--brand)':'#fff')+';color:'+(_ts===k?'#fff':'var(--muted)')+'">'+l+'</button>'; };
@@ -6426,6 +6433,18 @@ function renderMilitancia(){
 
   document.getElementById('view-militancia').innerHTML = html;
 }
+// Remove cadastros duplicados (mesmo número canônico) da Equipe — mantém 1 de cada (lideranças têm prioridade)
+window.mobDedupTeam = function(){
+  var seen={}, removed=0;
+  function proc(arr){ var out=[]; (arr||[]).forEach(function(p){ if(p.deleted){ out.push(p); return; } var c=mobWaCanonical(p.phone||''); if(c&&c.length>=12){ if(seen[c]){ removed++; return; } seen[c]=1; } out.push(p); }); return out; }
+  var newLeaders = proc(state.leaders);
+  var newMilitants = proc(state.militants);
+  if(removed===0){ toast('Nenhum duplicado encontrado.'); return; }
+  if(!confirm(removed+' cadastro(s) duplicado(s) (mesmo número) serão removidos, mantendo 1 de cada. Continuar?')){ return; }
+  state.leaders = newLeaders; state.militants = newMilitants;
+  saveState(); renderMilitancia(); try{updateSidebarCounters();}catch(e){}
+  toast(removed+' duplicado(s) removido(s)');
+};
 // Ordenar/buscar na Equipe (vale para todas as seções)
 window.setTeamSort = function(k){ window._teamSort=k; renderMilitancia(); };
 window.setTeamSearch = function(v){
@@ -9820,6 +9839,8 @@ window.saveLeader = function(id){
       notes: ($('ml-notes')?($('ml-notes').value||'').trim():'')
     };
     Object.assign(data, pollReadForm('ml-'));
+    // Validação de duplicidade pelo número (mesma pessoa não cadastra 2x)
+    if(!id && data.phone){ var dup=mobFindPerson(data.phone,null); if(dup){ toast('Este número já está cadastrado ('+(dup.o.name||'')+'). Não é preciso cadastrar de novo.','warn'); return; } }
     var savedLeader;
     if(id){var idx = state.leaders.findIndex(function(l){return l.id===id});state.leaders[idx] = Object.assign(state.leaders[idx],data); savedLeader = state.leaders[idx]; logAction('edit','leader',state.leaders[idx]); clearDraft('leader-'+id);}
     else { var newItem = Object.assign({id:genId(),createdAt:Date.now()},data); state.leaders.push(newItem); savedLeader = newItem; logAction('create','leader',newItem); clearDraft('leader-new'); }
@@ -10403,7 +10424,8 @@ window.saveMilitant = function(id){
       lastElectionYear: withLastM && $('mm-lastyear') ? ($('mm-lastyear').value||'').trim() : '',
       notes:($('mm-notes')?($('mm-notes').value||'').trim():'')
     }
-    Object.assign(data, pollReadForm('mm-'));;
+    Object.assign(data, pollReadForm('mm-'));
+    if(!id && data.phone){ var dupM=mobFindPerson(data.phone,null); if(dupM){ toast('Este número já está cadastrado ('+(dupM.o.name||'')+'). Não é preciso cadastrar de novo.','warn'); return; } }
     var savedMil;
     if(id){var idx = state.militants.findIndex(function(m){return m.id===id});state.militants[idx] = Object.assign(state.militants[idx],data); savedMil = state.militants[idx]; logAction('edit','militant',state.militants[idx]); clearDraft('militant-'+id);}
     else { var newItem = Object.assign({id:genId(),createdAt:Date.now()},data); state.militants.push(newItem); savedMil = newItem; logAction('create','militant',newItem); clearDraft('militant-new'); }
