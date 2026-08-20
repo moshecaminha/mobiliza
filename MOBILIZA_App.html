@@ -7567,16 +7567,29 @@ function renderWhatsapp(){
 
   var initialAud = waComputeAudience();
   html += '<div id="wa-reach" style="margin-top:10px;font-size:11px;color:var(--brand-2);font-weight:600;padding:8px 10px;background:rgba(0,168,120,.07);border:1px solid rgba(0,168,120,.2);border-radius:8px">Alcance estimado: <strong>'+initialAud.length.toLocaleString('pt-BR')+'</strong> contatos</div>';
+  // Modo de envio: texto livre (só janela de 24h) ou template aprovado (alcança base fria)
+  var _sm = window._waSendMode||'texto';
+  var _smBtn = function(k,l){ return '<button type="button" onclick="waSetSendMode(\''+k+'\')" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:'+(_sm===k?'var(--brand)':'#fff')+';color:'+(_sm===k?'#fff':'var(--muted)')+'">'+l+'</button>'; };
+  html += '<div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="sub" style="text-transform:uppercase;letter-spacing:.05em;font-weight:700">Modo de envio</span>'+_smBtn('texto','Texto livre (24h)')+_smBtn('template','Template (base fria)')+'</div>';
+  // Bloco de texto livre
+  html += '<div id="wa-freetext-box"'+(_sm==='template'?' style="display:none"':'')+'>';
   html += '<label>Mensagem</label><textarea id="wa-msg" oninput="updateWaPrev()">'+esc(firstMsg)+'</textarea>';
   html += '<div style="font-size:10px;color:var(--muted);margin-top:4px">Variáveis: {nome} {bairro} {numero} {hora} {local} {evento}</div>';
-  // Anexo de mídia no disparo (imagem/áudio) — sobe 1x e a Meta reaproveita para todos
   html += '<input type="file" id="wa-media-img" accept="image/*" style="display:none" onchange="waComposePick(this.files,\'image\')">'
     +'<input type="file" id="wa-media-aud" accept="audio/*" style="display:none" onchange="waComposePick(this.files,\'audio\')">'
     +'<div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">'
       +'<button class="btn-ghost" style="padding:8px 12px" onclick="document.getElementById(\'wa-media-img\').click()"><svg class="icon" width="14" height="14"><use href="#i-camera"/></svg> Anexar foto</button>'
       +'<button class="btn-ghost" style="padding:8px 12px" onclick="document.getElementById(\'wa-media-aud\').click()"><svg class="icon" width="14" height="14"><use href="#i-mic"/></svg> Anexar áudio</button>'
       +'<div id="wa-media-info" style="font-size:12px;color:var(--brand-2);font-weight:600"></div>'
-    +'</div>';
+    +'</div></div>';
+  // Bloco de template aprovado
+  html += '<div id="wa-tpl-box"'+(_sm==='template'?'':' style="display:none"')+'>'
+    +'<label>Template aprovado pela Meta</label>'
+    +'<select id="wa-tpl-select" onchange="waTplPick()" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px"><option value="">Carregando templates…</option></select>'
+    +'<div id="wa-tpl-preview" style="font-size:12px;color:var(--ink-2);white-space:pre-wrap;margin-top:8px;padding:8px 10px;background:#fff;border:1px solid var(--border);border-radius:8px;display:none"></div>'
+    +'<div id="wa-tpl-vars"></div>'
+    +'<div style="font-size:11px;color:var(--muted);margin-top:6px">O template alcança quem <strong>ainda não te escreveu</strong> (base fria). Nos valores das variáveis, use {nome} {bairro} {cidade} {numero} — o sistema substitui por pessoa.</div>'
+  +'</div>';
   html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:11px;color:var(--muted)" id="wa-cost">—</div><button class="btn-primary" onclick="saveCampaign()"><svg class="icon" width="13" height="13"><use href="#i-message"/></svg> Disparar agora</button></div>';
   html += '</div>';
 
@@ -7601,6 +7614,7 @@ function renderWhatsapp(){
   }
   document.getElementById('view-whatsapp').innerHTML = html;
   updateWaPrev();
+  if((window._waSendMode||'texto')==='template'){ try{ waLoadTemplates(); }catch(e){} }
 }
 window.updateWaPrev = function(){
   var el = document.getElementById('wa-msg');
@@ -7646,6 +7660,36 @@ window.waComposePick = function(files, kind){
   }).catch(function(e){ toast(e.message||'Erro','err'); });
 };
 window.waComposeClearMedia = function(){ _waComposeMedia=null; var info=document.getElementById('wa-media-info'); if(info) info.textContent=''; };
+// ===== Disparo por TEMPLATE aprovado (alcança base fria) =====
+window._waSendMode = window._waSendMode || 'texto';
+window.waSetSendMode = function(mode){
+  window._waSendMode = mode;
+  renderWhatsapp();
+  if(mode==='template') waLoadTemplates();
+};
+window.waLoadTemplates = function(){
+  var sel=document.getElementById('wa-tpl-select'); if(!sel) return;
+  if(!window.MOB_SB || !window._mobCandId){ sel.innerHTML='<option value="">Sessão não iniciada</option>'; return; }
+  sel.innerHTML='<option value="">Carregando templates…</option>';
+  window.MOB_SB.functions.invoke('mob-wa-templates',{body:{candidateId:window._mobCandId}}).then(function(res){
+    var d=res && res.data;
+    if((res&&res.error) || !d || d.ok!==true){ sel.innerHTML='<option value="">'+esc((d&&d.error)||'Erro ao buscar templates')+'</option>'; return; }
+    window._waTemplates = d.templates||[];
+    if(!window._waTemplates.length){ sel.innerHTML='<option value="">Nenhum template aprovado ainda (aguarde a Meta)</option>'; return; }
+    sel.innerHTML='<option value="">Escolha um template…</option>'+window._waTemplates.map(function(t,i){ return '<option value="'+i+'">'+esc(t.name)+' · '+esc(t.language)+' · '+esc(t.category||'')+'</option>'; }).join('');
+  }).catch(function(e){ sel.innerHTML='<option value="">Erro: '+esc(e.message||'')+'</option>'; });
+};
+window.waTplPick = function(){
+  var sel=document.getElementById('wa-tpl-select'); var i=sel?sel.value:'';
+  var prev=document.getElementById('wa-tpl-preview'), varsBox=document.getElementById('wa-tpl-vars');
+  window._waTplSelected = null;
+  if(i===''||!window._waTemplates){ if(prev)prev.style.display='none'; if(varsBox)varsBox.innerHTML=''; return; }
+  var t = window._waTemplates[+i]; window._waTplSelected = t;
+  if(prev){ prev.style.display='block'; prev.textContent = t.body||''; }
+  var h='';
+  for(var k=1;k<=(+t.vars||0);k++){ h += '<label style="margin-top:8px">Variável {{'+k+'}}'+(k===1?' <span style="text-transform:none;font-weight:500;color:var(--muted)">(sugestão: nome)</span>':'')+'</label><input class="wa-tplvar" value="'+(k===1?'{nome}':'')+'" placeholder="{nome}, {bairro} ou texto fixo" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px">'; }
+  if(varsBox) varsBox.innerHTML = h || '<div style="font-size:11px;color:var(--muted);margin-top:6px">Este template não tem variáveis.</div>';
+};
 window.saveCampaign = function(){
   var name = document.getElementById('wa-name').value.trim();
   if(!name){ toast('Nomeie a campanha','warn'); return; }
@@ -7665,19 +7709,30 @@ window.saveCampaign = function(){
 
   if(channel==='whatsapp'){
     var num = (state.candidate&&state.candidate.partyNumber)||'';
-    var recipients = aud.filter(function(p){ return (p.phone||'').replace(/\D/g,'').length>=10; }).map(function(p){
-      var t = msg.replace(/\{nome\}/g,(p.name||'').split(' ')[0]||'').replace(/\{bairro\}/g,p.bairro||'').replace(/\{cidade\}/g,p.cidade||'').replace(/\{numero\}/g,num);
-      return { phone:p.phone, name:p.name, text:t };
-    });
+    var subst = function(txt,p){ return String(txt||'').replace(/\{nome\}/g,(p.name||'').split(' ')[0]||'').replace(/\{bairro\}/g,p.bairro||'').replace(/\{cidade\}/g,p.cidade||p.city||'').replace(/\{numero\}/g,num); };
+    var validAud = aud.filter(function(p){ return (p.phone||'').replace(/\D/g,'').length>=10; });
+    var isTpl = (window._waSendMode==='template');
+    var tpl = isTpl ? (window._waTplSelected||null) : null;
+    if(isTpl && (!tpl || !tpl.name)){ toast('Escolha um template aprovado','warn'); return; }
+    var recipients;
+    if(isTpl){
+      var varInputs = [].slice.call(document.querySelectorAll('.wa-tplvar')).map(function(x){return x.value||'';});
+      recipients = validAud.map(function(p){
+        return { phone:p.phone, name:p.name, params: varInputs.map(function(v){ return subst(v,p); }), text:'[modelo: '+tpl.name+']' };
+      });
+    } else {
+      recipients = validAud.map(function(p){ return { phone:p.phone, name:p.name, text: subst(msg,p) }; });
+    }
     if(!recipients.length){ toast('Campanha registrada, mas nenhum contato tem telefone válido para disparo.','warn'); return; }
     var sendBody = {recipients:recipients, purpose:'comunicacao'};
-    if(_waComposeMedia && _waComposeMedia.path){ sendBody.media = {path:_waComposeMedia.path, mime:_waComposeMedia.mime, filename:_waComposeMedia.filename}; camp.media = _waComposeMedia.kind; }
-    toast('Disparando '+recipients.length+' pelo número oficial…');
+    if(isTpl){ sendBody.template = {name:tpl.name, language:tpl.language||'pt_BR'}; camp.template = tpl.name; }
+    else if(_waComposeMedia && _waComposeMedia.path){ sendBody.media = {path:_waComposeMedia.path, mime:_waComposeMedia.mime, filename:_waComposeMedia.filename}; camp.media = _waComposeMedia.kind; }
+    toast('Disparando '+recipients.length+(isTpl?' por template…':' pelo número oficial…'));
     waPlatformSend(sendBody).then(function(d){
       camp.status = (d.sent>0)?'sent':'failed'; camp.sent = d.sent||0; camp.failed = d.failed||0; saveState(); renderWhatsapp();
-      var extra = d.failed ? ' · '+d.failed+' falharam (fora da janela de 24h podem exigir template aprovado)' : '';
+      var extra = d.failed ? ' · '+d.failed+' falharam'+(isTpl?'':' (fora da janela de 24h — use template aprovado)') : '';
       toast('Enviadas '+(d.sent||0)+' de '+recipients.length+extra, d.sent?'':'warn');
-      waComposeClearMedia();
+      if(!isTpl) waComposeClearMedia();
     }).catch(function(e){ camp.status='failed'; saveState(); renderWhatsapp(); toast(e.message||'Erro no disparo. Conecte o WhatsApp em Configurações.','err'); });
   } else {
     toast('Campanha registrada ('+channel+') · '+aud.length+' contatos. Envio de SMS/e-mail exige backend próprio.');
