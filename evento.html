@@ -110,7 +110,11 @@ function evtLine(){
 function screenPhone(){
   $('body').innerHTML = evtLine()
     +'<h2>Confirme sua presença</h2><p class="lede">Digite seu WhatsApp para começar. Se você já é cadastrado, a gente te reconhece.</p>'
-    +'<label>WhatsApp (com DDD)</label><input id="f-phone" type="tel" inputmode="tel" placeholder="(00) 00000-0000">'
+    +'<label>WhatsApp (só DDD + número)</label>'
+    +'<div style="display:flex;align-items:stretch;gap:8px">'
+      +'<span style="display:flex;align-items:center;padding:0 12px;border:1px solid #E2E8F0;border-radius:9px;background:#F1F5F9;font-weight:700;color:#334155;white-space:nowrap">🇧🇷 +55</span>'
+      +'<input id="f-phone" type="tel" inputmode="tel" placeholder="(81) 90000-0000" style="flex:1">'
+    +'</div>'
     +'<button class="btn" id="btn-phone" onclick="checkPhone()">Continuar</button><div class="err" id="err"></div>';
   $('f-phone').addEventListener('keydown',e=>{ if(e.key==='Enter') checkPhone(); });
   $('f-phone').focus();
@@ -155,7 +159,11 @@ function screenRegister(phone){
   $('body').innerHTML = evtLine()
     +'<h2>Seu cadastro</h2><p class="lede">Leva 30 segundos. O CEP preenche o endereço; só falta o número.</p>'
     +'<label>Nome completo *</label><input id="r-name" placeholder="Seu nome">'
-    +'<label>WhatsApp *</label><input id="r-phone" type="tel" value="'+esc(phone)+'">'
+    +'<label>WhatsApp * (só DDD + número)</label>'
+    +'<div style="display:flex;align-items:stretch;gap:8px">'
+      +'<span style="display:flex;align-items:center;padding:0 12px;border:1px solid #E2E8F0;border-radius:9px;background:#F1F5F9;font-weight:700;color:#334155;white-space:nowrap">🇧🇷 +55</span>'
+      +'<input id="r-phone" type="tel" value="'+esc(phone)+'" style="flex:1">'
+    +'</div>'
     +'<label>CEP</label><input id="r-cep" inputmode="numeric" maxlength="9" placeholder="00000-000">'
     +'<div id="r-addr" style="display:none">'
       +'<label>Bairro</label><input id="r-bairro">'
