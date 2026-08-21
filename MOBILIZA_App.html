@@ -6993,7 +6993,8 @@ window.leadsDraw = function(){
           +'<button class="btn-ghost" style="padding:5px 10px;font-size:12px;color:#128C4B;margin-right:5px" onclick="leadWa(\''+ph+'\',\''+esc(nm)+'\')"><svg class="icon" width="13" height="13"><use href="#i-message"/></svg>Mensagem</button>'
           +'<a class="btn-ghost" style="padding:5px 10px;font-size:12px;text-decoration:none;margin-right:5px" href="tel:'+ph.replace(/\D/g,'')+'"><svg class="icon" width="13" height="13"><use href="#i-phone"/></svg>Ligar</a>'
           +'<button class="btn-ghost" style="padding:5px 10px;font-size:12px;color:var(--brand-2);margin-right:5px" onclick="leadPromote(\''+esc(lid)+'\')" title="Promover para a equipe"><svg class="icon" width="13" height="13"><use href="#i-trending-up"/></svg>Promover</button>'
-          +'<button class="btn-ghost" style="padding:5px 9px;font-size:12px" onclick="leadEdit(\''+esc(lid)+'\')" title="Editar"><svg class="icon" width="13" height="13"><use href="#i-edit"/></svg></button>'
+          +'<button class="btn-ghost" style="padding:5px 9px;font-size:12px;margin-right:5px" onclick="leadEdit(\''+esc(lid)+'\')" title="Editar"><svg class="icon" width="13" height="13"><use href="#i-edit"/></svg></button>'
+          +'<button class="btn-ghost" style="padding:5px 9px;font-size:12px;color:#DC2626" onclick="leadDelete(\''+esc(lid)+'\')" title="Apagar lead"><svg class="icon" width="13" height="13"><use href="#i-trash"/></svg></button>'
         +'</td></tr>';
     }).join('');
     html += '</tbody></table></div>';
@@ -7026,9 +7027,11 @@ window.leadEditSave = function(id){
   }).catch(function(e){ toast(e.message||'Erro','err'); });
 };
 window.leadDelete = function(id){
-  if(!confirm('Excluir este lead definitivamente?')) return;
+  var l=(window._leadsCache||[]).find(function(x){return String(x.id)===String(id);});
+  var who = l ? ((l.name||'sem nome')+(l.phone?(' · '+l.phone):'')) : 'este lead';
+  if(!confirm('Apagar '+who+' definitivamente?\n\nRemove o lead e os check-ins DESTA campanha. Não pode ser desfeito.')) return;
   window.MOB_RPC('mob_lead_delete',{p_candidate:window._mobCandId, p_lead_id:id}).then(function(r){
-    if(r&&r.ok){ closeModal(); toast('Lead excluído'); leadsLoad(); }
+    if(r&&r.ok){ closeModal(); toast('Lead apagado'); leadsLoad(); try{updateSidebarCounters();}catch(e){} }
     else toast((r&&r.error)||'Erro','err');
   }).catch(function(e){ toast(e.message||'Erro','err'); });
 };
