@@ -63,6 +63,25 @@ const OFFICES={deputado_estadual:'Deputado Estadual',deputado_federal:'Deputado 
 const TOKEN=new URLSearchParams(location.search).get('e');
 let EV=null, CAND=null;
 
+// Validação de telefone brasileiro: DDD válido, celular com 9 dígitos, sem repetição óbvia
+var DDDS_BR=[11,12,13,14,15,16,17,18,19,21,22,24,27,28,31,32,33,34,35,37,38,41,42,43,44,45,46,47,48,49,51,53,54,55,61,62,63,64,65,66,67,68,69,71,73,74,75,77,79,81,82,83,84,85,86,87,88,89,91,92,93,94,95,96,97,98,99];
+function validarTelefoneBR(raw){
+  var d=(raw||'').replace(/\D/g,'');
+  if(d.indexOf('55')===0 && (d.length===12||d.length===13)) d=d.slice(2); // remove DDI 55
+  if(d.length<10) return {ok:false, msg:'Número incompleto — informe DDD + número.'};
+  if(d.length>11) return {ok:false, msg:'Número com dígitos demais. Confira.'};
+  var ddd=parseInt(d.slice(0,2),10);
+  if(DDDS_BR.indexOf(ddd)<0) return {ok:false, msg:'DDD '+d.slice(0,2)+' não existe — confira o DDD.'};
+  var rest=d.slice(2);
+  if(rest.length===11-2){ // 9 dígitos → celular
+    if(rest[0]!=='9') return {ok:false, msg:'Celular deve começar com 9 depois do DDD.'};
+  } else if(rest.length===8 && /^[6-9]/.test(rest)){ // 8 dígitos começando 6-9 → falta o 9
+    return {ok:false, msg:'Falta um dígito — celular tem 9 dígitos (ex.: 9XXXX-XXXX).'};
+  }
+  if(/^(\d)\1+$/.test(rest)) return {ok:false, msg:'Número inválido (dígitos repetidos).'};
+  return {ok:true};
+}
+
 async function rpc(fn,args){ const{data,error}=await sb.rpc(fn,args||{}); if(error) throw new Error(error.message); return data; }
 
 // Confirmação por WhatsApp: abre a conversa com o NÚMERO DO CANDIDATO (não o da pessoa),
@@ -121,7 +140,7 @@ function screenPhone(){
 }
 window.checkPhone=async function(){
   const phone=($('f-phone').value||'').trim(); const err=$('err'); err.textContent='';
-  if(phone.replace(/\D/g,'').length<10){ err.textContent='Informe o WhatsApp com DDD.'; return; }
+  var vf=validarTelefoneBR(phone); if(!vf.ok){ err.textContent=vf.msg; return; }
   const b=$('btn-phone'); b.disabled=true; b.innerHTML='<svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.2-8.5"/></svg>Verificando…';
   try{
     const r=await rpc('mob_lead_check_phone',{p_qr_token:TOKEN,p_phone:phone});
@@ -136,8 +155,8 @@ function screenWelcome(lead, phone){
     +'<h2>Que bom te ver, '+esc((lead.name||'').split(' ')[0]||'')+'! 👋</h2>'
     +'<p class="lede">Presença registrada em <strong>'+esc(EV.title)+'</strong>. Obrigado por estar com a gente.</p></div>'
     +((CAND&&CAND.whatsapp)?'<button class="btn wa" onclick="waConfirm(\''+esc((phone||'').replace(/\x27/g,''))+'\',\''+esc((lead.name||'').replace(/\x27/g,''))+'\',\''+esc((lead.city||'').replace(/\x27/g,''))+'\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.2-.7-2.7-1.1-4.4-3.9-4.6-4.1-.1-.2-1-1.4-1-2.6s.6-1.8.9-2.1c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.5c-.2.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.2.1.4.1.6-.1l.7-.9c.2-.2.4-.2.6-.1l1.9.9c.3.1.4.2.5.3.1.3.1.7-.1 1.3Z"/></svg>Confirme sua presença no WhatsApp</button><div class="hint center" style="margin-top:-6px;margin-bottom:6px">Toque, envie a mensagem que abrir e pronto.</div>':'')
-    +'<button class="btn ig" onclick="igOpen(\''+esc(phone).replace(/\x27/g,'')+'\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="#fff" stroke="none"/></svg>📸 Tirar foto e compartilhar</button>'
-    +'<div class="hint center" style="margin-top:8px">A foto do evento vira uma arte com o nome e o número do candidato. <a href="#" onclick="igPlain(\''+esc(phone).replace(/\x27/g,'')+'\');return false" style="color:var(--brand);font-weight:700">compartilhar sem foto</a></div>';
+    +'<button class="btn ig" onclick="share(\''+esc(phone).replace(/\x27/g,'')+'\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="#fff" stroke="none"/></svg>Compartilhar no Instagram</button>'
+    +'<div class="hint center" style="margin-top:8px">Gera uma arte com o nome e o número do candidato pra você postar.</div>';
 }
 // ---- utilidades de imagem ----
 function wrapText(ctx,text,cx,cy,maxW,lh){
@@ -269,7 +288,7 @@ window.doRegister=async function(){
   const g=x=>($(x)?$(x).value.trim():'');
   const err=$('err'); err.textContent='';
   if(!g('r-name')){ err.textContent='Informe seu nome.'; return; }
-  if(g('r-phone').replace(/\D/g,'').length<10){ err.textContent='WhatsApp inválido.'; return; }
+  var vr=validarTelefoneBR(g('r-phone')); if(!vr.ok){ err.textContent=vr.msg; $('r-phone').focus(); return; }
   if(!g('r-num')){ err.textContent='O número da casa é obrigatório.'; $('r-num').focus(); return; }
   const b=$('btn-reg'); b.disabled=true; b.textContent='Enviando…';
   try{
@@ -281,8 +300,8 @@ window.doRegister=async function(){
     $('body').innerHTML='<div class="center"><div class="ok-ic"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>'
       +'<h2>Cadastro confirmado! 🎉</h2><p class="lede">Obrigado por se juntar à campanha de <strong>'+esc(CAND.name)+'</strong>.'+((CAND&&CAND.whatsapp)?' Toque abaixo para <strong>confirmar sua presença</strong> no WhatsApp.':'')+'</p></div>'
       +((CAND&&CAND.whatsapp)?'<button class="btn wa" onclick="waConfirm(\''+esc(_ph)+'\',\''+esc(_nm)+'\',\''+esc(_ct)+'\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.2-.7-2.7-1.1-4.4-3.9-4.6-4.1-.1-.2-1-1.4-1-2.6s.6-1.8.9-2.1c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.5c-.2.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.2.1.4.1.6-.1l.7-.9c.2-.2.4-.2.6-.1l1.9.9c.3.1.4.2.5.3.1.3.1.7-.1 1.3Z"/></svg>Confirme sua presença no WhatsApp</button><div class="hint center" style="margin-top:-6px;margin-bottom:6px">Toque, envie a mensagem que abrir e pronto.</div>':'')
-      +'<button class="btn ig" onclick="igOpen(\''+esc(_ph)+'\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="#fff" stroke="none"/></svg>📸 Tirar foto e compartilhar</button>'
-      +'<div class="hint center" style="margin-top:8px">A foto do evento vira uma arte com o nome e o número do candidato. <a href="#" onclick="igPlain(\''+esc(_ph)+'\');return false" style="color:var(--brand);font-weight:700">compartilhar sem foto</a></div>';
+      +'<button class="btn ig" onclick="share(\''+esc(_ph)+'\')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="#fff" stroke="none"/></svg>Compartilhar no Instagram</button>'
+      +'<div class="hint center" style="margin-top:8px">Gera uma arte com o nome e o número do candidato pra você postar.</div>';
   }catch(e){ err.textContent=e.message; b.disabled=false; b.textContent='Confirmar cadastro'; }
 };
 
