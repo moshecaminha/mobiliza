@@ -6870,10 +6870,21 @@ window.evtLeads = async function(id, title){
 
 // ============ LEADS (base de eventos, por candidato) ============
 window._leadsCache = [];
-window._leadsFilter = {bairro:'',cidade:'',q:''};
+window._leadsFilter = {bairro:'',cidade:'',q:'',origem:''};
+function leadOriginLabel(l){
+  var evs=(l&&l.events)||[];
+  if(evs.length){ return evs[0]+(evs.length>1?' (+'+(evs.length-1)+')':''); }
+  var s=(l&&l.source)||'importado';
+  return ({importado:'Importado',manual:'Cadastro manual',pre_cadastro:'Pré-cadastro',evento:'Evento'})[s]||s;
+}
+function leadOriginIcon(l){
+  var evs=(l&&l.events)||[]; if(evs.length) return '🎟️';
+  var s=(l&&l.source)||'importado';
+  return ({importado:'📇',manual:'✍️',pre_cadastro:'🔗'})[s]||'•';
+}
 window.renderLeads = function(){
   var el = document.getElementById('view-leads');
-  el.innerHTML = '<div class="page-head"><div><h2>Leads</h2><div class="sub">Pessoas captadas pelos QR dos eventos. Ainda não são militância — recebem notícias e convites.</div></div>'
+  el.innerHTML = '<div class="page-head"><div><h2>Leads</h2><div class="sub">Captados por eventos (QR), importação ou pré-cadastro. Use o filtro de origem para iniciar contato com um grupo. Ainda não são militância.</div></div>'
     + '<div style="display:flex;gap:8px"><button class="btn-ghost" onclick="importContacts()"><svg class="icon" width="14" height="14"><use href="#i-upload"/></svg> Importar contatos</button><button class="btn-ghost" onclick="preCadastroQR()"><svg class="icon" width="14" height="14"><use href="#i-hashtag"/></svg> QR de pré-cadastro</button></div></div>'
     + '<div id="leads-box"><div style="padding:20px;color:var(--muted)">Carregando…</div></div>';
   leadsLoad();
@@ -6890,6 +6901,10 @@ function leadsFiltered(){
   return (window._leadsCache||[]).filter(function(l){
     if(f.bairro && (l.bairro||'')!==f.bairro) return false;
     if(f.cidade && (l.city||'')!==f.cidade) return false;
+    if(f.origem){
+      if(f.origem.indexOf('ev:')===0){ if(((l.events||[]).indexOf(f.origem.slice(3)))<0) return false; }
+      else if(f.origem.indexOf('src:')===0){ if(((l.events||[]).length)>0) return false; if(((l.source||'importado'))!==f.origem.slice(4)) return false; }
+    }
     if(f.q){ var q=f.q.toLowerCase(); if(((l.name||'')+' '+(l.phone||'')).toLowerCase().indexOf(q)<0) return false; }
     return true;
   });
@@ -6897,26 +6912,36 @@ function leadsFiltered(){
 window.leadsDraw = function(){
   var box = document.getElementById('leads-box'); if(!box) return;
   var rows = window._leadsCache||[]; var f=window._leadsFilter;
-  var bairros={}, cidades={};
-  rows.forEach(function(l){ if(l.bairro) bairros[l.bairro]=1; if(l.city) cidades[l.city]=1; });
+  var bairros={}, cidades={}, evTitles={}, srcs={};
+  rows.forEach(function(l){ if(l.bairro) bairros[l.bairro]=1; if(l.city) cidades[l.city]=1;
+    var evs=l.events||[]; if(evs.length){ evs.forEach(function(t){ evTitles[t]=1; }); } else { srcs[l.source||'importado']=1; } });
   var filtered = leadsFiltered();
   var bOpts = '<option value="">Todos os bairros</option>'+Object.keys(bairros).sort().map(function(b){return '<option value="'+esc(b)+'"'+(f.bairro===b?' selected':'')+'>'+esc(b)+'</option>';}).join('');
   var cOpts = '<option value="">Todas as cidades</option>'+Object.keys(cidades).sort().map(function(c){return '<option value="'+esc(c)+'"'+(f.cidade===c?' selected':'')+'>'+esc(c)+'</option>';}).join('');
+  var srcLbl={importado:'Importado',manual:'Cadastro manual',pre_cadastro:'Pré-cadastro',evento:'Evento'};
+  var oOpts='<option value="">Todas as origens</option>';
+  var evKeys=Object.keys(evTitles).sort();
+  if(evKeys.length){ oOpts+='<optgroup label="Eventos">'+evKeys.map(function(t){return '<option value="ev:'+esc(t)+'"'+(f.origem==='ev:'+t?' selected':'')+'>🎟️ '+esc(t)+'</option>';}).join('')+'</optgroup>'; }
+  var srcKeys=Object.keys(srcs).sort();
+  if(srcKeys.length){ oOpts+='<optgroup label="Outras origens">'+srcKeys.map(function(s){return '<option value="src:'+esc(s)+'"'+(f.origem==='src:'+s?' selected':'')+'>'+esc(srcLbl[s]||s)+'</option>';}).join('')+'</optgroup>'; }
   var html = '<div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">'
     +'<div style="padding:14px 18px;background:var(--soft-2);border-radius:12px;border:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700">Leads na base</div><div style="font-size:24px;font-weight:800">'+rows.length+'</div></div>'
     +'<div style="padding:14px 18px;background:var(--soft-2);border-radius:12px;border:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700">Filtrados</div><div style="font-size:24px;font-weight:800;color:var(--brand-2)">'+filtered.length+'</div></div></div>';
   html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end">'
     +'<div><label style="font-size:11px;color:var(--muted);font-weight:700">Cidade</label><br><select onchange="window._leadsFilter.cidade=this.value;leadsDraw()">'+cOpts+'</select></div>'
     +'<div><label style="font-size:11px;color:var(--muted);font-weight:700">Bairro</label><br><select onchange="window._leadsFilter.bairro=this.value;leadsDraw()">'+bOpts+'</select></div>'
+    +'<div><label style="font-size:11px;color:var(--muted);font-weight:700">Origem (rastreabilidade)</label><br><select onchange="window._leadsFilter.origem=this.value;leadsDraw()">'+oOpts+'</select></div>'
     +'<div style="flex:1;min-width:180px"><label style="font-size:11px;color:var(--muted);font-weight:700">Buscar</label><br><input value="'+esc(f.q)+'" oninput="window._leadsFilter.q=this.value;clearTimeout(window._ldT);window._ldT=setTimeout(leadsDraw,250)" placeholder="Nome ou telefone" style="width:100%"></div>'
     +'<button class="btn-primary" onclick="leadsBulk()"'+(filtered.length?'':' disabled style="opacity:.5"')+'><svg class="icon" width="13" height="13"><use href="#i-message"/></svg>Enviar aos '+filtered.length+' filtrados</button>'
     +'</div>';
   if(!filtered.length){ html += '<div style="padding:26px;text-align:center;color:var(--muted);border:1px dashed var(--border);border-radius:12px">Nenhum lead'+(rows.length?' com esse filtro':' ainda — eles chegam pelos QR dos eventos')+'.</div>'; }
   else {
-    html += '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Nome</th><th>Telefone</th><th>Bairro/Cidade</th><th>Nº</th><th style="text-align:right">Ações</th></tr></thead><tbody>';
+    html += '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Nome</th><th>Telefone</th><th>Bairro/Cidade</th><th>Origem</th><th>Nº</th><th style="text-align:right">Ações</th></tr></thead><tbody>';
     html += filtered.map(function(l){
       var ph=(l.phone||'').replace(/\x27/g,''); var nm=(l.name||'').replace(/\x27/g,''); var lid=(l.id||'');
-      return '<tr><td><strong>'+esc(l.name||'')+'</strong></td><td>'+esc(l.phone||'')+'</td><td style="font-size:12px">'+esc(l.bairro||'')+(l.city?' · '+esc(l.city):'')+'</td><td>'+esc(l.number||'')+'</td>'
+      return '<tr><td><strong>'+esc(l.name||'')+'</strong></td><td>'+esc(l.phone||'')+'</td><td style="font-size:12px">'+esc(l.bairro||'')+(l.city?' · '+esc(l.city):'')+'</td>'
+        +'<td style="font-size:12px"><span style="display:inline-block;background:var(--soft-2);border:1px solid var(--border);border-radius:20px;padding:2px 9px;white-space:nowrap" title="De onde veio este lead">'+leadOriginIcon(l)+' '+esc(leadOriginLabel(l))+'</span></td>'
+        +'<td>'+esc(l.number||'')+'</td>'
         +'<td style="text-align:right;white-space:nowrap">'
           +'<button class="btn-ghost" style="padding:5px 10px;font-size:12px;color:#128C4B;margin-right:5px" onclick="leadWa(\''+ph+'\',\''+esc(nm)+'\')"><svg class="icon" width="13" height="13"><use href="#i-message"/></svg>Mensagem</button>'
           +'<a class="btn-ghost" style="padding:5px 10px;font-size:12px;text-decoration:none;margin-right:5px" href="tel:'+ph.replace(/\D/g,'')+'"><svg class="icon" width="13" height="13"><use href="#i-phone"/></svg>Ligar</a>'
