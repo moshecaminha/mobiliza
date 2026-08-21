@@ -533,6 +533,32 @@ input,select,textarea{font-family:inherit;outline:none;color:var(--ink)}
     border:1px solid var(--border);border-radius:9px;background:#fff;font-weight:700;font-size:13px;color:var(--ink-2)}
 }
 @media (min-width:901px){ .sidebar{transform:none!important} }
+/* ===== Conversas: chat responsivo (cabeçalho fixo, mensagens roláveis, campo fixo) ===== */
+#conv-thread{display:flex;flex-direction:column;min-height:320px;overflow:hidden}
+.conv-th-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);background:#fff;flex-shrink:0}
+.conv-th-head .conv-hd-back{display:none;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--ink-2);flex-shrink:0;padding:0;cursor:pointer}
+.conv-th-who{flex:1;min-width:0}
+.conv-th-who strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-th-sub{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-th-call{padding:8px 12px;font-size:12px;text-decoration:none;flex-shrink:0;display:inline-flex;align-items:center;gap:6px}
+.conv-th-msgs{flex:1 1 auto;max-height:55vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:14px;background:#F7FAF9;-webkit-overflow-scrolling:touch}
+.conv-bubble{max-width:78%;padding:8px 12px;border-radius:14px;font-size:14px;line-height:1.35;word-break:break-word;box-shadow:0 1px 1px rgba(0,0,0,.05)}
+.conv-bubble.out{align-self:flex-end;background:#DCF8C6;border-bottom-right-radius:4px}
+.conv-bubble.in{align-self:flex-start;background:#fff;border:1px solid var(--border);border-bottom-left-radius:4px}
+.conv-bubble .t{font-size:9px;color:#64748B;text-align:right;margin-top:3px}
+.conv-th-compose{border-top:1px solid var(--border);padding:10px 12px;background:#fff;flex-shrink:0}
+.conv-compose-row{display:flex;gap:6px;align-items:center}
+.conv-reply{flex:1 1 auto;min-width:0}
+.conv-compose-hint{font-size:10px;color:var(--muted);margin-top:5px;line-height:1.3}
+@media (max-width:900px){
+  .conv-th-head .conv-hd-back{display:inline-flex}
+  .conv-grid.thread-open #conv-thread{position:fixed!important;inset:0!important;z-index:400;margin:0!important;border:0!important;border-radius:0!important;height:100dvh!important;max-height:100dvh;min-height:0!important;background:#fff;box-shadow:none}
+  .conv-th-head{position:sticky;top:0;z-index:2;padding-top:calc(12px + env(safe-area-inset-top))}
+  .conv-th-msgs{flex:1 1 auto;max-height:none}
+  .conv-th-compose{position:sticky;bottom:0;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+  .conv-th-compose .btn-ghost{padding:10px 11px}
+  .conv-bubble{max-width:82%;font-size:15px}
+}
 /* ===== Reforço de responsividade (celular) — evita estouro horizontal e conteúdo cortado ===== */
 @media (max-width:900px){
   html,body{overflow-x:hidden;max-width:100%}
@@ -7370,34 +7396,37 @@ window.convOpen = function(phone, name){
   window._convActive = {phone:phone, name:name};
   try{ var g=document.getElementById('conv-grid'); if(g) g.classList.add('thread-open'); }catch(e){}
   var th=document.getElementById('conv-thread'); if(!th) return;
-  th.style.display='block'; th.style.alignItems='stretch'; th.style.justifyContent='flex-start';
+  th.style.display='flex'; th.style.alignItems='stretch'; th.style.justifyContent='flex-start';
   th.innerHTML='<div style="padding:16px;color:var(--muted)">Carregando…</div>';
   window.MOB_RPC('mob_wa_mark_read',{p_candidate:window._mobCandId,p_phone:phone}).then(function(){ convLoad(); }).catch(function(){});
   window.MOB_RPC('mob_wa_thread',{p_candidate:window._mobCandId,p_phone:phone}).then(function(r){
     var msgs=(r&&r.messages)||[]; var d=(phone||'').replace(/\D/g,'');
-    var head='<div style="padding:10px 14px 0"><button class="conv-back" onclick="convBackToList()"><svg class="icon" width="14" height="14" style="transform:rotate(180deg)"><use href="#i-arrow-right"/></svg>Voltar às conversas</button></div>'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border)"><div><strong>'+esc(name||phone)+'</strong><div style="font-size:11px;color:var(--muted)">'+esc(phone)+'</div></div>'
-      +'<a class="btn-ghost" style="padding:6px 12px;font-size:12px;text-decoration:none" href="tel:'+d+'"><svg class="icon" width="13" height="13"><use href="#i-phone"/></svg>Ligar</a></div>';
-    var body='<div style="padding:14px;max-height:50vh;overflow:auto;display:flex;flex-direction:column;gap:8px">'
+    var head='<div class="conv-th-head">'
+      +'<button class="conv-hd-back" onclick="convBackToList()" title="Voltar"><svg class="icon" width="15" height="15" style="transform:rotate(180deg)"><use href="#i-arrow-right"/></svg></button>'
+      +'<div class="conv-th-who"><strong>'+esc(name||phone)+'</strong><div class="conv-th-sub">'+esc(phone)+'</div></div>'
+      +'<a class="btn-ghost conv-th-call" href="tel:'+d+'"><svg class="icon" width="14" height="14"><use href="#i-phone"/></svg>Ligar</a>'
+    +'</div>';
+    var body='<div class="conv-th-msgs" id="conv-th-msgs">'
       + (msgs.length? msgs.map(function(m){
           var out=m.direction==='out';
-          return '<div style="align-self:'+(out?'flex-end':'flex-start')+';max-width:75%;background:'+(out?'#DCF8C6':'#F1F5F9')+';padding:8px 12px;border-radius:12px;font-size:13px">'+esc(m.body||'')+'<div style="font-size:9px;color:#64748B;text-align:right;margin-top:2px">'+(m.created_at?new Date(m.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'')+'</div></div>';
-        }).join('') : '<div style="color:var(--muted);text-align:center;padding:20px">Sem mensagens.</div>')
+          return '<div class="conv-bubble '+(out?'out':'in')+'">'+esc(m.body||'')+'<div class="t">'+(m.created_at?new Date(m.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'')+'</div></div>';
+        }).join('') : '<div style="color:var(--muted);text-align:center;padding:20px;margin:auto">Sem mensagens.</div>')
       +'</div>';
-    var reply='<div style="border-top:1px solid var(--border);padding:10px 14px">'
+    var reply='<div class="conv-th-compose">'
       +'<input type="file" id="conv-photo" accept="image/*" style="display:none" onchange="convAttachSend(this.files,\'image\')">'
       +'<input type="file" id="conv-audio" accept="audio/*" style="display:none" onchange="convAttachSend(this.files,\'audio\')">'
       +'<input type="file" id="conv-video" accept="video/*" style="display:none" onchange="convAttachSend(this.files,\'video\')">'
-      +'<div style="display:flex;gap:8px;align-items:center">'
-        +'<button class="btn-ghost" title="Enviar foto (câmera ou galeria)" style="padding:9px 11px;flex-shrink:0" onclick="document.getElementById(\'conv-photo\').click()"><svg class="icon" width="17" height="17"><use href="#i-camera"/></svg></button>'
-        +'<button class="btn-ghost" title="Enviar áudio" style="padding:9px 11px;flex-shrink:0" onclick="document.getElementById(\'conv-audio\').click()"><svg class="icon" width="17" height="17"><use href="#i-mic"/></svg></button>'
-        +'<button class="btn-ghost" title="Enviar vídeo" style="padding:9px 11px;flex-shrink:0" onclick="document.getElementById(\'conv-video\').click()"><svg class="icon" width="17" height="17"><use href="#i-video"/></svg></button>'
-        +'<input id="conv-reply" placeholder="Escreva uma resposta…" style="flex:1" onkeydown="if(event.key===\'Enter\')convSend()">'
-        +'<button class="btn-primary" style="flex-shrink:0" onclick="convSend()">Enviar</button>'
+      +'<div class="conv-compose-row">'
+        +'<button class="btn-ghost" title="Enviar foto (câmera ou galeria)" style="flex-shrink:0" onclick="document.getElementById(\'conv-photo\').click()"><svg class="icon" width="17" height="17"><use href="#i-camera"/></svg></button>'
+        +'<button class="btn-ghost" title="Enviar áudio" style="flex-shrink:0" onclick="document.getElementById(\'conv-audio\').click()"><svg class="icon" width="17" height="17"><use href="#i-mic"/></svg></button>'
+        +'<button class="btn-ghost" title="Enviar vídeo" style="flex-shrink:0" onclick="document.getElementById(\'conv-video\').click()"><svg class="icon" width="17" height="17"><use href="#i-video"/></svg></button>'
+        +'<input id="conv-reply" class="conv-reply" placeholder="Mensagem…" onkeydown="if(event.key===\'Enter\')convSend()">'
+        +'<button class="btn-primary conv-send" style="flex-shrink:0" onclick="convSend()">Enviar</button>'
       +'</div>'
-      +'<div style="font-size:10px;color:var(--muted);margin-top:5px">Foto (câmera ou galeria), áudio e vídeo funcionam dentro da janela de 24h após a pessoa te escrever.</div>'
+      +'<div class="conv-compose-hint">Foto, áudio e vídeo funcionam na janela de 24h após a pessoa te escrever.</div>'
     +'</div>';
     th.innerHTML = head+body+reply;
+    try{ var _mb=document.getElementById('conv-th-msgs'); if(_mb) _mb.scrollTop=_mb.scrollHeight; }catch(e){}
   }).catch(function(e){ th.innerHTML='<div style="padding:16px;color:var(--coral)">'+esc(e.message||'Erro')+'</div>'; });
 };
 // Sobe a mídia para o bucket wa-media e dispara via mob-wa-send (upload único → Meta reaproveita o media_id)
