@@ -533,6 +533,27 @@ input,select,textarea{font-family:inherit;outline:none;color:var(--ink)}
     border:1px solid var(--border);border-radius:9px;background:#fff;font-weight:700;font-size:13px;color:var(--ink-2)}
 }
 @media (min-width:901px){ .sidebar{transform:none!important} }
+/* ===== Reforço de responsividade (celular) — evita estouro horizontal e conteúdo cortado ===== */
+@media (max-width:900px){
+  html,body{overflow-x:hidden;max-width:100%}
+  #app,.content,.card,.modal{max-width:100vw}
+  img,canvas,video,iframe,.leaflet-container{max-width:100%}
+  pre,code{white-space:pre-wrap;word-break:break-word}
+  #map,[id^="map-"],.map-box,.chart-box{max-width:100%!important}
+  /* grades inline muito largas caem para 2 colunas */
+  [style*="grid-template-columns:repeat(3"],[style*="grid-template-columns:repeat(4"],
+  [style*="grid-template-columns:repeat(5"],[style*="grid-template-columns:repeat(6"]{grid-template-columns:repeat(2,1fr)!important}
+  /* barras de filtros/ações quebram linha e cada campo ocupa a largura */
+  .page-head,.toolbar,.filters,.filter-row,.actions-row{flex-wrap:wrap}
+  .page-head select,.page-head input{width:100%}
+  /* tabelas sempre roláveis dentro do próprio wrapper, sem empurrar a página */
+  .card table,table.tbl{min-width:560px}
+  .card > table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+@media (max-width:420px){
+  .kpi-grid,.mob-kpis,[style*="grid-template-columns:repeat"]{grid-template-columns:1fr 1fr!important}
+  .modal .actions button{min-width:100%}
+}
 </style>
 </head>
 <body>
