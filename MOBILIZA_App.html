@@ -6656,8 +6656,14 @@ window.renderEventos = async function(){
     host.innerHTML = evtHead()+'<div class="card">Sua conta ('+esc(sess.user.email)+') não está vinculada a nenhuma campanha.<div style="margin-top:10px"><button class="btn-ghost" onclick="evtLogout()">Trocar de conta</button></div></div>';
     return;
   }
-  var cand = (window._evtCand && cands.find(function(c){return c.id===window._evtCand.id})) || (cands.length===1?cands[0]:null);
+  // SEMPRE segue o candidato ativo do app (mesmo da barra lateral). Nunca usa seleção própria.
+  var cand = (window._mobCandId && cands.find(function(c){return c.id===window._mobCandId})) || null;
+  if(!cand && cands.length===1) cand = cands[0];
   window._evtCand = cand;
+  if(!cand){
+    host.innerHTML = evtHead()+'<div class="card"><div class="sub">Selecione uma campanha no topo do app para ver os eventos dela.</div></div>';
+    return;
+  }
   await evtRenderList(host, cands, sess);
 };
 
@@ -6705,9 +6711,7 @@ async function evtRenderList(host, cands, sess){
       +'<div style="font-size:13px;color:var(--muted)">Campanha: <strong style="color:var(--ink)">'+esc(cand.name)+'</strong> · <span style="font-size:11px">'+esc(sess.user.email)+'</span></div>'
       +'<div style="display:flex;gap:8px;align-items:center">'
         +'<div style="display:flex;background:var(--soft-2);border:1px solid var(--border);border-radius:9px;padding:3px">'+tabBtn('eventos','Eventos')+tabBtn('participantes','Participantes')+'</div>'
-        +picker
         +(sub==='eventos'?'<button class="btn-primary" onclick="evtModal()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg>Novo evento</button>':'')
-        +'<button class="btn-ghost" onclick="evtLogout()">Sair</button>'
       +'</div>'
     +'</div>'
     +'<div id="evt-content"></div>';
