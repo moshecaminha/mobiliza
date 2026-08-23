@@ -3656,22 +3656,42 @@ window.lgExportCsv = function(){
 function emptyHTML(iconId,title,desc,actionFn,actionLabel){
   return '<div class="empty"><div class="ic"><svg class="icon" width="28" height="28"><use href="#'+iconId+'"/></svg></div><h3>'+title+'</h3><p>'+desc+'</p>'+(actionLabel?'<button class="btn-primary" onclick="'+actionFn+'">'+actionLabel+'</button>':'')+'</div>';
 }
+// Datas "aaaa-mm-dd" devem ser lidas no fuso LOCAL (Brasília), nunca como UTC (senão volta 1 dia)
+function parseLocalDate(d){
+  if(d instanceof Date) return d;
+  if(!d) return null;
+  var m=String(d).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return new Date(+m[1], (+m[2])-1, +m[3]);
+  var x=new Date(d); return isNaN(x.getTime())?null:x;
+}
+function startOfDay(d){ var x=d?new Date(d):new Date(); x.setHours(0,0,0,0); return x; }
+function weekRangeSunSun(base){ // semana começando no DOMINGO (dom → sáb)
+  var d=startOfDay(base||new Date()); var start=new Date(d); start.setDate(d.getDate()-d.getDay());
+  var end=new Date(start); end.setDate(start.getDate()+6); end.setHours(23,59,59,999); return {start:start,end:end};
+}
+function agendaRelLabel(dateStr){
+  var d=parseLocalDate(dateStr); if(!d) return '';
+  var diff=Math.round((startOfDay(d)-startOfDay())/86400000);
+  if(diff===0) return 'Hoje'; if(diff===1) return 'Amanhã'; if(diff===-1) return 'Ontem';
+  if(diff>1 && diff<=6) return 'Em '+diff+' dias';
+  return '';
+}
 function fmtDate(d,short){
   if(!d) return '—';
-  var dt = new Date(d);
+  var dt = parseLocalDate(d); if(!dt) return '—';
   if(short){
     var wd = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dt.getDay()];
     return wd+' '+dt.getDate()+'/'+String(dt.getMonth()+1).padStart(2,'0');
   }
   return dt.toLocaleDateString('pt-BR');
 }
-function eventColor(t){ return t==='midia'?'#FFB800':t==='interno'?'#FF6B6B':t==='pessoal'?'#3B82F6':'#00C896'; }
+function eventColor(t){ return t==='midia'?'#FFB800':t==='interno'?'#FF6B6B':t==='pessoal'?'#3B82F6':t==='evento'?'#00A878':'#00C896'; }
 function insightColor(c){ return c==='gold'?'#FFB800':c==='coral'?'#FF6B6B':c==='blue'?'#3B82F6':'#00C896'; }
 function getUpcoming(days){
-  var now = new Date(); now.setHours(0,0,0,0);
-  var limit = new Date(now); limit.setDate(limit.getDate()+days);
-  return activeOnly(state.events).filter(function(e){var d=new Date(e.date); return d>=now && d<=limit})
-    .sort(function(a,b){var c=new Date(a.date)-new Date(b.date); return c!==0?c:(a.time||'').localeCompare(b.time||'')});
+  var now = startOfDay();
+  var limit = new Date(now); limit.setDate(limit.getDate()+days); limit.setHours(23,59,59,999);
+  return activeOnly(state.events).filter(function(e){var d=parseLocalDate(e.date); return d && d>=now && d<=limit})
+    .sort(function(a,b){var c=parseLocalDate(a.date)-parseLocalDate(b.date); return c!==0?c:(a.time||'').localeCompare(b.time||'')});
 }
 
 // ============ BOOT ============
@@ -4803,10 +4823,8 @@ function renderDashboard(){
 
   html += '<div class="grid-3">'
     // Card 1: Próximos compromissos
-    +'<div class="card"><div class="card-head"><div class="card-title" style="display:flex;align-items:center;gap:6px"><svg class="icon" width="14" height="14" style="color:var(--brand-2)"><use href="#i-calendar"/></svg>Compromissos (7d)</div><button class="btn-ghost" onclick="setView(&quot;agenda&quot;)" style="padding:4px 10px;font-size:11px">Ver</button></div>'
-    +(upcoming.length===0
-      ? '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Nenhum compromisso<br><button class="btn-primary" style="margin-top:12px" onclick="setView(&quot;agenda&quot;)">+ Adicionar</button></div>'
-      : upcoming.slice(0,4).map(function(e){return '<div style="display:flex;gap:10px;padding:9px;background:#F8FAFC;border-radius:8px;border-left:3px solid '+eventColor(e.type)+';margin-bottom:5px"><div style="font-weight:700;font-size:12px;width:56px">'+(e.time||'—')+'</div><div style="flex:1;font-size:12px"><strong>'+esc(e.title)+'</strong><br><span style="color:var(--muted);font-size:10.5px">'+fmtDate(e.date,true)+(e.location?' · '+esc(e.location):'')+'</span></div></div>'}).join(''))
+    +'<div class="card"><div class="card-head"><div class="card-title" style="display:flex;align-items:center;gap:6px"><svg class="icon" width="14" height="14" style="color:var(--brand-2)"><use href="#i-calendar"/></svg>Eventos da semana</div><button class="btn-ghost" onclick="setView(&quot;agenda&quot;)" style="padding:4px 10px;font-size:11px">Ver</button></div>'
+    +'<div id="dash-week"><div style="color:var(--muted);font-size:12px;padding:14px">Carregando…</div></div>'
     +'</div>'
     // Card 2: Calendário Eleitoral TSE (novo)
     +renderTSECalendarCard()
@@ -4818,6 +4836,7 @@ function renderDashboard(){
     +'</div></div>';
 
   document.getElementById('view-dashboard').innerHTML = html;
+  try{ if(typeof dashLoadWeek==='function') dashLoadWeek(); }catch(e){}
   try{
     if(typeof dashLoadNewContacts==='function'){
       dashLoadNewContacts();
@@ -6599,37 +6618,109 @@ window.saveSimDefault = function(){
 };
 
 // ============ AGENDA ============
-function renderAgenda(){
-  var today = new Date();
-  var month = today.getMonth();
-  var year = today.getFullYear();
-  var firstDay = new Date(year,month,1).getDay();
-  var daysInMonth = new Date(year,month+1,0).getDate();
-  var daysInPrev = new Date(year,month,0).getDate();
-  var monthName = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][month];
-  var eventsByDay = {};
-  activeOnly(state.events).forEach(function(e){ var d=new Date(e.date); if(d.getMonth()===month && d.getFullYear()===year) eventsByDay[d.getDate()] = e; });
-  var cal = '';
-  for(var i=firstDay-1;i>=0;i--) cal += '<div class="cal-day muted"><div class="dn">'+(daysInPrev-i)+'</div></div>';
-  for(var d=1;d<=daysInMonth;d++){
-    var ev = eventsByDay[d];
-    var isToday = d===today.getDate();
-    var cl = ev?(ev.type==='midia'?'gold':ev.type==='interno'?'coral':ev.type==='pessoal'?'blue':''):'';
-    cal += '<div class="cal-day '+(isToday?'today':'')+'" '+(ev?'onclick="modalEvent(\''+ev.id+'\')"':'')+'><div class="dn">'+d+'</div>'+(ev?'<div class="ev '+cl+'">'+esc(ev.title)+'</div>':'')+'</div>';
-  }
-  var remain = 7-((firstDay+daysInMonth)%7);
-  if(remain<7) for(var k=1;k<=remain;k++) cal += '<div class="cal-day muted"><div class="dn">'+k+'</div></div>';
-
-  var upcoming = getUpcoming(14);
-  var html = '<div class="page-head"><div><h2>Agenda do Candidato</h2><div class="sub">'+monthName+' '+year+' · '+activeOnly(state.events).length+' compromissos cadastrados</div></div><div><button class="btn-primary" onclick="modalEvent()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Compromisso</button></div></div>';
-  html += '<div class="grid-2-1"><div class="calendar"><div class="cal-head"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div><div class="cal-grid">'+cal+'</div></div>';
-  html += '<div class="card"><div class="card-head"><div class="card-title">Próximos 14 dias</div></div>';
-  if(upcoming.length===0) html += '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Sem compromissos.<br><button class="btn-primary" style="margin-top:10px" onclick="modalEvent()">+ Adicionar</button></div>';
-  else html += upcoming.slice(0,12).map(function(e){return '<div style="display:flex;gap:10px;padding:9px;background:#F8FAFC;border-radius:8px;border-left:3px solid '+eventColor(e.type)+';margin-bottom:5px;cursor:pointer" onclick="modalEvent(\''+e.id+'\')"><div style="font-weight:700;font-size:12px;color:var(--ink);min-width:60px">'+fmtDate(e.date,true)+'<br>'+(e.time||'—')+'</div><div style="flex:1;font-size:12px"><strong>'+esc(e.title)+'</strong><br><span style="color:var(--muted);font-size:11px">'+esc(e.location||'sem local')+'</span></div></div>'}).join('');
-  html += '</div></div>';
-  html += '<div class="notice"><strong>ℹ Notificações reais</strong> (email/SMS/push) requerem backend integrado a SendGrid/Twilio.</div>';
-  document.getElementById('view-agenda').innerHTML = html;
+window._agendaFilter = window._agendaFilter || 'semana';
+// Junta compromissos (blob) + Eventos & QR (banco) numa lista só
+async function agendaItems(){
+  var out = activeOnly(state.events).map(function(e){ return {
+    id:e.id, title:e.title, date:e.date, time:e.time||'', location:e.location||'',
+    type:e.type||'publico', description:e.description||'', source:'agenda' }; });
+  try{
+    if(window._mobCandId && window.MOB_RPC){
+      var rows = await window.MOB_RPC('mob_events_list',{p_candidate:window._mobCandId}) || [];
+      rows.forEach(function(ev){ out.push({ id:'evt:'+ev.id, evtId:ev.id, title:ev.title, date:ev.date,
+        time:ev.time||'', location:[ev.location,ev.bairro,ev.city].filter(Boolean).join(' · '),
+        type:'evento', description:ev.description||'', source:'evento', checkins:(ev.checkins||0) }); });
+    }
+  }catch(e){}
+  return out;
 }
+function agendaSort(a,b){ var c=parseLocalDate(a.date)-parseLocalDate(b.date); return c!==0?c:(a.time||'').localeCompare(b.time||''); }
+function agendaRangeFor(filter){
+  var t0=startOfDay();
+  if(filter==='hoje'){ var e0=new Date(t0); e0.setHours(23,59,59,999); return [t0,e0]; }
+  if(filter==='amanha'){ var a=new Date(t0); a.setDate(a.getDate()+1); var ae=new Date(a); ae.setHours(23,59,59,999); return [a,ae]; }
+  if(filter==='semana'){ var w=weekRangeSunSun(); return [w.start,w.end]; }
+  if(filter==='mes'){ var s=new Date(t0.getFullYear(),t0.getMonth(),1); var e=new Date(t0.getFullYear(),t0.getMonth()+1,0); e.setHours(23,59,59,999); return [s,e]; }
+  return null; // todos
+}
+function agendaInRange(items,filter){
+  var r=agendaRangeFor(filter);
+  if(!r) return items.slice().sort(agendaSort);
+  return items.filter(function(x){ var d=parseLocalDate(x.date); return d && d>=r[0] && d<=r[1]; }).sort(agendaSort);
+}
+function agendaCount(items,filter){ return agendaInRange(items,filter).length; }
+window.setAgendaFilter=function(f){ window._agendaFilter=f; renderAgenda(); };
+function eventClass(t){ return t==='midia'?'gold':t==='interno'?'coral':t==='pessoal'?'blue':''; }
+function agendaRow(e){
+  var rel=agendaRelLabel(e.date);
+  var badge = e.source==='evento'
+    ? '<span style="background:#E6F7F1;color:#0B7A54;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px">QR · '+(e.checkins||0)+' check-ins</span>'
+    : '<span style="background:#F1F5F9;color:#475569;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px">'+({publico:'Público',midia:'Mídia',interno:'Interno',pessoal:'Pessoal'}[e.type]||'Agenda')+'</span>';
+  var click = e.source==='evento'?'onclick="setView(\'eventos\')"':'onclick="modalEvent(\''+e.id+'\')"';
+  return '<div style="display:flex;gap:10px;padding:10px;background:#F8FAFC;border-radius:8px;border-left:3px solid '+eventColor(e.type)+';margin-bottom:6px;cursor:pointer" '+click+'>'
+    +'<div style="min-width:70px;font-size:12px;font-weight:700;color:var(--ink)">'+(rel?'<span style="color:var(--brand-2)">'+rel+'</span><br>':'')+fmtDate(e.date,true)+'<br><span style="color:var(--muted);font-weight:600">'+(e.time||'—')+'</span></div>'
+    +'<div style="flex:1;min-width:0"><div style="font-weight:700">'+esc(e.title)+'</div><div style="font-size:11px;color:var(--muted)">'+esc(e.location||'sem local')+'</div><div style="margin-top:4px">'+badge+'</div></div>'
+  +'</div>';
+}
+async function renderAgenda(){
+  var host=document.getElementById('view-agenda'); if(!host) return;
+  host.innerHTML='<div class="page-head"><div><h2>Agenda do Candidato</h2><div class="sub">Carregando…</div></div></div>';
+  var items = await agendaItems(); window._agendaItems=items;
+  var filter=window._agendaFilter||'semana';
+  var today=new Date(), month=today.getMonth(), year=today.getFullYear();
+  var firstDay=new Date(year,month,1).getDay(), daysInMonth=new Date(year,month+1,0).getDate(), daysInPrev=new Date(year,month,0).getDate();
+  var monthName=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][month];
+  var byDay={};
+  items.forEach(function(e){ var d=parseLocalDate(e.date); if(d && d.getMonth()===month && d.getFullYear()===year){ (byDay[d.getDate()]=byDay[d.getDate()]||[]).push(e); } });
+  var cal='';
+  for(var i=firstDay-1;i>=0;i--) cal+='<div class="cal-day muted"><div class="dn">'+(daysInPrev-i)+'</div></div>';
+  for(var dd=1;dd<=daysInMonth;dd++){
+    var evs=byDay[dd]||[]; var ev=evs[0]; var isToday=dd===today.getDate();
+    var cl=ev?eventClass(ev.type):'';
+    var click=ev?(ev.source==='evento'?'onclick="setView(\'eventos\')"':'onclick="modalEvent(\''+ev.id+'\')"'):'';
+    cal+='<div class="cal-day '+(isToday?'today':'')+'" '+click+'><div class="dn">'+dd+'</div>'+(ev?'<div class="ev '+cl+'">'+esc(ev.title)+(evs.length>1?' +'+(evs.length-1):'')+'</div>':'')+'</div>';
+  }
+  var remain=7-((firstDay+daysInMonth)%7); if(remain<7) for(var k=1;k<=remain;k++) cal+='<div class="cal-day muted"><div class="dn">'+k+'</div></div>';
+  var chips=[['hoje','Hoje'],['amanha','Amanhã'],['semana','Semana'],['mes','Mês'],['todos','Todos']];
+  var chipHtml=chips.map(function(c){ var n=agendaCount(items,c[0]); return '<button onclick="setAgendaFilter(\''+c[0]+'\')" style="padding:8px 14px;border-radius:9px;border:1px solid var(--border);font-weight:700;font-size:13px;cursor:pointer;background:'+(filter===c[0]?'var(--brand)':'#fff')+';color:'+(filter===c[0]?'#fff':'var(--ink-2)')+'">'+c[1]+' <span style="opacity:.7">('+n+')</span></button>'; }).join('');
+  var list=agendaInRange(items,filter);
+  var rangeLbl={hoje:'Hoje',amanha:'Amanhã',semana:'Esta semana (dom → sáb)',mes:'Este mês',todos:'Todos os compromissos'}[filter];
+  var listHtml=list.length? list.map(agendaRow).join('') : '<div style="text-align:center;padding:26px;color:var(--muted);font-size:13px">Nenhum compromisso neste período.<br><button class="btn-primary" style="margin-top:10px" onclick="modalEvent()">+ Adicionar</button></div>';
+  var html='<div class="page-head"><div><h2>Agenda do Candidato</h2><div class="sub">'+monthName+' '+year+' · '+items.length+' compromissos (agenda + eventos QR)</div></div>'
+    +'<div style="display:flex;gap:8px"><button class="btn-ghost" onclick="agendaPrint()"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg> Relatório</button><button class="btn-primary" onclick="modalEvent()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Compromisso</button></div></div>';
+  html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+chipHtml+'</div>';
+  html+='<div class="grid-2-1">';
+  html+='<div class="calendar"><div class="cal-head"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div><div class="cal-grid">'+cal+'</div></div>';
+  html+='<div class="card"><div class="card-head"><div><div class="card-title">'+rangeLbl+'</div><div class="card-sub">'+list.length+' compromisso(s)</div></div></div><div id="agenda-list">'+listHtml+'</div></div>';
+  html+='</div>';
+  html+='<div class="notice" style="margin-top:12px">🟢 Os eventos com QR aparecem aqui automaticamente. Os compromissos internos (mídia, reuniões, pessoal) você cria no botão <strong>Compromisso</strong>.</div>';
+  host.innerHTML=html;
+}
+window.agendaPrint=function(){
+  var items=window._agendaItems||[]; var filter=window._agendaFilter||'semana';
+  var list=agendaInRange(items,filter);
+  var rangeLbl={hoje:'Hoje',amanha:'Amanhã',semana:'Esta semana (dom → sáb)',mes:'Este mês',todos:'Todos os compromissos'}[filter];
+  var candName=((document.getElementById('brand-name')||{}).textContent||'').trim();
+  var rows=list.map(function(e){ return '<tr><td>'+fmtDate(e.date)+'</td><td>'+(e.time||'—')+'</td><td>'+esc(e.title)+'</td><td>'+esc(e.location||'—')+'</td><td>'+(e.source==='evento'?'Evento QR ('+(e.checkins||0)+' check-ins)':({publico:'Público',midia:'Mídia',interno:'Interno',pessoal:'Pessoal'}[e.type]||'Agenda'))+'</td></tr>'; }).join('');
+  var w=window.open('','_blank'); if(!w){ toast('Permita pop-ups para gerar o relatório','warn'); return; }
+  w.document.write('<html><head><title>Agenda — '+rangeLbl+'</title><meta charset="utf-8"><style>body{font-family:Arial,Helvetica,sans-serif;padding:26px;color:#0F172A}h1{font-size:20px;margin:0 0 2px}.sub{color:#64748B;font-size:13px;margin-bottom:16px}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;background:#F1F5F9;padding:9px;border-bottom:2px solid #e5e7eb}td{padding:9px;border-bottom:1px solid #eef2f6}@media print{.noprint{display:none}}</style></head><body>'
+    +'<h1>Agenda'+(candName?' — '+candName:'')+'</h1><div class="sub">'+rangeLbl+' · '+list.length+' compromisso(s) · gerado em '+new Date().toLocaleString('pt-BR')+'</div>'
+    +'<table><thead><tr><th>Data</th><th>Hora</th><th>Compromisso</th><th>Local</th><th>Tipo</th></tr></thead><tbody>'+(rows||'<tr><td colspan="5">Sem compromissos no período.</td></tr>')+'</tbody></table>'
+    +'<button class="noprint" onclick="window.print()" style="margin-top:18px;padding:11px 20px;background:#00A878;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Imprimir / Salvar PDF</button>'
+    +'</body></html>'); w.document.close();
+};
+// Card do dashboard: eventos desta semana (domingo → sábado), agenda + eventos QR
+async function dashLoadWeek(){
+  var box=document.getElementById('dash-week'); if(!box) return;
+  var items=[]; try{ items = await agendaItems(); }catch(e){ items = activeOnly(state.events); }
+  var w=weekRangeSunSun();
+  var list=items.filter(function(x){ var d=parseLocalDate(x.date); return d && d>=w.start && d<=w.end; }).sort(agendaSort);
+  if(!list.length){ box.innerHTML='<div style="text-align:center;padding:18px;color:var(--muted);font-size:13px">Nada nesta semana<br><button class="btn-primary" style="margin-top:10px" onclick="setView(\'agenda\')">+ Adicionar</button></div>'; return; }
+  box.innerHTML = list.slice(0,6).map(function(e){ var rel=agendaRelLabel(e.date);
+    return '<div style="display:flex;gap:10px;padding:9px;background:#F8FAFC;border-radius:8px;border-left:3px solid '+eventColor(e.type)+';margin-bottom:5px"><div style="font-weight:700;font-size:11px;width:64px;color:var(--ink)">'+(rel?'<span style="color:var(--brand-2)">'+rel+'</span><br>':'')+fmtDate(e.date,true)+'<br><span style="color:var(--muted);font-weight:600">'+(e.time||'—')+'</span></div><div style="flex:1;font-size:12px;min-width:0"><strong>'+esc(e.title)+'</strong><br><span style="color:var(--muted);font-size:10.5px">'+esc(e.location||'sem local')+(e.source==='evento'?' · QR '+(e.checkins||0):'')+'</span></div></div>';
+  }).join('') + (list.length>6?'<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:4px">+'+(list.length-6)+' na Agenda</div>':'');
+}
+window.dashLoadWeek = dashLoadWeek;
 
 // ============ EVENTOS & QR (conectado ao banco Supabase por candidato) ============
 // Seção nova, aditiva: usa os mesmos estilos do app. Cada evento gera um QR próprio;
