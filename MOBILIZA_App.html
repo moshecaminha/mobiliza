@@ -7604,6 +7604,11 @@ function waAudienceBase(){
     out.push({ id:m.id, name:m.name, phone:m.phone||'', email:m.email||'',
       bairro: m.bairro||'', cidade: m.city||(reg?reg.name:'')||'', cls: waClassOf(m,false), isLeader:false });
   });
+  // Leads dos eventos (base do banco) — categoria à parte, cls='lead'
+  (window._waLeadsCache||[]).forEach(function(l){
+    out.push({ id:'lead:'+l.id, name:l.name||'', phone:l.phone||'', email:l.email||'',
+      bairro:l.bairro||'', cidade:l.city||'', cls:'lead', isLead:true });
+  });
   return out;
 }
 
@@ -7611,9 +7616,12 @@ function waAudienceBase(){
 function waComputeAudience(){
   var base = waAudienceBase();
   var anyFilter = waSeg.bairros.length || waSeg.cidades.length || waSeg.classes.length;
+  var leadSel = waSeg.classes.indexOf('lead')>=0;
   return base.filter(function(p){
     if(waSeg.pessoas.indexOf(p.id)>=0) return true;
-    if(!anyFilter) return waSeg.pessoas.length===0;
+    // Leads são categoria à parte: SÓ entram se a classe "Leads" estiver marcada
+    if(p.cls==='lead' && !leadSel) return false;
+    if(!anyFilter) return waSeg.pessoas.length===0 && p.cls!=='lead';
     if(waSeg.classes.length && waSeg.classes.indexOf(p.cls)<0) return false;
     if(waSeg.bairros.length && waSeg.bairros.indexOf(p.bairro)<0) return false;
     if(waSeg.cidades.length && waSeg.cidades.indexOf(p.cidade)<0) return false;
@@ -7655,6 +7663,7 @@ function waUpdateReach(){
     var byClass = {};
     aud.forEach(function(p){ byClass[p.cls]=(byClass[p.cls]||0)+1; });
     var detail = WA_CLASSES.filter(function(c){return byClass[c.v]}).map(function(c){ return byClass[c.v]+' '+c.lbl.toLowerCase(); }).join(' · ');
+    if(byClass['lead']) detail = (detail?detail+' · ':'')+byClass['lead']+' leads';
     el.innerHTML = 'Alcance estimado: <strong>'+aud.length.toLocaleString('pt-BR')+'</strong> contatos'+(detail?' <span style="color:var(--muted);font-weight:500">('+esc(detail)+')</span>':'');
   }
   updateWaPrev();
@@ -7662,6 +7671,11 @@ function waUpdateReach(){
 window.waUpdateReach = waUpdateReach;
 
 function renderWhatsapp(){
+  // Carrega os leads (banco) uma vez para poder segmentar por eles
+  if(window._waLeadsCache==null && window._mobCandId && window.MOB_RPC){
+    window._waLeadsCache = []; // evita refetch em loop
+    window.MOB_RPC('mob_leads_list',{p_candidate:window._mobCandId}).then(function(rows){ window._waLeadsCache=rows||[]; renderWhatsapp(); }).catch(function(){});
+  }
   var html = '<div class="page-head"><div><h2>Comunicação</h2><div class="sub">'+activeOnly(state.templates).length+' templates · '+activeOnly(state.campaigns).length+' campanhas</div></div><div style="display:flex;gap:8px"><button class="btn-ghost" onclick="modalTemplate()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Template</button></div></div>';
   html += '<div class="notice"><strong>ℹ Envio real</strong> requer backend com WhatsApp Business API (Meta) + Twilio + SendGrid. Aqui você cria, segmenta e simula.</div>';
   // Destaque: enviar para LEADS (base dos eventos — não são militância ainda)
@@ -7701,6 +7715,15 @@ function renderWhatsapp(){
   });
   html += '</div>';
 
+  // 1b) LEADS — categoria destacada e separada (base fria dos eventos, não é militância)
+  var _leadCount = base.filter(function(p){return p.cls==='lead';}).length;
+  var _leadOn = waSeg.classes.indexOf('lead')>=0;
+  html += '<div style="margin:14px 0 5px;padding-top:12px;border-top:1px dashed var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--brand-2);font-weight:800;display:flex;align-items:center;gap:7px">Leads dos eventos <span style="background:rgba(0,168,120,.15);color:#0B7A54;font-weight:700;font-size:9px;padding:2px 7px;border-radius:20px;text-transform:none;letter-spacing:0">categoria à parte · base fria</span></div>';
+  html += '<div class="wa-segs">'
+    +'<span class="seg'+(_leadOn?' on':'')+'" onclick="waToggle(\'classes\',\'lead\',this)" style="border:1.5px dashed var(--brand-2);'+(_leadOn?'':'background:rgba(0,168,120,.06);')+'font-weight:700"><svg width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-users"/></svg>Leads (eventos) <strong style="opacity:.75">'+_leadCount+'</strong></span>'
+    +'<span style="font-size:10.5px;color:var(--muted);align-self:center;margin-left:4px">'+(_leadCount?'exige template aprovado (base fria)':'nenhum lead ainda')+'</span>'
+  +'</div>';
+
   // 2) Bairros
   var bairros = {};
   base.forEach(function(p){ if(p.bairro) bairros[p.bairro]=(bairros[p.bairro]||0)+1; });
@@ -7733,8 +7756,9 @@ function renderWhatsapp(){
     +'<div class="wa-segs" id="wa-people" style="max-height:120px;overflow-y:auto">';
   base.slice().sort(function(a,b){ return a.name.localeCompare(b.name,'pt-BR'); }).forEach(function(p){
     var on = waSeg.pessoas.indexOf(p.id)>=0;
-    var clsLbl = (WA_CLASSES.find(function(c){return c.v===p.cls})||{}).lbl||'';
-    html += '<span class="seg'+(on?' on':'')+'" data-name="'+esc(p.name)+'" title="'+esc(clsLbl+(p.bairro?' · '+p.bairro:''))+'" onclick="waTogglePerson(\''+p.id+'\',this)"><svg width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-user"/></svg>'+esc(p.name)+'</span>';
+    var clsLbl = p.cls==='lead' ? 'Lead (evento)' : ((WA_CLASSES.find(function(c){return c.v===p.cls})||{}).lbl||'');
+    var isLead = p.cls==='lead';
+    html += '<span class="seg'+(on?' on':'')+'" data-name="'+esc(p.name)+'" title="'+esc(clsLbl+(p.bairro?' · '+p.bairro:''))+'" onclick="waTogglePerson(\''+p.id+'\',this)"'+(isLead?' style="border-style:dashed"':'')+'><svg width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#'+(isLead?'i-users':'i-user')+'"/></svg>'+esc(p.name)+(isLead?' <span style="font-size:8px;color:var(--brand-2);font-weight:800">LEAD</span>':'')+'</span>';
   });
   html += '</div>';
 
