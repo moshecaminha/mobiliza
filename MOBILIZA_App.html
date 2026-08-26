@@ -9528,6 +9528,13 @@ function renderSettings(){
     +'<div style="margin-top:12px"><button class="btn-primary" id="mc-btn" onclick="changeMyPassword()"><svg class="icon" width="13" height="13"><use href="#i-lock"/></svg> Alterar senha</button></div>'
     +'<div style="margin-top:8px;font-size:11px;color:var(--muted)">Você pode trocar sua senha quando quiser. A alteração vale para o seu login em qualquer dispositivo.</div></div>';
 
+  // ===== Lembretes de agenda por e-mail =====
+  html += '<div class="config-section" style="border:1px solid rgba(0,168,120,.25)"><h3><svg class="icon" width="15" height="15"><use href="#i-calendar"/></svg> Lembretes de agenda por e-mail</h3><div class="sub">Avisos automáticos <strong>10h, 6h, 4h e 2h antes</strong> de cada compromisso — no fuso do estado do candidato.</div>'
+    +'<label>E-mails que recebem os lembretes <span style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">(um por linha — candidato, coordenador, quantos quiser)</span></label>'
+    +'<textarea id="s-notify-emails" rows="3" placeholder="candidato@email.com&#10;coordenador@email.com"></textarea>'
+    +'<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn-primary" onclick="saveNotifyEmails()">Salvar e-mails</button><button class="btn-ghost" onclick="testReminderEmail()"><svg class="icon" width="13" height="13"><use href="#i-message"/></svg> Enviar e-mail de teste</button></div>'
+    +'<div style="margin-top:8px;font-size:11px;color:var(--muted)">Uma cópia de teste também vai para paulomendescaminha@gmail.com (para validação).</div></div>';
+
   html += '<div class="grid-2">';
   html += '<div class="config-section"><h3><svg class="icon" width="15" height="15"><use href="#i-user"/></svg> Candidato</h3><div class="sub">Dados básicos</div>'
     +'<label>Nome</label><input id="s-name" value="'+esc(state.candidate.name)+'">'
@@ -9697,6 +9704,7 @@ function renderSettings(){
   }
 
   document.getElementById('view-settings').innerHTML = html;
+  try{ loadNotifyEmails(); }catch(e){}
   // Se o sinalizador de admin ainda não resolveu, busca e re-renderiza (evita mostrar a zona de risco por engano)
   if(typeof window.MOB_IS_ADMIN==='undefined'){
     try{ window.MOB_RPC('mob_is_platform_admin').then(function(v){ window.MOB_IS_ADMIN=(v===true); if(window._mobView==='settings') renderSettings(); }).catch(function(){ window.MOB_IS_ADMIN=false; }); }catch(e){ window.MOB_IS_ADMIN=false; }
@@ -9705,6 +9713,29 @@ function renderSettings(){
   try{ if(typeof socialLoadConfig==='function') socialLoadConfig(); }catch(e){}
   try{ if(window.MOB_SB && window.MOB_SB.auth){ window.MOB_SB.auth.getUser().then(function(u){ var el=document.getElementById('mc-email'); if(el && u && u.data && u.data.user) el.textContent=u.data.user.email||''; }).catch(function(){}); } }catch(e){}
 }
+// ===== Lembretes de agenda por e-mail =====
+window.loadNotifyEmails = function(){
+  if(!window._mobCandId||!window.MOB_RPC) return;
+  window.MOB_RPC('mob_notify_emails_get',{p_candidate:window._mobCandId}).then(function(arr){
+    var el=document.getElementById('s-notify-emails'); if(el) el.value=(arr||[]).join('\n');
+  }).catch(function(){});
+};
+window.saveNotifyEmails = function(){
+  var el=document.getElementById('s-notify-emails'); if(!el||!window._mobCandId) return;
+  var arr=(el.value||'').split(/[\n,;]+/).map(function(s){return s.trim();}).filter(Boolean);
+  window.MOB_RPC('mob_notify_emails_save',{p_candidate:window._mobCandId,p_emails:arr}).then(function(r){
+    if(r&&r.ok){ toast('E-mails de lembrete salvos'); if(el) el.value=(r.emails||[]).join('\n'); }
+    else toast((r&&r.error)||'Erro','err');
+  }).catch(function(e){ toast(e.message||'Erro','err'); });
+};
+window.testReminderEmail = function(){
+  if(!window._mobCandId) return;
+  toast('Enviando e-mail de teste…');
+  window.MOB_RPC('mob_agenda_test_email',{p_candidate:window._mobCandId}).then(function(r){
+    if(r&&r.ok) toast('Teste enviado! Confira a caixa de entrada (e o spam).');
+    else toast((r&&r.error)||'Não enviou — verifique a chave do Resend no Vault','warn');
+  }).catch(function(e){ toast(e.message||'Erro','err'); });
+};
 // ===== WhatsApp Business — até 2 números por candidato, com papéis (Eventos/Conversas/Comunicação) =====
 window.waLoadConfig = function(){
   var box = document.getElementById('wa-connect-box'); if(!box) return;
@@ -10712,11 +10743,14 @@ window.saveEvent = function(id){
   var date = $('me-date').value;
   if(!title||!date){toast('Título e data obrigatórios','warn');return;}
   var data = {title:title,date:date,time:$('me-time').value,location:$('me-loc').value.trim(),type:$('me-type').value,description:$('me-desc').value.trim()};
+  var savedId=id;
   if(id){var idx = state.events.findIndex(function(e){return e.id===id});state.events[idx] = Object.assign(state.events[idx],data); logAction('edit','event',state.events[idx]); clearDraft('event-'+id);}
-  else { var newItem = Object.assign({id:genId(),createdAt:Date.now()},data); state.events.push(newItem); logAction('create','event',newItem); clearDraft('event-new'); }
+  else { var newItem = Object.assign({id:genId(),createdAt:Date.now()},data); state.events.push(newItem); savedId=newItem.id; logAction('create','event',newItem); clearDraft('event-new'); }
+  // Espelha no banco para o agendador de lembretes (10/6/4/2h antes) enxergar
+  try{ if(window._mobCandId && window.MOB_RPC){ window.MOB_RPC('mob_agenda_upsert',{p_candidate:window._mobCandId,p_ext_id:savedId,p_title:data.title,p_date:data.date,p_time:data.time||null,p_location:data.location||null,p_type:data.type||'publico',p_description:data.description||null}).catch(function(){}); } }catch(e){}
   saveState(); closeModal(); renderAgenda(); toast('Salvo');
 };
-window.rmEvent = function(id){ if(!confirm('Mover para lixeira?'))return; var item=softDelete(state.events,id); logAction('delete','event',item); saveState(); renderAgenda(); toast('Movido para lixeira'); };
+window.rmEvent = function(id){ if(!confirm('Mover para lixeira?'))return; var item=softDelete(state.events,id); logAction('delete','event',item); try{ if(window._mobCandId && window.MOB_RPC) window.MOB_RPC('mob_agenda_delete',{p_candidate:window._mobCandId,p_ext_id:id}).catch(function(){}); }catch(e){} saveState(); renderAgenda(); toast('Movido para lixeira'); };
 
 window.modalRegion = function(id){
   var r = id?activeOnly(state.regions).find(function(x){return x.id===id}):{};
