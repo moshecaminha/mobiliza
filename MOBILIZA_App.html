@@ -3922,7 +3922,7 @@ function initMunicipalMap(){
   _stateMapInst = m;
   L.control.zoom({ position:'bottomright' }).addTo(m);
   L.control.attribution({ position:'bottomright', prefix:false }).addAttribution('IBGE · OpenStreetMap · CARTO').addTo(m);
-  L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png', { maxZoom:18 }).addTo(m);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' }).addTo(m);
 
   // Determina municípios a mostrar
   var selectedCity = state.session && state.session.mapSelectedCity;
@@ -4393,7 +4393,7 @@ function initStateMap(){
   L.control.zoom({ position:'bottomright' }).addTo(m);
   L.control.attribution({ position:'bottomright', prefix:false }).addAttribution('IBGE · OSM').addTo(m);
   // Tile CLARO (Positron da CARTO)
-  L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png', { maxZoom:12, attribution:'© OpenStreetMap © CartoDB' }).addTo(m);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom:16, attribution:'Tiles © Esri' }).addTo(m);
   // Cache?
   if(_stateMapCache[uf]){ renderStateGeo(_stateMapCache[uf], m); return; }
   // Buscar em paralelo: malhas (GeoJSON) + municípios (com mesorregião) + população IBGE
@@ -5036,7 +5036,7 @@ function initGeoMap(){
   var m = L.map(mapEl, { zoomControl:true, attributionControl:false, minZoom:5, maxZoom:18 });
   _geoMapInst = m;
   L.control.attribution({position:'bottomright',prefix:false}).addAttribution('CARTO · OSM').addTo(m);
-  L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png', { maxZoom:18 }).addTo(m);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' }).addTo(m);
 
   var leaders = activeOnly(state.leaders);
   var militants = activeOnly(state.militants);

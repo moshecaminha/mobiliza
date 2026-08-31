@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Cdefs%3E%3ClinearGradient id=%27g%27 x1=%270%27 y1=%270%27 x2=%271%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%2300E5A8%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300805F%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2764%27 height=%2764%27 rx=%2715%27 fill=%27url(%23g)%27/%3E%3Cpath d=%27M 13 50 L 13 22 L 22 13 L 32 25 L 42 13 L 51 22 L 51 50%27 stroke=%27%23fff%27 stroke-width=%275.5%27 fill=%27none%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3Ccircle cx=%2742%27 cy=%2713%27 r=%274%27 fill=%27%23FFB800%27 stroke=%27%23fff%27 stroke-width=%271.5%27/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Cdefs%3E%3ClinearGradient id=%27g%27 x1=%270%27 y1=%270%27 x2=%271%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%2300E5A8%27/%3E%3Cstop offset=%271%27 stop-color=%27%2300805F%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2764%27 height=%2764%27 rx=%2715%27 fill=%27url(%23g)%27/%3E%3Cpath d=%27M 13 50 L 13 22 L 22 13 L 32 25 L 42 13 L 51 22 L 51 50%27 stroke=%27%23fff%27 stroke-width=%275.5%27 fill=%27none%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3Ccircle cx=%2742%27 cy=%2713%27 r=%274%27 fill=%27%23FFB800%27 stroke=%27%23fff%27 stroke-width=%271.5%27/%3E%3C/svg%3E">
+<meta name="theme-color" content="#00A878">
 <title>MOBILIZZA — Inteligência eleitoral que vira voto</title>
 <meta name="description" content="Plataforma de inteligência eleitoral: mapa de força por cidade, radar de concorrentes, eventos com QR, militância, apoiadores, logística, financeiro e WhatsApp — numa só tela.">
 <script>
@@ -344,7 +347,7 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--faint);font-s
     if(typeof L === 'undefined'){ return; }
     try{
       var map = L.map('map',{zoomControl:true, scrollWheelZoom:false, attributionControl:false}).setView([-8.4,-36.6], 7);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,attribution:'Tiles © Esri'}).addTo(map);
       var fb = document.getElementById('map-fallback'); if(fb) fb.style.display='none';
       PINS.forEach(function(p, i){
         var html = '<div class="pulse" style="width:14px;height:14px;border-radius:50%;background:'+p.c+';border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.28)"></div>';
