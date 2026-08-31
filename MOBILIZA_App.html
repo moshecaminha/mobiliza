@@ -6619,11 +6619,43 @@ window.saveSimDefault = function(){
 
 // ============ AGENDA ============
 window._agendaFilter = window._agendaFilter || 'semana';
+window._agendaStatus = window._agendaStatus || '';
+var AG_STATUS = {
+  agendado:{lbl:'Agendado',color:'#2563EB'},
+  cumprida:{lbl:'Cumprida',color:'#059669'},
+  reagendada:{lbl:'Reagendada',color:'#D97706'},
+  cancelada:{lbl:'Cancelada',color:'#DC2626'}
+};
+function agStatusMeta(s){ return AG_STATUS[s]||AG_STATUS.agendado; }
+function agStatusIconSvg(s,size,color){
+  size=size||13; var m=agStatusMeta(s); color=color||m.color;
+  var p={ agendado:'<rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/>',
+          cumprida:'<path d="M20 6 9 17l-5-5"/>',
+          reagendada:'<path d="M3 2v6h6"/><path d="M3.5 12a9 9 0 1 0 2.6-6.4L3 8"/>',
+          cancelada:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>' }[s]||'';
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
+}
+function agStatusBadge(s){ var m=agStatusMeta(s); return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+m.color+'1A;color:'+m.color+';font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px">'+agStatusIconSvg(s,11)+m.lbl+'</span>'; }
+// Muda o status de um compromisso: grava no blob, espelha no banco e dispara e-mail aos cadastrados
+window.setEventStatus = function(id, status){
+  var ev=(state.events||[]).find(function(x){return x.id===id;}); if(!ev){ toast('Compromisso não encontrado','warn'); return; }
+  if(status==='cancelada' && !confirm('Marcar "'+(ev.title||'')+'" como CANCELADA?\nOs e-mails cadastrados serão avisados.')) return;
+  ev.status=status; logAction('edit','event',ev); saveState();
+  try{
+    if(window._mobCandId && window.MOB_RPC){
+      window.MOB_RPC('mob_agenda_set_status',{p_candidate:window._mobCandId,p_ext_id:id,p_status:status,p_title:ev.title,p_date:ev.date,p_time:ev.time||null,p_location:ev.location||null})
+        .then(function(r){ toast((agStatusMeta(status).lbl)+((r&&r.emailed)?' — e-mails avisados':'')); })
+        .catch(function(){ toast(agStatusMeta(status).lbl); });
+    } else toast(agStatusMeta(status).lbl);
+  }catch(e){ toast(agStatusMeta(status).lbl); }
+  renderAgenda();
+};
+window.setAgendaStatus=function(s){ window._agendaStatus=(window._agendaStatus===s?'':s); renderAgenda(); };
 // Junta compromissos (blob) + Eventos & QR (banco) numa lista só
 async function agendaItems(){
   var out = activeOnly(state.events).map(function(e){ return {
     id:e.id, title:e.title, date:e.date, time:e.time||'', location:e.location||'',
-    type:e.type||'publico', description:e.description||'', source:'agenda' }; });
+    type:e.type||'publico', description:e.description||'', source:'agenda', status:e.status||'agendado' }; });
   try{
     if(window._mobCandId && window.MOB_RPC){
       var rows = await window.MOB_RPC('mob_events_list',{p_candidate:window._mobCandId}) || [];
@@ -6653,13 +6685,27 @@ window.setAgendaFilter=function(f){ window._agendaFilter=f; renderAgenda(); };
 function eventClass(t){ return t==='midia'?'gold':t==='interno'?'coral':t==='pessoal'?'blue':''; }
 function agendaRow(e){
   var rel=agendaRelLabel(e.date);
-  var badge = e.source==='evento'
+  var isEvt=e.source==='evento';
+  var st=e.status||'agendado';
+  var badge = isEvt
     ? '<span style="background:#E6F7F1;color:#0B7A54;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px">QR · '+(e.checkins||0)+' check-ins</span>'
-    : '<span style="background:#F1F5F9;color:#475569;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px">'+({publico:'Público',midia:'Mídia',interno:'Interno',pessoal:'Pessoal'}[e.type]||'Agenda')+'</span>';
-  var click = e.source==='evento'?'onclick="setView(\'eventos\')"':'onclick="modalEvent(\''+e.id+'\')"';
-  return '<div style="display:flex;gap:10px;padding:10px;background:#F8FAFC;border-radius:8px;border-left:3px solid '+eventColor(e.type)+';margin-bottom:6px;cursor:pointer" '+click+'>'
+    : agStatusBadge(st);
+  var accent = isEvt ? eventColor(e.type) : agStatusMeta(st).color;
+  var canc = (!isEvt && st==='cancelada');
+  var click = isEvt?'onclick="setView(\'eventos\')"':'onclick="modalEvent(\''+e.id+'\')"';
+  var actions='';
+  if(!isEvt){
+    var b=function(s,l){ return '<button title="'+l+'" onclick="event.stopPropagation();setEventStatus(\''+e.id+'\',\''+s+'\')" style="display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);background:#fff;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;color:'+agStatusMeta(s).color+';cursor:pointer">'+agStatusIconSvg(s,12)+l+'</button>'; };
+    actions='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px" onclick="event.stopPropagation()">'
+      +(st!=='cumprida'?b('cumprida','Cumprida'):'')
+      +b('reagendada','Reagendar')
+      +(st!=='cancelada'?b('cancelada','Cancelar'):'')
+      +(st!=='agendado'?'<button title="Reabrir" onclick="event.stopPropagation();setEventStatus(\''+e.id+'\',\'agendado\')" style="border:1px solid var(--border);background:#fff;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer">Reabrir</button>':'')
+    +'</div>';
+  }
+  return '<div style="display:flex;gap:10px;padding:10px;background:#F8FAFC;border-radius:8px;border-left:3px solid '+accent+';margin-bottom:6px;cursor:pointer'+(canc?';opacity:.6':'')+'" '+click+'>'
     +'<div style="min-width:70px;font-size:12px;font-weight:700;color:var(--ink)">'+(rel?'<span style="color:var(--brand-2)">'+rel+'</span><br>':'')+fmtDate(e.date,true)+'<br><span style="color:var(--muted);font-weight:600">'+(e.time||'—')+'</span></div>'
-    +'<div style="flex:1;min-width:0"><div style="font-weight:700">'+esc(e.title)+'</div><div style="font-size:11px;color:var(--muted)">'+esc(e.location||'sem local')+'</div><div style="margin-top:4px">'+badge+'</div></div>'
+    +'<div style="flex:1;min-width:0"><div style="font-weight:700'+(canc?';text-decoration:line-through':'')+'">'+esc(e.title)+'</div><div style="font-size:11px;color:var(--muted)">'+esc(e.location||'sem local')+'</div><div style="margin-top:4px">'+badge+'</div>'+actions+'</div>'
   +'</div>';
 }
 async function renderAgenda(){
@@ -6684,14 +6730,23 @@ async function renderAgenda(){
   var chips=[['hoje','Hoje'],['amanha','Amanhã'],['semana','Semana'],['mes','Mês'],['todos','Todos']];
   var chipHtml=chips.map(function(c){ var n=agendaCount(items,c[0]); return '<button onclick="setAgendaFilter(\''+c[0]+'\')" style="padding:8px 14px;border-radius:9px;border:1px solid var(--border);font-weight:700;font-size:13px;cursor:pointer;background:'+(filter===c[0]?'var(--brand)':'#fff')+';color:'+(filter===c[0]?'#fff':'var(--ink-2)')+'">'+c[1]+' <span style="opacity:.7">('+n+')</span></button>'; }).join('');
   var list=agendaInRange(items,filter);
-  var rangeLbl={hoje:'Hoje',amanha:'Amanhã',semana:'Esta semana (dom → sáb)',mes:'Este mês',todos:'Todos os compromissos'}[filter];
-  var listHtml=list.length? list.map(agendaRow).join('') : '<div style="text-align:center;padding:26px;color:var(--muted);font-size:13px">Nenhum compromisso neste período.<br><button class="btn-primary" style="margin-top:10px" onclick="modalEvent()">+ Adicionar</button></div>';
+  var scount={agendado:0,cumprida:0,reagendada:0,cancelada:0};
+  list.forEach(function(x){ if(x.source==='agenda'){ var s=x.status||'agendado'; scount[s]=(scount[s]||0)+1; } });
+  var sfilter=window._agendaStatus||'';
+  var listF = sfilter? list.filter(function(x){ return x.source==='agenda' && (x.status||'agendado')===sfilter; }) : list;
+  var statusChips='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'
+    + ['agendado','cumprida','reagendada','cancelada'].map(function(s){ var m=agStatusMeta(s); var on=sfilter===s;
+        return '<button onclick="setAgendaStatus(\''+s+'\')" style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:9px;border:1px solid '+(on?m.color:'var(--border)')+';background:'+(on?m.color+'1A':'#fff')+';color:'+m.color+';font-weight:800;font-size:12px;cursor:pointer">'+agStatusIconSvg(s,12)+m.lbl+' <span style="opacity:.75">('+(scount[s]||0)+')</span></button>'; }).join('')
+  +'</div>';
+  var rangeLbl=({hoje:'Hoje',amanha:'Amanhã',semana:'Esta semana (dom → sáb)',mes:'Este mês',todos:'Todos os compromissos'}[filter])+(sfilter?' · '+agStatusMeta(sfilter).lbl:'');
+  var listHtml=listF.length? listF.map(agendaRow).join('') : '<div style="text-align:center;padding:26px;color:var(--muted);font-size:13px">Nenhum compromisso neste período.<br><button class="btn-primary" style="margin-top:10px" onclick="modalEvent()">+ Adicionar</button></div>';
   var html='<div class="page-head"><div><h2>Agenda do Candidato</h2><div class="sub">'+monthName+' '+year+' · '+items.length+' compromissos (agenda + eventos QR)</div></div>'
     +'<div style="display:flex;gap:8px"><button class="btn-ghost" onclick="agendaPrint()"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg> Relatório</button><button class="btn-primary" onclick="modalEvent()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Compromisso</button></div></div>';
-  html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+chipHtml+'</div>';
+  html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'+chipHtml+'</div>';
+  html+=statusChips;
   html+='<div class="grid-2-1">';
   html+='<div class="calendar"><div class="cal-head"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div><div class="cal-grid">'+cal+'</div></div>';
-  html+='<div class="card"><div class="card-head"><div><div class="card-title">'+rangeLbl+'</div><div class="card-sub">'+list.length+' compromisso(s)</div></div></div><div id="agenda-list">'+listHtml+'</div></div>';
+  html+='<div class="card"><div class="card-head"><div><div class="card-title">'+rangeLbl+'</div><div class="card-sub">'+listF.length+' compromisso(s)</div></div></div><div id="agenda-list">'+listHtml+'</div></div>';
   html+='</div>';
   html+='<div class="notice" style="margin-top:12px">🟢 Os eventos com QR aparecem aqui automaticamente. Os compromissos internos (mídia, reuniões, pessoal) você cria no botão <strong>Compromisso</strong>.</div>';
   host.innerHTML=html;
@@ -10734,6 +10789,10 @@ window.modalEvent = function(id){
     +'<label>Local</label><input id="me-loc" value="'+esc(e.location||'')+'">'
     +'<label>Tipo</label><select id="me-type"><option value="publico"'+(e.type==='publico'||!e.type?' selected':'')+'>Público</option><option value="midia"'+(e.type==='midia'?' selected':'')+'>Mídia</option><option value="interno"'+(e.type==='interno'?' selected':'')+'>Interno</option><option value="pessoal"'+(e.type==='pessoal'?' selected':'')+'>Pessoal</option></select>'
     +'<label>Descrição</label><textarea id="me-desc">'+esc(e.description||'')+'</textarea>'
+    +(id?('<label>Situação <span style="text-transform:none;font-weight:500;color:var(--muted)">(avisa os e-mails cadastrados)</span></label><div style="display:flex;gap:6px;flex-wrap:wrap">'
+        + ['cumprida','reagendada','cancelada','agendado'].map(function(s){ var m=agStatusMeta(s); var on=(e.status||'agendado')===s;
+            return '<button type="button" onclick="setEventStatus(\''+id+'\',\''+s+'\');closeModal()" style="display:inline-flex;align-items:center;gap:5px;border:1px solid '+(on?m.color:'var(--border)')+';background:'+(on?m.color+'1A':'#fff')+';color:'+m.color+';border-radius:8px;padding:7px 11px;font-size:12px;font-weight:700;cursor:pointer">'+agStatusIconSvg(s,13)+m.lbl+'</button>'; }).join('')
+        +'</div>'):'')
     +'<div class="actions">'+(id?'<button class="btn-danger" onclick="rmEvent(\''+id+'\');closeModal()">Mover p/ lixeira</button>':'')+'<button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="saveEvent(\''+(id||'')+'\')">Salvar</button></div>',
     id?'event-'+id:'event-new');
 };
@@ -10745,7 +10804,7 @@ window.saveEvent = function(id){
   var data = {title:title,date:date,time:$('me-time').value,location:$('me-loc').value.trim(),type:$('me-type').value,description:$('me-desc').value.trim()};
   var savedId=id;
   if(id){var idx = state.events.findIndex(function(e){return e.id===id});state.events[idx] = Object.assign(state.events[idx],data); logAction('edit','event',state.events[idx]); clearDraft('event-'+id);}
-  else { var newItem = Object.assign({id:genId(),createdAt:Date.now()},data); state.events.push(newItem); savedId=newItem.id; logAction('create','event',newItem); clearDraft('event-new'); }
+  else { var newItem = Object.assign({id:genId(),createdAt:Date.now(),status:'agendado'},data); state.events.push(newItem); savedId=newItem.id; logAction('create','event',newItem); clearDraft('event-new'); }
   // Espelha no banco para o agendador de lembretes (10/6/4/2h antes) enxergar
   try{ if(window._mobCandId && window.MOB_RPC){ window.MOB_RPC('mob_agenda_upsert',{p_candidate:window._mobCandId,p_ext_id:savedId,p_title:data.title,p_date:data.date,p_time:data.time||null,p_location:data.location||null,p_type:data.type||'publico',p_description:data.description||null}).catch(function(){}); } }catch(e){}
   saveState(); closeModal(); renderAgenda(); toast('Salvo');
