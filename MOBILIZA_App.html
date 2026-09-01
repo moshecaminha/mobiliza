@@ -4407,7 +4407,7 @@ function initStateMap(){
   var urlPop  = 'https://servicodados.ibge.gov.br/api/v3/agregados/6579/periodos/-1/variaveis/9324?localidades=N6[N3['+codeUF+']]';
   var _sig = function(ms){ try{ return (typeof AbortSignal!=='undefined' && AbortSignal.timeout) ? AbortSignal.timeout(ms) : undefined; }catch(e){ return undefined; } };
   Promise.all([
-    fetch(urlGeo, {signal:_sig(12000)}).then(function(r){ return r.ok?r.json():null; }).catch(function(){return null;}),
+    fetch(urlGeo, {signal:_sig(22000)}).then(function(r){ return r.ok?r.json():null; }).catch(function(){return null;}),
     fetch(urlMuns, {signal:_sig(12000)}).then(function(r){ return r.ok?r.json():null; }).catch(function(){return null;}),
     fetch(urlPop, {signal:_sig(12000)}).then(function(r){ if(!r.ok) return null; return r.json(); }).catch(function(){return null;})
   ]).then(function(results){
@@ -4434,8 +4434,10 @@ function initStateMap(){
         });
       }
     } catch(e){ console.warn('Falha ao processar população IBGE:', e); }
-    _stateMapCache[uf] = { geo: geo, names: names, mesos: mesos, populations: populations };
-    renderStateGeo(_stateMapCache[uf], m);
+    // Só cacheia quando a malha veio de fato — assim uma falha transitória do IBGE não fica "presa" mostrando só pinos
+    var _pkg = { geo: geo, names: names, mesos: mesos, populations: populations };
+    if(geo && geo.features){ _stateMapCache[uf] = _pkg; }
+    renderStateGeo(_pkg, m);
   }).catch(function(err){
     var loading2 = document.getElementById('map-loading');
     if(loading2) loading2.innerHTML = '<div style="color:var(--coral)">Falha ao carregar mapa IBGE: '+esc(err.message)+'</div>';
@@ -6827,13 +6829,16 @@ window.surveyShare=function(id){
     +'<label style="margin-top:12px">Link da pesquisa</label><input id="sv-url" value="'+esc(url)+'" readonly onclick="this.select()">'
     +'<div class="actions"><button class="btn-ghost" onclick="try{navigator.clipboard.writeText(document.getElementById(\'sv-url\').value);toast(\'Link copiado\')}catch(e){}">Copiar link</button><a class="btn-ghost" style="text-decoration:none" href="'+qr+'&download=1" download="pesquisa-qr.png">Baixar QR</a><button class="btn-primary" onclick="closeModal()">Fechar</button></div>','svshare');
 };
-window.surveyNew=function(){ window._surveyEdit={id:null,name:'',city:(state.election&&state.election.city)||'',periodicity:'Semanal',target:'',questions:[{id:'q'+Date.now(),type:'unica',enabled:true,title:'',options:[]}]}; renderSurveyEditor(); };
-window.surveyEdit=function(id){ var s=(window._surveys||[]).find(function(x){return x.id===id;}); if(!s)return; window._surveyEdit=JSON.parse(JSON.stringify({id:s.id,name:s.name,city:s.city,periodicity:s.periodicity,target:s.target,questions:s.questions||[]})); renderSurveyEditor(); };
+window.surveyNew=function(){ window._surveyEdit={id:null,name:'',city:(state.election&&state.election.city)||'',periodicity:'Semanal',target:'',identify:true,identify_label:'WhatsApp (com DDD)',questions:[{id:'q'+Date.now(),type:'unica',enabled:true,title:'',options:[]}]}; renderSurveyEditor(); };
+window.surveyEdit=function(id){ var s=(window._surveys||[]).find(function(x){return x.id===id;}); if(!s)return; window._surveyEdit=JSON.parse(JSON.stringify({id:s.id,name:s.name,city:s.city,periodicity:s.periodicity,target:s.target,identify:s.identify!==false,identify_label:s.identify_label||'WhatsApp (com DDD)',questions:s.questions||[]})); renderSurveyEditor(); };
 function renderSurveyEditor(){
   var host=document.getElementById('view-pesquisa'); var s=window._surveyEdit;
   var h='<div class="page-head"><div><h2>'+(s.id?'Editar':'Nova')+' pesquisa</h2><div class="sub">Marque quais perguntas entram; edite enunciados e opções.</div></div><div style="display:flex;gap:8px"><button class="btn-ghost" onclick="renderPesquisa()">Voltar</button><button class="btn-primary" onclick="surveySave()">Salvar</button></div></div>';
   h+='<div class="card"><div class="form-row"><div><label>Nome da pesquisa</label><input id="sv-name" value="'+esc(s.name||'')+'" placeholder="TRACKING – NOME 0000"></div><div><label>Município</label><input id="sv-city" value="'+esc(s.city||'')+'"></div></div>'
-    +'<div class="form-row"><div><label>Periodicidade</label><input id="sv-per" value="'+esc(s.periodicity||'')+'" placeholder="Semanal"></div><div><label>Meta de entrevistas</label><input id="sv-target" type="number" value="'+esc(s.target||'')+'"></div></div></div>';
+    +'<div class="form-row"><div><label>Periodicidade</label><input id="sv-per" value="'+esc(s.periodicity||'')+'" placeholder="Semanal"></div><div><label>Meta de entrevistas</label><input id="sv-target" type="number" value="'+esc(s.target||'')+'"></div></div>'
+    +'<div style="margin-top:6px;padding:10px 12px;background:var(--soft);border-radius:10px"><label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;font-weight:700;color:var(--ink);margin:0"><input type="checkbox" id="sv-identify" '+(s.identify!==false?'checked':'')+' style="width:auto"> Exigir identificação (evita respostas duplicadas)</label>'
+    +'<div class="sub" style="margin:6px 0 8px">Cada pessoa responde uma vez. O sistema reconhece pelo dado abaixo (ex.: WhatsApp) e bloqueia repetição.</div>'
+    +'<label style="text-transform:none;font-size:12px">Rótulo do campo de identificação</label><input id="sv-identify-label" value="'+esc(s.identify_label||'WhatsApp (com DDD)')+'" placeholder="WhatsApp (com DDD)"></div></div>';
   h+='<div id="sv-qs">'; (s.questions||[]).forEach(function(q,i){ h+=surveyQEditor(q,i); }); h+='</div>';
   h+='<button class="btn-ghost" onclick="surveyAddQ()" style="margin-top:6px"><svg class="icon" width="13" height="13"><use href="#i-plus"/></svg> Adicionar pergunta</button>';
   host.innerHTML=h;
@@ -6855,6 +6860,8 @@ function syncEditorFromDom(){
   var s=window._surveyEdit; if(!document.getElementById('sv-name')) return;
   s.name=document.getElementById('sv-name').value; s.city=document.getElementById('sv-city').value;
   s.periodicity=document.getElementById('sv-per').value; s.target=document.getElementById('sv-target').value;
+  var ci=document.getElementById('sv-identify'); if(ci) s.identify=ci.checked;
+  var cl=document.getElementById('sv-identify-label'); if(cl) s.identify_label=cl.value;
   document.querySelectorAll('#sv-qs [data-qi]').forEach(function(row){ var i=+row.getAttribute('data-qi'); var q=s.questions[i]; if(!q)return;
     q.enabled=row.querySelector('.svq-en').checked; q.type=row.querySelector('.svq-type').value;
     q.title=row.querySelector('.svq-title').value; q.help=row.querySelector('.svq-help').value; q.image=row.querySelector('.svq-img').value;
@@ -6868,7 +6875,7 @@ window.surveySave=async function(){
   syncEditorFromDom(); var s=window._surveyEdit;
   if(!s.name||!s.name.trim()){ toast('Dê um nome à pesquisa','warn'); return; }
   s.questions.forEach(function(q,i){ if(!q.id)q.id='q'+i; q.ord=i+1; });
-  try{ var r=await window.MOB_RPC('mob_survey_save',{p_candidate:window._mobCandId,p_id:s.id,p_data:{name:s.name,city:s.city,periodicity:s.periodicity,target:s.target,questions:s.questions}});
+  try{ var r=await window.MOB_RPC('mob_survey_save',{p_candidate:window._mobCandId,p_id:s.id,p_data:{name:s.name,city:s.city,periodicity:s.periodicity,target:s.target,identify:s.identify!==false,identify_label:(s.identify_label||'WhatsApp (com DDD)'),questions:s.questions}});
     if(r&&r.ok){ toast('Pesquisa salva'); renderPesquisa(); } else toast((r&&r.error)||'Erro','err');
   }catch(e){ toast(e.message||'Erro','err'); }
 };
@@ -6883,27 +6890,68 @@ async function surveyReportLoad(){
   if(window._svPoll) clearInterval(window._svPoll);
   window._svPoll=setInterval(function(){ var v=document.getElementById('view-pesquisa'); if(v&&v.classList.contains('active')&&window._surveyReportId===id){ window.MOB_RPC('mob_survey_report',{p_candidate:window._mobCandId,p_id:id}).then(function(rr){ if(rr&&rr.ok) surveyReportDraw(rr); }).catch(function(){}); } else { clearInterval(window._svPoll); window._svPoll=null; } },15000);
 }
+var SV_PALETTE=['#0E7C59','#2563EB','#D97706','#DC2626','#7C3AED','#0891B2','#DB2777','#65A30D','#EA580C','#4F46E5','#059669','#9333EA'];
+function svDonut(items,base){
+  // items: [{label,count,color}]
+  var size=150,cx=75,cy=75,r=58,sw=26,C=2*Math.PI*r,off=0;
+  var segs='';
+  items.forEach(function(it){ if(!it.count)return; var frac=it.count/base; var len=frac*C;
+    segs+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+it.color+'" stroke-width="'+sw+'" stroke-dasharray="'+len.toFixed(2)+' '+(C-len).toFixed(2)+'" stroke-dashoffset="'+(-off).toFixed(2)+'" transform="rotate(-90 '+cx+' '+cy+')"></circle>';
+    off+=len; });
+  var svg='<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'" style="flex:0 0 auto">'
+    +'<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="var(--soft)" stroke-width="'+sw+'"></circle>'+segs
+    +'<text x="'+cx+'" y="'+(cy-3)+'" text-anchor="middle" font-size="26" font-weight="800" fill="var(--ink)">'+base+'</text>'
+    +'<text x="'+cx+'" y="'+(cy+15)+'" text-anchor="middle" font-size="10" fill="var(--muted)">respostas</text></svg>';
+  var leg='<div style="flex:1;min-width:160px">'+items.map(function(it){ var pct=base?Math.round(it.count/base*100):0;
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:13px"><span style="width:11px;height:11px;border-radius:3px;background:'+it.color+';flex:0 0 auto"></span><span style="flex:1">'+esc(it.label)+'</span><strong style="white-space:nowrap">'+it.count+' · '+pct+'%</strong></div>';
+  }).join('')+'</div>';
+  return '<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">'+svg+leg+'</div>';
+}
+function svBars(items,base){
+  return items.map(function(it){ var pct=base?Math.round(it.count/base*100):0;
+    return '<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span>'+esc(it.label)+'</span><strong>'+it.count+' · '+pct+'%</strong></div><div style="height:11px;background:var(--soft);border-radius:20px;overflow:hidden"><i style="display:block;height:100%;width:'+pct+'%;background:'+it.color+'"></i></div></div>';
+  }).join('');
+}
+function svHistogram(vals,maxv){
+  var buckets=[],i; for(i=0;i<=maxv;i++)buckets[i]=0;
+  vals.forEach(function(v){ v=Math.round(v); if(v>=0&&v<=maxv)buckets[v]++; });
+  var peak=Math.max.apply(null,buckets.concat([1]));
+  var W=Math.max(260,(maxv+1)*30), H=120, bw=W/(maxv+1);
+  var bars=buckets.map(function(c,idx){ var bh=peak?(c/peak)*88:0; var x=idx*bw+bw*0.16, w=bw*0.68, y=H-18-bh;
+    var col=idx<=(maxv*0.4)?'#DC2626':(idx<=(maxv*0.7)?'#D97706':'#0E7C59');
+    return '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="3" fill="'+col+'"></rect>'
+      +(c?'<text x="'+(idx*bw+bw/2).toFixed(1)+'" y="'+(y-3).toFixed(1)+'" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink-2)">'+c+'</text>':'')
+      +'<text x="'+(idx*bw+bw/2).toFixed(1)+'" y="'+(H-4)+'" text-anchor="middle" font-size="10" fill="var(--muted)">'+idx+'</text>';
+  }).join('');
+  return '<svg width="100%" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" style="max-width:'+W+'px">'+bars+'</svg>';
+}
 function surveyReportDraw(r){
   var host=document.getElementById('view-pesquisa'); var qs=r.questions||[]; var resp=r.responses||[]; var total=r.total||0;
   var h='<div class="page-head"><div><h2>'+esc(r.name||'Relatório')+'</h2><div class="sub">'+total+' resposta(s) · atualiza sozinho a cada 15s</div></div><div style="display:flex;gap:8px"><button class="btn-ghost" onclick="renderPesquisa()">Voltar</button><button class="btn-ghost" onclick="surveyReportLoad()"><svg class="icon" width="13" height="13"><use href="#i-refresh"/></svg> Atualizar</button></div></div>';
-  h+='<div class="kpi-grid" style="margin-bottom:14px"><div class="kpi"><div class="ic"><svg class="icon" width="18" height="18"><use href="#i-users"/></svg></div><div class="lbl">Respostas</div><div class="v">'+total+'</div></div></div>';
+  h+='<div class="kpi-grid" style="margin-bottom:14px"><div class="kpi"><div class="ic"><svg class="icon" width="18" height="18"><use href="#i-users"/></svg></div><div class="lbl">Respostas válidas</div><div class="v">'+total+'</div></div></div>';
   qs.forEach(function(q){
     if(q.enabled===false) return;
-    h+='<div class="card"><div style="font-weight:800;margin-bottom:10px">'+esc(q.title||'')+'</div>';
+    h+='<div class="card"><div style="font-weight:800;margin-bottom:12px">'+esc(q.title||'')+'</div>';
     if(q.type==='aberta'){
-      var texts=resp.map(function(x){return x.a&&x.a[q.id];}).filter(function(t){return t&&String(t).trim();}).slice(0,40);
-      h+= texts.length? texts.map(function(t){return '<div style="padding:8px 10px;background:var(--soft);border-radius:8px;margin-bottom:5px;font-size:13px">'+esc(t)+'</div>';}).join('') : '<div class="sub">Sem respostas ainda.</div>';
+      var texts=resp.map(function(x){return x.a&&x.a[q.id];}).filter(function(t){return t&&String(t).trim();}).slice(0,60);
+      h+= texts.length? '<div class="sub" style="margin-bottom:8px">'+texts.length+' resposta(s) de texto</div>'+texts.map(function(t){return '<div style="padding:8px 10px;background:var(--soft);border-radius:8px;margin-bottom:5px;font-size:13px">'+esc(t)+'</div>';}).join('') : '<div class="sub">Sem respostas ainda.</div>';
     } else if(q.type==='escala'){
       var vals=resp.map(function(x){return x.a&&x.a[q.id];}).filter(function(v){return typeof v==='number';});
+      var maxv=(q.max!=null?q.max:10);
       var avg=vals.length?(vals.reduce(function(a,b){return a+b;},0)/vals.length):0;
-      h+='<div style="font-size:32px;font-weight:800;color:var(--brand-2)">'+avg.toFixed(1).replace('.',',')+'<span style="font-size:14px;color:var(--muted)"> / '+(q.max!=null?q.max:10)+' de média</span></div><div class="sub">'+vals.length+' respostas</div>';
+      if(!vals.length){ h+='<div class="sub">Sem respostas ainda.</div>'; }
+      else{
+        h+='<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px"><div style="font-size:34px;font-weight:800;color:var(--brand-2)">'+avg.toFixed(1).replace('.',',')+'</div><div style="font-size:14px;color:var(--muted)">/ '+maxv+' de média · '+vals.length+' respostas</div></div>';
+        h+=svHistogram(vals,maxv);
+      }
     } else {
       var counts={}, base=0;
-      resp.forEach(function(x){ var a=x.a&&x.a[q.id]; if(a==null)return; base++; var arr=Array.isArray(a)?a:[a]; arr.forEach(function(v){ counts[v]=(counts[v]||0)+1; }); });
+      resp.forEach(function(x){ var a=x.a&&x.a[q.id]; if(a==null||a==='')return; base++; var arr=Array.isArray(a)?a:[a]; arr.forEach(function(v){ counts[v]=(counts[v]||0)+1; }); });
       var opts=(q.options||[]).slice(); Object.keys(counts).forEach(function(k){ if(opts.indexOf(k)<0)opts.push(k); });
+      var items=opts.map(function(op,idx){ return {label:op,count:counts[op]||0,color:SV_PALETTE[idx%SV_PALETTE.length]}; });
       if(!base) h+='<div class="sub">Sem respostas ainda.</div>';
-      else opts.forEach(function(op){ var c=counts[op]||0; var pct=base?Math.round(c/base*100):0;
-        h+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span>'+esc(op)+'</span><strong>'+c+' · '+pct+'%</strong></div><div style="height:9px;background:var(--soft);border-radius:20px;overflow:hidden"><i style="display:block;height:100%;width:'+pct+'%;background:var(--brand)"></i></div></div>'; });
+      else if(q.type==='multi') h+=svBars(items,base);
+      else h+=svDonut(items,base);
     }
     h+='</div>';
   });

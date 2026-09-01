@@ -92,6 +92,10 @@ function render(){
     +'<div class="sv">'+esc(SV.name||'Pesquisa')+(SV.city?' · '+esc(SV.city):'')+'</div>'
     +'<div class="prog"><i id="prog-bar"></i></div></div>';
   h+='<div class="body" id="qbody">';
+  if(SV.identify){
+    h+='<div class="q" style="border:1.5px solid var(--brand);background:rgba(14,124,89,.04)"><div class="qn">Identificação</div><div class="qt">'+esc(SV.identify_label||'WhatsApp (com DDD)')+'</div><div class="qh">Usado só para evitar respostas duplicadas.</div>'
+      +'<input type="tel" inputmode="tel" id="ident-key" placeholder="(81) 90000-0000" value="'+esc(ANS._key||'')+'"><div id="ident-err" class="err" style="text-align:left"></div></div>';
+  }
   QS.forEach(function(q,i){
     h+='<div class="q" id="q-'+esc(q.id)+'"><div class="qn">Pergunta '+(i+1)+' de '+QS.length+'</div><div class="qt">'+esc(q.title||'')+'</div>'
       + (q.help?'<div class="qh">'+esc(q.help)+'</div>':'')
@@ -125,13 +129,25 @@ function answered(q){ var a=ANS[q.id]; if(q.type==='multi') return a&&a.length; 
 function updateProg(){ var done=QS.filter(answered).length; var pct=QS.length?Math.round(done/QS.length*100):0; var b=$('prog-bar'); if(b)b.style.width=pct+'%'; }
 
 async function submit(){
+  var key='';
+  if(SV.identify){ var ik=$('ident-key'); key=((ik&&ik.value)||'').trim();
+    if(!key){ var er=$('ident-err'); if(er)er.textContent='Informe '+(SV.identify_label||'a identificação')+'.'; if(ik)ik.focus(); return; } }
   var done=QS.filter(answered).length;
   if(done===0){ alert('Responda ao menos uma pergunta.'); return; }
   var btn=$('send'); btn.disabled=true; btn.innerHTML='<svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.2-8.5"/></svg>Enviando…';
-  try{ var r=await rpc('mob_survey_submit',{p_token:TOKEN,p_answers:ANS});
-    if(r&&r.ok){ done_screen(); } else { btn.disabled=false; btn.textContent='Enviar respostas'; alert((r&&r.error)||'Erro ao enviar.'); }
+  try{ var r=await rpc('mob_survey_submit',{p_token:TOKEN,p_answers:ANS,p_key:key||null});
+    if(r&&r.ok){ done_screen(); }
+    else if(r&&r.duplicate){ dupe_screen(); }
+    else { btn.disabled=false; btn.textContent='Enviar respostas'; alert((r&&r.error)||'Erro ao enviar.'); }
   }catch(e){ btn.disabled=false; btn.textContent='Enviar respostas'; alert(e.message||'Erro ao enviar.'); }
 }
+function dupe_screen(){
+  $('wrap').innerHTML='<div class="center"><div class="okic" style="background:linear-gradient(135deg,#D97706,#92400E)"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg></div>'
+    +'<h2 style="font-size:21px;margin-bottom:8px">Esta pessoa já respondeu</h2>'
+    +'<div class="muted">Já existe uma resposta para essa identificação nesta pesquisa. Cada pessoa responde uma vez.</div>'
+    +'<button class="btn" style="margin-top:22px;max-width:240px" onclick="location.reload()">Nova entrevista</button></div>';
+}
+window.dupe_screen=dupe_screen;
 
 function done_screen(){
   $('wrap').innerHTML='<div class="center"><div class="okic"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>'
