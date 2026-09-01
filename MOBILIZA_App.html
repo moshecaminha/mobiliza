@@ -10805,8 +10805,11 @@ window.saveEvent = function(id){
   var savedId=id;
   if(id){var idx = state.events.findIndex(function(e){return e.id===id});state.events[idx] = Object.assign(state.events[idx],data); logAction('edit','event',state.events[idx]); clearDraft('event-'+id);}
   else { var newItem = Object.assign({id:genId(),createdAt:Date.now(),status:'agendado'},data); state.events.push(newItem); savedId=newItem.id; logAction('create','event',newItem); clearDraft('event-new'); }
-  // Espelha no banco para o agendador de lembretes (10/6/4/2h antes) enxergar
-  try{ if(window._mobCandId && window.MOB_RPC){ window.MOB_RPC('mob_agenda_upsert',{p_candidate:window._mobCandId,p_ext_id:savedId,p_title:data.title,p_date:data.date,p_time:data.time||null,p_location:data.location||null,p_type:data.type||'publico',p_description:data.description||null}).catch(function(){}); } }catch(e){}
+  // Espelha no banco para o agendador de lembretes; se for NOVO, também avisa os e-mails cadastrados
+  try{ if(window._mobCandId && window.MOB_RPC){
+    if(!id){ window.MOB_RPC('mob_agenda_set_status',{p_candidate:window._mobCandId,p_ext_id:savedId,p_status:'novo',p_title:data.title,p_date:data.date,p_time:data.time||null,p_location:data.location||null}).catch(function(){}); }
+    else { window.MOB_RPC('mob_agenda_upsert',{p_candidate:window._mobCandId,p_ext_id:savedId,p_title:data.title,p_date:data.date,p_time:data.time||null,p_location:data.location||null,p_type:data.type||'publico',p_description:data.description||null}).catch(function(){}); }
+  } }catch(e){}
   saveState(); closeModal(); renderAgenda(); toast('Salvo');
 };
 window.rmEvent = function(id){ if(!confirm('Mover para lixeira?'))return; var item=softDelete(state.events,id); logAction('delete','event',item); try{ if(window._mobCandId && window.MOB_RPC) window.MOB_RPC('mob_agenda_delete',{p_candidate:window._mobCandId,p_ext_id:id}).catch(function(){}); }catch(e){} saveState(); renderAgenda(); toast('Movido para lixeira'); };
