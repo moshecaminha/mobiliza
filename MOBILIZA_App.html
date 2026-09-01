@@ -867,6 +867,7 @@ input,select,textarea{font-family:inherit;outline:none;color:var(--ink)}
       <div class="nav-item" data-view="votos" onclick="setView('votos')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-calc"/></svg>Projeção<kbd class="nav-kbd">6</kbd></div>
       <div class="nav-item" data-view="agenda" onclick="setView('agenda')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-calendar"/></svg>Agenda<kbd class="nav-kbd">7</kbd></div>
       <div class="nav-item" data-view="eventos" onclick="setView('eventos')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-hashtag"/></svg>Eventos & QR<kbd class="nav-kbd">V</kbd></div>
+      <div class="nav-item" data-view="pesquisa" onclick="setView('pesquisa')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-target"/></svg>Pesquisa<kbd class="nav-kbd">P</kbd></div>
       <div class="nav-item" data-view="leads" onclick="setView('leads')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-users"/></svg>Leads<kbd class="nav-kbd">B</kbd></div>
       <div class="nav-item" data-view="whatsapp" onclick="setView('whatsapp')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-message"/></svg>Comunicação<kbd class="nav-kbd">8</kbd></div>
       <div class="nav-item" data-view="conversas" onclick="setView('conversas')"><svg class="nav-ic icon" width="18" height="18"><use href="#i-message"/></svg>Conversas<kbd class="nav-kbd">C</kbd></div>
@@ -945,6 +946,7 @@ input,select,textarea{font-family:inherit;outline:none;color:var(--ink)}
       <div class="view" id="view-votos"></div>
       <div class="view" id="view-agenda"></div>
       <div class="view" id="view-eventos"></div>
+      <div class="view" id="view-pesquisa"></div>
       <div class="view" id="view-leads"></div>
       <div class="view" id="view-whatsapp"></div>
       <div class="view" id="view-conversas"></div>
@@ -983,7 +985,7 @@ input,select,textarea{font-family:inherit;outline:none;color:var(--ink)}
 </div>
 
 <!-- MODAL -->
-<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
+<div class="modal-bg" id="modal-bg">
   <div class="modal" id="modal-content"></div>
 </div>
 
@@ -2745,6 +2747,7 @@ function renderView(v){
   else if(v==='votos') renderVotos();
   else if(v==='agenda') renderAgenda();
   else if(v==='eventos') renderEventos();
+  else if(v==='pesquisa') renderPesquisa();
   else if(v==='leads') renderLeads();
   else if(v==='conversas') renderConversas();
   else if(v==='whatsapp') renderWhatsapp();
@@ -6420,6 +6423,15 @@ function renderMilitancia(){
   var candCargo = state.election.position||'Candidato(a)';
 
   var html = '<div class="page-head"><div><h2>Equipe da Campanha</h2><div class="sub">'+(leaders.length+militants.length+1)+' pessoas no total <span id="sync-status" style="margin-left:10px;font-size:11px;color:var(--muted)"></span></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="syncFromServer(true)" title="Puxar cadastros feitos via QR code"><svg class="icon" width="14" height="14"><use href="#i-refresh"/></svg>Sincronizar</button><button class="btn-ghost" onclick="importContacts(\'equipe\')"><svg class="icon" width="14" height="14"><use href="#i-upload"/></svg> Importar equipe</button><button class="btn-ghost" onclick="mobDedupTeam()" title="Remover cadastros duplicados (mesmo número)"><svg class="icon" width="14" height="14"><use href="#i-trash"/></svg> Remover duplicados</button><button class="btn-ghost" onclick="modalMilitant()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Militante</button><button class="btn-primary" onclick="modalLeader()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Liderança</button></div></div>';
+  html += '<details style="margin-bottom:14px;border:1px solid var(--border);border-radius:10px;background:var(--soft-2);padding:0 14px">'
+    +'<summary style="cursor:pointer;padding:11px 0;font-weight:700;font-size:13px;color:var(--ink-2);display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0B7A54" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Como cadastrar e evoluir a equipe (toque para abrir)</summary>'
+    +'<div style="padding:2px 0 14px;font-size:12.5px;color:var(--ink-2);line-height:1.75">'
+      +'<strong>1. Cadastrar:</strong> use <b>+ Liderança</b> (cabos, coordenadores, vereadores) ou <b>+ Militante</b> (base). Informe nome, WhatsApp e bairro/cidade — mapa e projeções atualizam sozinhos.<br>'
+      +'<strong>2. Vindo do QR:</strong> quem se cadastra pelo QR de uma liderança entra como <b>militante</b> dela. Clique em <b>Sincronizar</b> para puxar esses cadastros.<br>'
+      +'<strong>3. Transformar um Lead:</strong> em <b>Leads</b>, no lead desejado, clique em <b>Promover</b> e escolha o papel (militante, cabo, liderança, coordenador…). Ele sai dos Leads e entra na Equipe já classificado.<br>'
+      +'<strong>4. Mudar papel depois:</strong> abra a pessoa e edite o <b>papel/perfil</b> (militante → cabo → liderança). A hierarquia recalcula os votos estimados.<br>'
+      +'<span style="color:var(--muted)">Cabo e liderança têm metas de contato; militante é a base que recebe convites e notícias.</span>'
+    +'</div></details>';
   // Ordenação + busca por nome (valem para todas as seções abaixo)
   var _ts = window._teamSort||'votos';
   var _sortBtn = function(k,l){ return '<button onclick="setTeamSort(\''+k+'\')" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:'+(_ts===k?'var(--brand)':'#fff')+';color:'+(_ts===k?'#fff':'var(--muted)')+'">'+l+'</button>'; };
@@ -6778,6 +6790,125 @@ async function dashLoadWeek(){
 }
 window.dashLoadWeek = dashLoadWeek;
 
+// ================= PESQUISA (tracking eleitoral) =================
+window._surveys = []; window._surveyEdit = null; window._surveyReportId = null;
+window.renderPesquisa = async function(){
+  var host=document.getElementById('view-pesquisa'); if(!host) return;
+  if(!window._mobCandId || !window.MOB_RPC){ host.innerHTML='<div class="page-head"><div><h2>Pesquisa</h2><div class="sub">Faça login para gerenciar as pesquisas.</div></div></div>'; return; }
+  host.innerHTML='<div class="page-head"><div><h2>Pesquisa</h2><div class="sub">Carregando…</div></div></div>';
+  try{ window._surveys = await window.MOB_RPC('mob_survey_list',{p_candidate:window._mobCandId}) || []; }
+  catch(e){ host.innerHTML='<div class="page-head"><div><h2>Pesquisa</h2></div></div><div class="card" style="color:var(--coral)">'+esc(e.message)+'</div>'; return; }
+  surveyList();
+};
+function surveyList(){
+  var host=document.getElementById('view-pesquisa'); var list=window._surveys||[];
+  var h='<div class="page-head"><div><h2>Pesquisa</h2><div class="sub">Tracking eleitoral · respostas em tempo real, roda no celular</div></div><div><button class="btn-primary" onclick="surveyNew()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Nova pesquisa</button></div></div>';
+  if(!list.length){ h+='<div class="card" style="text-align:center;padding:30px;color:var(--muted)">Nenhuma pesquisa ainda.<br><button class="btn-primary" style="margin-top:12px" onclick="surveyNew()">+ Criar pesquisa</button></div>'; host.innerHTML=h; return; }
+  list.forEach(function(s){
+    var en=(s.questions||[]).filter(function(q){return q.enabled!==false;}).length;
+    h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">'
+      +'<div><div style="font-weight:800;font-size:16px">'+esc(s.name)+'</div><div class="sub">'+(s.city?esc(s.city)+' · ':'')+(s.periodicity?esc(s.periodicity)+' · ':'')+en+' perguntas'+(s.target?' · meta '+s.target:'')+'</div></div>'
+      +'<div style="text-align:right"><div style="font-size:26px;font-weight:800;color:var(--brand-2)">'+(s.responses||0)+'</div><div class="sub">respostas</div></div></div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">'
+        +'<button class="btn-primary" onclick="surveyShare(\''+s.id+'\')"><svg class="icon" width="13" height="13"><use href="#i-hashtag"/></svg> QR e link</button>'
+        +'<button class="btn-ghost" onclick="surveyReport(\''+s.id+'\')"><svg class="icon" width="13" height="13"><use href="#i-trending-up"/></svg> Relatório</button>'
+        +'<button class="btn-ghost" onclick="surveyEdit(\''+s.id+'\')"><svg class="icon" width="13" height="13"><use href="#i-edit"/></svg> Editar</button>'
+        +'<button class="btn-ghost" style="color:#DC2626" onclick="surveyDelete(\''+s.id+'\',\''+esc(s.name).replace(/\x27/g,"")+'\')"><svg class="icon" width="13" height="13"><use href="#i-trash"/></svg> Excluir</button>'
+      +'</div></div>';
+  });
+  host.innerHTML=h;
+}
+window.surveyShare=function(id){
+  var s=(window._surveys||[]).find(function(x){return x.id===id;}); if(!s) return;
+  var url=(location.origin||'')+'/pesquisa.html?p='+encodeURIComponent(s.token);
+  var qr='https://api.qrserver.com/v1/create-qr-code/?size=340x340&margin=12&data='+encodeURIComponent(url);
+  showModalHtml('<h3>Compartilhar pesquisa</h3><div class="sub" style="margin-bottom:10px">'+esc(s.name)+'</div>'
+    +'<div style="text-align:center"><img src="'+qr+'" style="width:230px;max-width:80%;border:1px solid var(--border);border-radius:12px;padding:8px;background:#fff"></div>'
+    +'<label style="margin-top:12px">Link da pesquisa</label><input id="sv-url" value="'+esc(url)+'" readonly onclick="this.select()">'
+    +'<div class="actions"><button class="btn-ghost" onclick="try{navigator.clipboard.writeText(document.getElementById(\'sv-url\').value);toast(\'Link copiado\')}catch(e){}">Copiar link</button><a class="btn-ghost" style="text-decoration:none" href="'+qr+'&download=1" download="pesquisa-qr.png">Baixar QR</a><button class="btn-primary" onclick="closeModal()">Fechar</button></div>','svshare');
+};
+window.surveyNew=function(){ window._surveyEdit={id:null,name:'',city:(state.election&&state.election.city)||'',periodicity:'Semanal',target:'',questions:[{id:'q'+Date.now(),type:'unica',enabled:true,title:'',options:[]}]}; renderSurveyEditor(); };
+window.surveyEdit=function(id){ var s=(window._surveys||[]).find(function(x){return x.id===id;}); if(!s)return; window._surveyEdit=JSON.parse(JSON.stringify({id:s.id,name:s.name,city:s.city,periodicity:s.periodicity,target:s.target,questions:s.questions||[]})); renderSurveyEditor(); };
+function renderSurveyEditor(){
+  var host=document.getElementById('view-pesquisa'); var s=window._surveyEdit;
+  var h='<div class="page-head"><div><h2>'+(s.id?'Editar':'Nova')+' pesquisa</h2><div class="sub">Marque quais perguntas entram; edite enunciados e opções.</div></div><div style="display:flex;gap:8px"><button class="btn-ghost" onclick="renderPesquisa()">Voltar</button><button class="btn-primary" onclick="surveySave()">Salvar</button></div></div>';
+  h+='<div class="card"><div class="form-row"><div><label>Nome da pesquisa</label><input id="sv-name" value="'+esc(s.name||'')+'" placeholder="TRACKING – NOME 0000"></div><div><label>Município</label><input id="sv-city" value="'+esc(s.city||'')+'"></div></div>'
+    +'<div class="form-row"><div><label>Periodicidade</label><input id="sv-per" value="'+esc(s.periodicity||'')+'" placeholder="Semanal"></div><div><label>Meta de entrevistas</label><input id="sv-target" type="number" value="'+esc(s.target||'')+'"></div></div></div>';
+  h+='<div id="sv-qs">'; (s.questions||[]).forEach(function(q,i){ h+=surveyQEditor(q,i); }); h+='</div>';
+  h+='<button class="btn-ghost" onclick="surveyAddQ()" style="margin-top:6px"><svg class="icon" width="13" height="13"><use href="#i-plus"/></svg> Adicionar pergunta</button>';
+  host.innerHTML=h;
+}
+function surveyQEditor(q,i){
+  var types=[['unica','Escolha única'],['multi','Múltipla escolha'],['aberta','Resposta aberta'],['escala','Escala 0–10']];
+  var showOpts=(q.type==='unica'||q.type==='multi'||!q.type);
+  return '<div class="card" style="border-left:3px solid '+(q.enabled!==false?'var(--brand)':'var(--border)')+'" data-qi="'+i+'">'
+    +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:6px;text-transform:none;margin:0;font-size:12px;font-weight:700;color:var(--ink-2)"><input type="checkbox" class="svq-en" '+(q.enabled!==false?'checked':'')+' style="width:auto"> Incluir</label>'
+      +'<select class="svq-type" onchange="surveySyncRerender()" style="max-width:180px">'+types.map(function(t){return '<option value="'+t[0]+'"'+(q.type===t[0]?' selected':'')+'>'+t[1]+'</option>';}).join('')+'</select>'
+      +'<button class="btn-ghost" style="margin-left:auto;color:#DC2626;padding:4px 9px" onclick="surveyRmQ('+i+')" title="Remover"><svg class="icon" width="12" height="12"><use href="#i-trash"/></svg></button></div>'
+    +'<input class="svq-title" style="margin-top:8px" value="'+esc(q.title||'')+'" placeholder="Enunciado da pergunta">'
+    +'<input class="svq-help" style="margin-top:6px;font-size:12px" value="'+esc(q.help||'')+'" placeholder="Texto de apoio (opcional)">'
+    +'<input class="svq-img" style="margin-top:6px;font-size:12px" value="'+esc(q.image||'')+'" placeholder="URL de imagem para escolha estimulada (opcional)">'
+    +'<textarea class="svq-opts" rows="3" style="margin-top:6px'+(showOpts?'':';display:none')+'" placeholder="Uma opção por linha (escolha única/múltipla)">'+esc((q.options||[]).join('\n'))+'</textarea>'
+    +'</div>';
+}
+function syncEditorFromDom(){
+  var s=window._surveyEdit; if(!document.getElementById('sv-name')) return;
+  s.name=document.getElementById('sv-name').value; s.city=document.getElementById('sv-city').value;
+  s.periodicity=document.getElementById('sv-per').value; s.target=document.getElementById('sv-target').value;
+  document.querySelectorAll('#sv-qs [data-qi]').forEach(function(row){ var i=+row.getAttribute('data-qi'); var q=s.questions[i]; if(!q)return;
+    q.enabled=row.querySelector('.svq-en').checked; q.type=row.querySelector('.svq-type').value;
+    q.title=row.querySelector('.svq-title').value; q.help=row.querySelector('.svq-help').value; q.image=row.querySelector('.svq-img').value;
+    q.options=(row.querySelector('.svq-opts').value||'').split('\n').map(function(x){return x.trim();}).filter(Boolean);
+  });
+}
+window.surveySyncRerender=function(){ syncEditorFromDom(); renderSurveyEditor(); };
+window.surveyAddQ=function(){ syncEditorFromDom(); window._surveyEdit.questions.push({id:'q'+Date.now(),type:'unica',enabled:true,title:'',options:[]}); renderSurveyEditor(); };
+window.surveyRmQ=function(i){ syncEditorFromDom(); window._surveyEdit.questions.splice(i,1); renderSurveyEditor(); };
+window.surveySave=async function(){
+  syncEditorFromDom(); var s=window._surveyEdit;
+  if(!s.name||!s.name.trim()){ toast('Dê um nome à pesquisa','warn'); return; }
+  s.questions.forEach(function(q,i){ if(!q.id)q.id='q'+i; q.ord=i+1; });
+  try{ var r=await window.MOB_RPC('mob_survey_save',{p_candidate:window._mobCandId,p_id:s.id,p_data:{name:s.name,city:s.city,periodicity:s.periodicity,target:s.target,questions:s.questions}});
+    if(r&&r.ok){ toast('Pesquisa salva'); renderPesquisa(); } else toast((r&&r.error)||'Erro','err');
+  }catch(e){ toast(e.message||'Erro','err'); }
+};
+window.surveyDelete=function(id,name){ if(!confirm('Excluir a pesquisa "'+name+'" e TODAS as respostas? Irreversível.'))return; window.MOB_RPC('mob_survey_delete',{p_candidate:window._mobCandId,p_id:id}).then(function(){ toast('Pesquisa excluída'); renderPesquisa(); }).catch(function(e){ toast(e.message,'err'); }); };
+window.surveyReport=function(id){ window._surveyReportId=id; surveyReportLoad(); };
+async function surveyReportLoad(){
+  var host=document.getElementById('view-pesquisa'); var id=window._surveyReportId;
+  host.innerHTML='<div class="page-head"><div><h2>Relatório</h2><div class="sub">Carregando…</div></div></div>';
+  var r; try{ r=await window.MOB_RPC('mob_survey_report',{p_candidate:window._mobCandId,p_id:id}); }catch(e){ host.innerHTML='<div class="card" style="color:var(--coral)">'+esc(e.message)+'</div>'; return; }
+  if(!r||!r.ok){ host.innerHTML='<div class="card">Pesquisa não encontrada.</div>'; return; }
+  surveyReportDraw(r);
+  if(window._svPoll) clearInterval(window._svPoll);
+  window._svPoll=setInterval(function(){ var v=document.getElementById('view-pesquisa'); if(v&&v.classList.contains('active')&&window._surveyReportId===id){ window.MOB_RPC('mob_survey_report',{p_candidate:window._mobCandId,p_id:id}).then(function(rr){ if(rr&&rr.ok) surveyReportDraw(rr); }).catch(function(){}); } else { clearInterval(window._svPoll); window._svPoll=null; } },15000);
+}
+function surveyReportDraw(r){
+  var host=document.getElementById('view-pesquisa'); var qs=r.questions||[]; var resp=r.responses||[]; var total=r.total||0;
+  var h='<div class="page-head"><div><h2>'+esc(r.name||'Relatório')+'</h2><div class="sub">'+total+' resposta(s) · atualiza sozinho a cada 15s</div></div><div style="display:flex;gap:8px"><button class="btn-ghost" onclick="renderPesquisa()">Voltar</button><button class="btn-ghost" onclick="surveyReportLoad()"><svg class="icon" width="13" height="13"><use href="#i-refresh"/></svg> Atualizar</button></div></div>';
+  h+='<div class="kpi-grid" style="margin-bottom:14px"><div class="kpi"><div class="ic"><svg class="icon" width="18" height="18"><use href="#i-users"/></svg></div><div class="lbl">Respostas</div><div class="v">'+total+'</div></div></div>';
+  qs.forEach(function(q){
+    if(q.enabled===false) return;
+    h+='<div class="card"><div style="font-weight:800;margin-bottom:10px">'+esc(q.title||'')+'</div>';
+    if(q.type==='aberta'){
+      var texts=resp.map(function(x){return x.a&&x.a[q.id];}).filter(function(t){return t&&String(t).trim();}).slice(0,40);
+      h+= texts.length? texts.map(function(t){return '<div style="padding:8px 10px;background:var(--soft);border-radius:8px;margin-bottom:5px;font-size:13px">'+esc(t)+'</div>';}).join('') : '<div class="sub">Sem respostas ainda.</div>';
+    } else if(q.type==='escala'){
+      var vals=resp.map(function(x){return x.a&&x.a[q.id];}).filter(function(v){return typeof v==='number';});
+      var avg=vals.length?(vals.reduce(function(a,b){return a+b;},0)/vals.length):0;
+      h+='<div style="font-size:32px;font-weight:800;color:var(--brand-2)">'+avg.toFixed(1).replace('.',',')+'<span style="font-size:14px;color:var(--muted)"> / '+(q.max!=null?q.max:10)+' de média</span></div><div class="sub">'+vals.length+' respostas</div>';
+    } else {
+      var counts={}, base=0;
+      resp.forEach(function(x){ var a=x.a&&x.a[q.id]; if(a==null)return; base++; var arr=Array.isArray(a)?a:[a]; arr.forEach(function(v){ counts[v]=(counts[v]||0)+1; }); });
+      var opts=(q.options||[]).slice(); Object.keys(counts).forEach(function(k){ if(opts.indexOf(k)<0)opts.push(k); });
+      if(!base) h+='<div class="sub">Sem respostas ainda.</div>';
+      else opts.forEach(function(op){ var c=counts[op]||0; var pct=base?Math.round(c/base*100):0;
+        h+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span>'+esc(op)+'</span><strong>'+c+' · '+pct+'%</strong></div><div style="height:9px;background:var(--soft);border-radius:20px;overflow:hidden"><i style="display:block;height:100%;width:'+pct+'%;background:var(--brand)"></i></div></div>'; });
+    }
+    h+='</div>';
+  });
+  host.innerHTML=h;
+}
 // ============ EVENTOS & QR (conectado ao banco Supabase por candidato) ============
 // Seção nova, aditiva: usa os mesmos estilos do app. Cada evento gera um QR próprio;
 // quem lê o QR se cadastra como lead (nome, telefone, CEP + número) na base do candidato.
@@ -6968,11 +7099,12 @@ async function evtLoadList(){
     return;
   }
   var html = '<div class="card-head"><div class="card-title">Eventos da campanha</div><div class="card-sub">'+rows.length+' evento(s)</div></div>'
-    +'<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Evento</th><th>Data</th><th>Local</th><th style="text-align:right">Check-ins</th><th style="text-align:right">Compartilharam</th><th></th></tr></thead><tbody>';
+    +'<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Evento</th><th>Data</th><th>Local</th><th>Concentração / descrição</th><th style="text-align:right">Check-ins</th><th style="text-align:right">Compartilharam</th><th></th></tr></thead><tbody>';
   rows.forEach(function(e){
     var d = e.date ? new Date(e.date+'T00:00:00').toLocaleDateString('pt-BR') : '—';
     html += '<tr><td><strong>'+esc(e.title)+'</strong></td><td>'+d+(e.time?' · '+esc(e.time):'')+'</td>'
       +'<td style="font-size:12px">'+esc(e.location||e.bairro||'—')+(e.city?'<br><small style="color:var(--muted)">'+esc(e.city)+(e.uf?'/'+esc(e.uf):'')+'</small>':'')+'</td>'
+      +'<td style="font-size:12px;max-width:240px;white-space:normal;color:var(--ink-2)">'+esc(e.description||'—')+'</td>'
       +'<td style="text-align:right;font-weight:700">'+(e.checkins||0)+'</td>'
       +'<td style="text-align:right;color:var(--brand-2);font-weight:700">'+(e.shared||0)+'</td>'
       +'<td class="actions" style="white-space:nowrap;text-align:right">'
@@ -6995,7 +7127,7 @@ window.evtModal = function(id){
     +'<label>Local (nome)</label><input id="ev-loc" value="'+esc(e.location||'')+'" placeholder="Praça da Savassi">'
     +'<div class="form-row">'+mobUFCityPair('ev-uf','ev-city',(e.uf||(window._evtCand&&window._evtCand.uf)||''),(e.city||(window._evtCand&&window._evtCand.city)||''))+'</div>'
     +'<div class="form-row"><div><label>Bairro</label><input id="ev-bairro" value="'+esc(e.bairro||'')+'"></div><div><label>CEP</label><input id="ev-cep" value="'+esc(e.cep||'')+'" placeholder="00000-000"></div></div>'
-    +'<label>Descrição</label><textarea id="ev-desc" rows="2">'+esc(e.description||'')+'</textarea>'
+    +'<label>Descrição / ponto de concentração</label><textarea id="ev-desc" rows="2" placeholder="Ex.: concentração na Praça do IBS às 14h; saída em caminhada até a Av. Almirante Paulo Moreira">'+esc(e.description||'')+'</textarea>'
     +'<div class="actions">'+(id?'<button class="btn-danger" onclick="evtDelete(\''+id+'\');closeModal()">Excluir</button>':'')+'<button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="evtSave(\''+(id||'')+'\')">Salvar</button></div>',
     'evt-'+(id||'new'));
 };
@@ -9576,6 +9708,7 @@ window.dismissIns = function(id){ if(state.dismissedInsights.indexOf(id)===-1) s
 window.restoreIns = function(){ state.dismissedInsights = []; saveState(); renderIA(); bootApp(); toast('Restaurado'); };
 
 // ============ SETTINGS ============
+function cfgTip(t){ return ' <span title="'+String(t).replace(/"/g,'&quot;')+'" style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--soft-2);border:1px solid var(--border);color:var(--muted);font-size:10px;font-weight:800;cursor:help;vertical-align:middle">?</span>'; }
 function renderSettings(){
   var html = '<div class="page-head"><div><h2>Configurações</h2><div class="sub">Edite todos os dados da campanha</div></div><div style="display:flex;gap:8px"><button class="btn-ghost" onclick="exportData()"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg> Exportar</button><button class="btn-ghost" onclick="importData()"><svg class="icon" width="14" height="14"><use href="#i-upload"/></svg> Importar</button></div></div>';
   // ===== Minha conta (trocar senha do usuário logado) =====
@@ -9607,12 +9740,12 @@ function renderSettings(){
     +'<label>Cor</label><input id="s-color" type="color" value="'+state.candidate.color+'" style="height:38px">'
     +'<div style="margin-top:12px"><button class="btn-primary" onclick="saveCandidate()">Salvar</button></div></div>';
   html += '<div class="config-section"><h3><svg class="icon" width="15" height="15"><use href="#i-vote"/></svg> Eleição</h3><div class="sub">Contexto e meta</div>'
-    +'<label>Cargo</label><input id="s-pos" value="'+esc(state.election.position)+'">'
+    +'<label>Cargo'+cfgTip('O cargo que o candidato disputa (ex.: Deputado Federal). Define o tipo de projeção.')+'</label><input id="s-pos" value="'+esc(state.election.position)+'">'
     +'<div class="form-row">'+mobUFCityPair('s-state','s-city',state.election.state,state.election.city)+'</div>'
     +'<label>WhatsApp do candidato <span style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">(recebe o compartilhamento de eventos e de novas lideranças)</span></label><input id="s-whats" type="tel" inputmode="tel" value="'+esc((state.candidate&&state.candidate.whatsapp)||'')+'" placeholder="(81) 99999-9999">'
-    +'<div class="form-row"><div><label>Data</label><input type="date" id="s-date" value="'+esc(state.election.date||'')+'"></div><div><label>Eleitores</label><input type="number" id="s-voters" value="'+(state.election.voterCount||'')+'"></div></div>'
-    +'<label>Meta de votos</label><input type="number" id="s-target" value="'+(state.election.victoryTarget||'')+'">'
-    +'<div class="form-row"><div><label>Influência</label><input type="number" step="0.1" id="s-mult" value="'+state.parameters.multiplier+'"></div><div><label>Conversão %</label><input type="number" id="s-conv" value="'+Math.round(state.parameters.conversion*100)+'"></div></div>'
+    +'<div class="form-row"><div><label>Data'+cfgTip('Data do 1º turno da eleição.')+'</label><input type="date" id="s-date" value="'+esc(state.election.date||'')+'"></div><div><label>Eleitores'+cfgTip('Total de eleitores aptos no município/estado. É a base para as projeções de votos.')+'</label><input type="number" id="s-voters" value="'+(state.election.voterCount||'')+'"></div></div>'
+    +'<label>Meta de votos'+cfgTip('Quantos votos você precisa para ser eleito — seu alvo. Ex.: a votação do último eleito na sua faixa.')+'</label><input type="number" id="s-target" value="'+(state.election.victoryTarget||'')+'">'
+    +'<div class="form-row"><div><label>Influência'+cfgTip('Multiplicador: quantos votos cada apoiador/liderança traz em média. Ex.: 1.5 = cada apoiador ~1,5 voto.')+'</label><input type="number" step="0.1" id="s-mult" value="'+state.parameters.multiplier+'"></div><div><label>Conversão %'+cfgTip('Percentual dos contatos/apoios que efetivamente viram voto. Ex.: 70 = 70% se confirmam.')+'</label><input type="number" id="s-conv" value="'+Math.round(state.parameters.conversion*100)+'"></div></div>'
     +'<div style="margin-top:12px"><button class="btn-primary" onclick="saveElection()">Salvar</button></div></div>';
 
   // ===== Locais de votação (base do TSE + base própria) =====

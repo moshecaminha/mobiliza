@@ -184,10 +184,39 @@ async function renderOverview(){
   });
   h+='<tr style="border-top:2px solid #e5e7eb"><td><strong>TOTAL</strong></td><td style="text-align:right"><strong>'+money(agg.income)+'</strong></td><td style="text-align:right"><strong>'+money(agg.donations)+'</strong></td><td style="text-align:right"><strong>'+money(agg.expense)+'</strong></td><td style="text-align:right;font-weight:800;color:'+(bal<0?'#dc2626':'#059669')+'">'+money(bal)+'</td></tr>';
   h+='</tbody></table></div></div>';
+  // Contabilidade de disparos (WhatsApp) — por candidato, por campanha e total
+  h += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px"><div><h3>Contabilidade de disparos (WhatsApp)</h3><div class="sub">Mensagens enviadas × preço por disparo · por candidato, campanha e total</div></div>'
+    +'<div style="display:flex;align-items:center;gap:6px"><label class="sub" style="text-transform:none">R$ por disparo</label><input id="wa-price" type="number" step="0.01" min="0" value="'+(CACHE.waPrice!=null?CACHE.waPrice:0.40)+'" onchange="setWaPrice(this.value)" style="width:96px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px"></div></div>'
+    +'<div id="over-billing" style="margin-top:10px"><div class="sub">Carregando…</div></div></div>';
   // Logs de usuários (com horário de Brasília)
   h += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Logs de usuários</h3><span class="sub" id="over-log-count"></span></div><div class="sub">Acessos e ações recentes · horário de Brasília</div><div id="over-logs" style="margin-top:8px"><div class="sub">Carregando…</div></div></div>';
   $('view-over').innerHTML = h;
+  loadBilling(selId);
   loadOverviewLogs(selId);
+}
+window.setWaPrice = function(v){ CACHE.waPrice = Math.max(0, +v||0); loadBilling(CACHE.overFilter||''); };
+async function loadBilling(selId){
+  const price = CACHE.waPrice!=null?CACHE.waPrice:0.40;
+  try{
+    if(!CACHE.billing){ const r=await rpc('mob_admin_wa_billing'); CACHE.billing=(r&&r.candidates)||[]; }
+    let list = CACHE.billing||[];
+    if(selId) list = list.filter(x=>x.candidate_id===selId);
+    let totalSends=0, totalCost=0, totalFail=0, rows='';
+    list.forEach(c=>{
+      const sends=+c.sends_ok||0, fail=+c.sends_failed||0, cost=sends*price;
+      totalSends+=sends; totalCost+=cost; totalFail+=fail;
+      const camps=(c.campaigns||[]);
+      const campHtml = camps.length ? camps.map(cp=>{ const s=+cp.sent||0; return '<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);padding:2px 0"><span>• '+esc(cp.name||'campanha')+(cp.channel?' <span style="opacity:.6">('+esc(cp.channel)+')</span>':'')+'</span><span style="white-space:nowrap">'+s+' × '+money(price)+' = <strong style="color:var(--ink-2)">'+money(s*price)+'</strong></span></div>'; }).join('') : '<div class="sub" style="margin-top:2px">sem campanhas registradas</div>';
+      rows += '<tr><td><strong>'+esc(c.name)+'</strong><div style="margin-top:4px">'+campHtml+'</div></td>'
+        +'<td style="text-align:right;vertical-align:top">'+sends+'</td>'
+        +'<td style="text-align:right;vertical-align:top;color:#dc2626">'+fail+'</td>'
+        +'<td style="text-align:right;vertical-align:top;font-weight:700;color:#059669">'+money(cost)+'</td></tr>';
+    });
+    const t='<div style="overflow-x:auto"><table><thead><tr><th>Candidato / campanhas</th><th style="text-align:right">Disparos</th><th style="text-align:right">Falhas</th><th style="text-align:right">Custo</th></tr></thead><tbody>'+rows
+      +'<tr style="border-top:2px solid #e5e7eb"><td><strong>TOTAL GERAL</strong></td><td style="text-align:right"><strong>'+totalSends+'</strong></td><td style="text-align:right"><strong>'+totalFail+'</strong></td><td style="text-align:right;font-weight:800;color:#059669">'+money(totalCost)+'</td></tr>'
+      +'</tbody></table></div><div class="sub" style="margin-top:6px">Disparos = mensagens efetivamente enviadas (não conta as falhas). Ajuste o preço por disparo acima para ver o custo estimado.</div>';
+    $('over-billing').innerHTML=t;
+  }catch(e){ $('over-billing').innerHTML='<div class="card err">'+esc(e.message)+'</div>'; }
 }
 window.setOverFilter = function(v){ CACHE.overFilter = v||''; renderOverview(); };
 // Exporta o consolidado (respeitando o filtro por candidato) para planilha
@@ -210,7 +239,7 @@ window.exportOverview = function(){
   setTimeout(()=>URL.revokeObjectURL(a.href),4000);
   toast('Relatório exportado');
 };
-window.refreshOverview = async function(){ CACHE.candidates = await rpc('mob_admin_candidates'); renderOverview(); toast('Atualizado'); };
+window.refreshOverview = async function(){ CACHE.candidates = await rpc('mob_admin_candidates'); CACHE.billing = null; renderOverview(); toast('Atualizado'); };
 async function loadOverviewLogs(candId){
   try{
     const rows = await rpc('mob_admin_activity',{ p_candidate: candId||null, p_limit: 300 });
@@ -362,7 +391,7 @@ window.viewData = async function(id){
 // Módulos disponíveis (id da view → rótulo) para a hierarquia de acesso
 const MODULES = [
   ['dashboard','Painel'],['conversas','Conversas'],['whatsapp','Comunicação'],['agenda','Agenda'],
-  ['militancia','Equipe'],['eventos','Eventos & QR'],['leads','Leads'],['geo','Inteligência Geo'],
+  ['militancia','Equipe'],['eventos','Eventos & QR'],['pesquisa','Pesquisa'],['leads','Leads'],['geo','Inteligência Geo'],
   ['social','Radar Social'],['competitive','Radar Eleitoral'],['votos','Projeção'],
   ['logistica','Logística'],['financeiro','Financeiro'],['trends','Tendências'],['ia','Estratégia IA'],['settings','Configurações']
 ];

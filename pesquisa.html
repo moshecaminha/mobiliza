@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0E7C59">
+<title>Pesquisa · MOBILIZZA.ORG</title>
+<style>
+:root{--brand:#0E7C59;--brand-2:#0B6247;--ink:#0F172A;--ink-2:#1E293B;--muted:#64748B;--border:#E2E8F0;--soft:#F1F5F9;--coral:#DC2626}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:#EEF1F5;color:var(--ink);-webkit-font-smoothing:antialiased}
+.wrap{max-width:560px;margin:0 auto;min-height:100vh;background:#fff;display:flex;flex-direction:column}
+.hero{background:linear-gradient(135deg,var(--brand),#0A1628);color:#fff;padding:22px 20px calc(20px);position:sticky;top:0;z-index:5}
+.hero .row{display:flex;align-items:center;gap:14px}
+.hero .ph{width:52px;height:52px;border-radius:13px;background:rgba(255,255,255,.18);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px}
+.hero .ph img{width:100%;height:100%;object-fit:cover}
+.hero .nm{font-size:17px;font-weight:800;line-height:1.15}
+.hero .of{font-size:12px;opacity:.9;margin-top:1px}
+.hero .sv{margin-top:12px;font-size:13px;font-weight:700;background:rgba(255,255,255,.14);display:inline-block;padding:6px 12px;border-radius:20px}
+.prog{height:5px;background:rgba(255,255,255,.2);border-radius:20px;margin-top:12px;overflow:hidden}
+.prog > i{display:block;height:100%;background:#fff;width:0;transition:width .3s}
+.body{flex:1;padding:16px 16px 120px}
+.q{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 2px rgba(16,20,24,.04)}
+.q .qn{font-size:11px;font-weight:800;color:var(--brand-2);text-transform:uppercase;letter-spacing:.06em}
+.q .qt{font-size:16px;font-weight:800;margin:5px 0 3px;line-height:1.3}
+.q .qh{font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5}
+.q img.qimg{width:100%;border-radius:10px;margin:6px 0 12px;display:block}
+.opt{display:flex;align-items:center;gap:11px;padding:13px 14px;border:1.5px solid var(--border);border-radius:11px;margin-bottom:8px;cursor:pointer;font-size:15px;font-weight:600;color:var(--ink-2);transition:.12s;user-select:none}
+.opt:active{transform:scale(.99)}
+.opt .dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.opt.sq .dot{border-radius:6px}
+.opt.on{border-color:var(--brand);background:rgba(14,124,89,.06);color:var(--ink)}
+.opt.on .dot{border-color:var(--brand);background:var(--brand)}
+.opt.on .dot::after{content:"";width:8px;height:8px;border-radius:50%;background:#fff}
+.opt.sq.on .dot::after{border-radius:2px}
+textarea,input[type=text]{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:11px;font-size:15px;outline:none;font-family:inherit}
+textarea:focus,input:focus{border-color:var(--brand)}
+.scale{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}
+@media(min-width:420px){.scale{grid-template-columns:repeat(11,1fr)}}
+.scale button{aspect-ratio:1;border:1.5px solid var(--border);border-radius:10px;background:#fff;font-weight:800;font-size:15px;color:var(--ink-2);cursor:pointer}
+.scale button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.scale-lbl{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:6px}
+.foot{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--border);padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:flex;justify-content:center}
+.foot .in{width:100%;max-width:560px;display:flex;gap:10px}
+.btn{flex:1;background:var(--brand);color:#fff;border:none;padding:15px;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:disabled{opacity:.6}
+.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px}
+.okic{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+.muted{color:var(--muted);font-size:14px;line-height:1.5}
+.spin{animation:s 1s linear infinite}@keyframes s{to{transform:rotate(360deg)}}
+.err{color:var(--coral);font-size:13px;text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <div class="center"><svg class="spin" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0E7C59" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.2-8.5"/></svg><div class="muted" style="margin-top:12px">Carregando a pesquisa…</div></div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const SUPABASE_URL='https://dhxizqszipfnlpojzpbc.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRoeGl6cXN6aXBmbmxwb2p6cGJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NDgyNzYsImV4cCI6MjA5ODMyNDI3Nn0.Mb8IKH9MKumo4H4bag5iAjD7IXS8ogg9skKrCdvqV1M';
+const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+const esc=s=>(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const OFFICES={deputado_estadual:'Deputado Estadual',deputado_federal:'Deputado Federal',prefeito:'Prefeito',vereador:'Vereador',governador:'Governador',senador:'Senador',presidente:'Presidente'};
+const TOKEN=new URLSearchParams(location.search).get('p');
+let SV=null, CAND=null, QS=[], ANS={};
+
+async function rpc(fn,args){ const{data,error}=await sb.rpc(fn,args||{}); if(error) throw new Error(error.message); return data; }
+
+function fail(msg){ $('wrap').innerHTML='<div class="center"><div style="color:#DC2626;font-weight:700;font-size:16px">'+esc(msg)+'</div></div>'; }
+
+async function start(){
+  if(!TOKEN){ fail('Link inválido — falta o código da pesquisa.'); return; }
+  let r; try{ r=await rpc('mob_survey_public',{p_token:TOKEN}); }catch(e){ fail('Erro ao carregar. Tente novamente.'); return; }
+  if(!r||!r.ok){ fail('Pesquisa não encontrada ou encerrada.'); return; }
+  SV=r.survey; CAND=r.candidate; QS=SV.questions||[];
+  if(CAND.theme_color){ document.documentElement.style.setProperty('--brand',CAND.theme_color); }
+  render();
+}
+
+function optRow(qid, val, label, multi){
+  var sel = multi ? (ANS[qid]||[]).indexOf(val)>=0 : ANS[qid]===val;
+  return '<div class="opt'+(multi?' sq':'')+(sel?' on':'')+'" data-q="'+esc(qid)+'" data-v="'+esc(val)+'" data-multi="'+(multi?1:0)+'"><span class="dot"></span><span>'+esc(label)+'</span></div>';
+}
+
+function render(){
+  var off=[(OFFICES[CAND.office]||CAND.office||''),(CAND.party_number||'')].filter(Boolean).join(' · ');
+  var h='<div class="hero"><div class="row"><div class="ph">'+(CAND.photo_url?'<img src="'+esc(CAND.photo_url)+'">':esc((CAND.name||'M').slice(0,1).toUpperCase()))+'</div>'
+    +'<div><div class="nm">'+esc(CAND.name||'')+'</div><div class="of">'+esc(off)+'</div></div></div>'
+    +'<div class="sv">'+esc(SV.name||'Pesquisa')+(SV.city?' · '+esc(SV.city):'')+'</div>'
+    +'<div class="prog"><i id="prog-bar"></i></div></div>';
+  h+='<div class="body" id="qbody">';
+  QS.forEach(function(q,i){
+    h+='<div class="q" id="q-'+esc(q.id)+'"><div class="qn">Pergunta '+(i+1)+' de '+QS.length+'</div><div class="qt">'+esc(q.title||'')+'</div>'
+      + (q.help?'<div class="qh">'+esc(q.help)+'</div>':'')
+      + (q.image?'<img class="qimg" src="'+esc(q.image)+'" alt="">':'');
+    if(q.type==='aberta'){ h+='<textarea rows="3" data-open="'+esc(q.id)+'" placeholder="Escreva aqui…">'+esc(ANS[q.id]||'')+'</textarea>'; }
+    else if(q.type==='escala'){ var mn=(q.min!=null?q.min:0), mx=(q.max!=null?q.max:10); h+='<div class="scale">'; for(var n=mn;n<=mx;n++){ h+='<button data-scale="'+esc(q.id)+'" data-n="'+n+'"'+(ANS[q.id]===n?' class="on"':'')+'>'+n+'</button>'; } h+='</div><div class="scale-lbl"><span>'+(q.min!=null?q.min:0)+' · não votaria</span><span>votaria · '+(q.max!=null?q.max:10)+'</span></div>'; }
+    else { var multi=(q.type==='multi'); (q.options||[]).forEach(function(op){ h+=optRow(q.id,op,op,multi); }); }
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<div class="foot"><div class="in"><button class="btn" id="send">Enviar respostas</button></div></div>';
+  $('wrap').innerHTML=h;
+  bind(); updateProg();
+}
+
+function bind(){
+  $('qbody').addEventListener('click', function(e){
+    var o=e.target.closest('.opt'); if(o){ var qid=o.getAttribute('data-q'), v=o.getAttribute('data-v'), multi=o.getAttribute('data-multi')==='1';
+      if(multi){ var arr=ANS[qid]||[]; var idx=arr.indexOf(v); if(idx>=0)arr.splice(idx,1); else arr.push(v); ANS[qid]=arr;
+        o.classList.toggle('on'); }
+      else { ANS[qid]=v; var box=document.getElementById('q-'+qid); box.querySelectorAll('.opt').forEach(function(x){x.classList.remove('on')}); o.classList.add('on'); }
+      updateProg(); return; }
+    var sc=e.target.closest('button[data-scale]'); if(sc){ var q2=sc.getAttribute('data-scale'); ANS[q2]=+sc.getAttribute('data-n');
+      var b2=document.getElementById('q-'+q2); b2.querySelectorAll('button[data-scale]').forEach(function(x){x.classList.remove('on')}); sc.classList.add('on'); updateProg(); return; }
+  });
+  $('qbody').addEventListener('input', function(e){ var t=e.target.getAttribute('data-open'); if(t){ ANS[t]=e.target.value; updateProg(); } });
+  $('send').addEventListener('click', submit);
+}
+
+function answered(q){ var a=ANS[q.id]; if(q.type==='multi') return a&&a.length; if(q.type==='aberta') return a&&String(a).trim().length; return a!=null&&a!==''; }
+function updateProg(){ var done=QS.filter(answered).length; var pct=QS.length?Math.round(done/QS.length*100):0; var b=$('prog-bar'); if(b)b.style.width=pct+'%'; }
+
+async function submit(){
+  var done=QS.filter(answered).length;
+  if(done===0){ alert('Responda ao menos uma pergunta.'); return; }
+  var btn=$('send'); btn.disabled=true; btn.innerHTML='<svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.2-8.5"/></svg>Enviando…';
+  try{ var r=await rpc('mob_survey_submit',{p_token:TOKEN,p_answers:ANS});
+    if(r&&r.ok){ done_screen(); } else { btn.disabled=false; btn.textContent='Enviar respostas'; alert((r&&r.error)||'Erro ao enviar.'); }
+  }catch(e){ btn.disabled=false; btn.textContent='Enviar respostas'; alert(e.message||'Erro ao enviar.'); }
+}
+
+function done_screen(){
+  $('wrap').innerHTML='<div class="center"><div class="okic"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>'
+    +'<h2 style="font-size:22px;margin-bottom:8px">Obrigado pela participação!</h2>'
+    +'<div class="muted">Sua resposta foi registrada. Você ajudou a campanha de <strong>'+esc(CAND.name||'')+'</strong> a ouvir o '+esc(SV.city||'município')+'.</div>'
+    +'<button class="btn" style="margin-top:22px;max-width:240px" onclick="location.reload()">Responder outra</button></div>';
+}
+window.done_screen=done_screen;
+
+start();
+</script>
+</body>
+</html>
