@@ -7496,6 +7496,9 @@ window.importContacts = function(mode){
   showModalHtml('<h3>'+title+'</h3><div class="sub">Envie uma planilha (.xlsx ou .csv) e a base é alimentada em lote, para este candidato. Telefones entram no padrão 55 e repetidos são atualizados (sem duplicar).</div>'
     +'<div style="background:var(--soft-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--ink-2);line-height:1.6">Colunas aceitas: '+cols+'.<br>Obrigatórias: <strong>Nome</strong> e <strong>Telefone</strong>. O <strong>'+(isTeam?'Papel':'Perfil')+'</strong> pode ser: apoiador, militante, liderança, coordenador, vereador, suplente, cabo'+(isTeam?'':', lead')+' ou outro.</div>'
     +'<div style="margin:12px 0"><button class="btn-ghost" onclick="importDownloadTemplate(\''+mode+'\')"><svg class="icon" width="14" height="14"><use href="#i-download"/></svg> Baixar modelo (.xlsx)</button></div>'
+    +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0;padding:12px 14px;border:1.5px solid #F59E0B;border-radius:10px;background:linear-gradient(135deg,rgba(245,158,11,.12),transparent)">'
+      +'<div style="font-size:22px;line-height:1">✨</div><div style="flex:1;min-width:180px"><div style="font-weight:800;font-size:13px">Telefones fora do padrão? Padronize primeiro</div><div style="font-size:11.5px;color:var(--muted)">Corrige 55+DDD+9, descarta vazios/inválidos e remove repetidos. Baixe a planilha limpa e importe em seguida.</div></div>'
+      +'<button class="btn-primary" style="background:#B45309;white-space:nowrap" onclick="waPadronizar()">Padronizar planilha</button></div>'
     +'<label>'+(isTeam?'Papel':'Perfil')+' padrão <span style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">(para linhas sem a coluna)</span></label>'
     +'<select id="imp-perfil">'+defOpts+'</select>'
     +'<label style="margin-top:10px">Arquivo da planilha</label><input type="file" id="imp-file" accept=".xlsx,.xls,.csv">'
@@ -8083,7 +8086,10 @@ window.waBlast = async function(){
     h+='<div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--border)"><div style="font-weight:700;font-size:13px;margin-bottom:6px">Importar planilha para esta lista</div>'
       +'<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Aceita CSV/TXT com colunas <strong>telefone</strong> e (opcional) <strong>nome</strong>. O sistema valida, padroniza (55+DDD+número), ignora inválidos e não deixa repetir.</div>'
       +'<input type="file" id="wa-imp-file" accept=".csv,.txt,text/csv,text/plain" style="display:none" onchange="waListImportFile(this.files)">'
-      +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-primary" onclick="document.getElementById(\'wa-imp-file\').click()"><svg class="icon" width="13" height="13"><use href="#i-upload"/></svg> Escolher arquivo</button>'
+      +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;padding:12px 14px;border:1.5px solid #F59E0B;border-radius:10px;background:linear-gradient(135deg,rgba(245,158,11,.12),transparent)">'
+        +'<div style="font-size:22px;line-height:1">✨</div><div style="flex:1;min-width:180px"><div style="font-weight:800;font-size:13px">Número fora do padrão? Padronize antes</div><div style="font-size:11.5px;color:var(--muted)">Corrige e valida a planilha (55+DDD+9) e importa direto para esta lista.</div></div>'
+        +'<button class="btn-primary" style="background:#B45309;white-space:nowrap" onclick="waPadronizar(window._waBlast.listId)">Padronizar planilha</button></div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-primary" onclick="document.getElementById(\'wa-imp-file\').click()"><svg class="icon" width="13" height="13"><use href="#i-upload"/></svg> Escolher arquivo (já padronizado)</button>'
       +'<button class="btn-ghost" onclick="waListPasteBox()">Colar números</button></div>'
       +'<div id="wa-imp-status" style="margin-top:8px;font-size:12px"></div></div>';
   }
@@ -8230,6 +8236,116 @@ window.waDispatchReport=async function(){
   var tbl=rows.length?'<div style="max-height:52vh;overflow:auto"><table class="tbl"><thead><tr><th>Data</th><th>Número</th><th>Nome</th><th>Campanha</th><th>Status</th></tr></thead><tbody>'
     +rows.map(function(t){return '<tr><td>'+(t.sent_at?new Date(t.sent_at).toLocaleString('pt-BR'):'—')+'</td><td>'+esc(t.phone)+'</td><td>'+esc(t.name||'—')+'</td><td style="font-size:11px">'+esc(t.campaign||'')+'</td><td>'+(stLbl[t.status]||t.status)+'</td></tr>';}).join('')+'</tbody></table></div>':'<div class="sub">Nenhum disparo registrado ainda.</div>';
   showModalHtml('<h3>Relatório geral de disparos</h3><div class="sub" style="margin-bottom:8px">Todos os números já disparados — data, conteúdo (campanha) e entrega. '+((r.total)||0).toLocaleString('pt-BR')+' registros.</div>'+tbl+'<div class="actions"><button class="btn-primary" onclick="closeModal()">Fechar</button></div>','wadreport');
+};
+
+// ===== PADRONIZADOR DE PLANILHA (mesmo motor do disparo, dentro do app) =====
+window._MOB_DDD = window._MOB_DDD || new Set(['11','12','13','14','15','16','17','18','19','21','22','24','27','28','31','32','33','34','35','37','38','41','42','43','44','45','46','47','48','49','51','53','54','55','61','62','63','64','65','66','67','68','69','71','73','74','75','77','79','81','82','83','84','85','86','87','88','89','91','92','93','94','95','96','97','98','99']);
+window.mobCleanPhone = function(raw){
+  var d = String(raw==null?'':raw).replace(/\D/g,'');
+  if(!d) return {ok:false, reason:'vazio'};
+  var loc;
+  if(d.slice(0,2)==='55' && (d.length===12||d.length===13)) loc=d.slice(2);
+  else if(d.length===10||d.length===11) loc=d;
+  else if(d.length<10) return {ok:false, reason:'dígitos insuficientes'};
+  else return {ok:false, reason:'formato inválido'};
+  var ddd=loc.slice(0,2), sub=loc.slice(2);
+  if(!window._MOB_DDD.has(ddd)) return {ok:false, reason:'DDD inválido'};
+  if(/^(\d)\1+$/.test(sub)) return {ok:false, reason:'número repetido/sem sentido'};
+  if(loc.length===11){ if(sub[0]!=='9') return {ok:false, reason:'celular malformado'}; }
+  else { var f=sub[0];
+    if('6789'.indexOf(f)>=0){ loc=ddd+'9'+sub; }
+    else if('2345'.indexOf(f)>=0){ }
+    else return {ok:false, reason:'assinante inválido'}; }
+  var send='55'+loc;
+  var canon=(loc.length===11 && loc[2]==='9') ? ('55'+ddd+loc.slice(3)) : ('55'+loc);
+  return {ok:true, send:send, canon:canon};
+};
+function padrNormHeader(h){ return String(h||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,''); }
+window._padr = window._padr || null;
+window.waPadronizar = function(targetListId){
+  window._padrTarget = targetListId||null;
+  if(typeof XLSX==='undefined' && typeof mobLoadSheetJS==='function'){ mobLoadSheetJS(function(){ waPadronizarOpen(); }); return; }
+  waPadronizarOpen();
+};
+function waPadronizarOpen(){
+  var canImport = !!window._padrTarget;
+  showModalHtml('<h3>✨ Padronizar planilha</h3>'
+    +'<div class="sub" style="margin-bottom:12px">Coloca tudo no padrão <strong>55 + DDD + número</strong>, corrige celular sem o 9, descarta vazios/inválidos e remove repetidos. Roda aqui no seu navegador.</div>'
+    +'<div id="padr-drop" style="border:2px dashed #CBD5E1;border-radius:12px;padding:26px;text-align:center;cursor:pointer;background:var(--soft)" onclick="document.getElementById(\'padr-file\').click()">'
+      +'<div style="font-size:14px;margin-bottom:4px">Clique para escolher a planilha</div><div class="sub">.xlsx ou .csv · com coluna de telefone (e nome, se tiver)</div>'
+      +'<input type="file" id="padr-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="padrRead(this.files)"></div>'
+    +'<div id="padr-out" style="margin-top:12px"></div>'
+    +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Fechar</button>'
+      +'<button class="btn-ghost" id="padr-dl" disabled onclick="padrDownload()">⬇ Baixar .xlsx padronizada</button>'
+      +(canImport?'<button class="btn-primary" id="padr-imp" disabled onclick="padrImport()">Importar para a lista</button>':'')
+    +'</div>','padronizar');
+};
+window.padrRead=function(files){
+  var f=files&&files[0]; if(!f)return;
+  var out=document.getElementById('padr-out'); if(out) out.innerHTML='<div class="sub">Lendo '+esc(f.name)+'…</div>';
+  var rd=new FileReader();
+  rd.onload=function(){
+    try{
+      var wb=XLSX.read(new Uint8Array(rd.result),{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',blankrows:false});
+      padrProcess(rows);
+    }catch(err){ if(out) out.innerHTML='<div style="color:#DC2626">Erro ao ler: '+esc(err.message||''+err)+'</div>'; }
+  };
+  rd.onerror=function(){ if(out) out.innerHTML='<div style="color:#DC2626">Não consegui ler o arquivo.</div>'; };
+  rd.readAsArrayBuffer(f);
+};
+function padrProcess(rows){
+  var out=document.getElementById('padr-out');
+  if(!rows||!rows.length){ if(out) out.innerHTML='<div class="sub">Planilha vazia.</div>'; return; }
+  var headers=rows[0]||[]; var map={}; headers.forEach(function(h,i){ map[padrNormHeader(h)]=i; });
+  var phoneKeys=['telefone','celular','whatsapp','whats','fone','tel','numero','phone','contato'], nameKeys=['nome','name','pessoa'];
+  var pi=-1, ni=-1;
+  phoneKeys.forEach(function(k){ if(pi<0 && map[k]!=null) pi=map[k]; });
+  nameKeys.forEach(function(k){ if(ni<0 && map[k]!=null && map[k]!==pi) ni=map[k]; });
+  var looksHeader = headers.some(function(x){ return ['nome','telefone','celular','whatsapp','email','fone','contato'].indexOf(padrNormHeader(x))>=0; });
+  if(pi<0){ var best=-1,bi=-1; for(var j=0;j<headers.length;j++){ var cnt=0; for(var r=0;r<Math.min(rows.length,30);r++){ cnt+=String(rows[r][j]||'').replace(/\D/g,'').length; } if(cnt>best){best=cnt;bi=j;} } pi=bi; }
+  var start = looksHeader?1:0;
+  var okRows=[], badRows=[], seen={}, dup=0, total=0;
+  for(var i=start;i<rows.length;i++){ var row=rows[i]; if(!row)continue;
+    var rawPhone=row[pi], name=ni>=0?row[ni]:'';
+    if((rawPhone==null||String(rawPhone).trim()==='')&&(name==null||String(name).trim()==='')) continue;
+    total++;
+    var res=window.mobCleanPhone(rawPhone);
+    if(!res.ok){ badRows.push([name||'', rawPhone||'', res.reason]); continue; }
+    if(seen[res.canon]){ dup++; continue; }
+    seen[res.canon]=1; okRows.push({name:String(name||''), original:String(rawPhone), phone:res.send});
+  }
+  window._padr={ok:okRows, bad:badRows, dup:dup, total:total};
+  var kpi=function(n,l,c){ return '<div style="flex:1;min-width:70px;background:var(--soft);border-radius:8px;padding:9px;text-align:center"><div style="font-size:19px;font-weight:800'+(c?';color:'+c:'')+'">'+n.toLocaleString('pt-BR')+'</div><div style="font-size:10px;color:var(--muted)">'+l+'</div></div>'; };
+  var sample = okRows.slice(0,8).map(function(r){ return '<tr><td>'+esc(r.name||'—')+'</td><td class="sub">'+esc(r.original)+'</td><td style="color:var(--brand-2);font-weight:700">'+esc(r.phone)+'</td></tr>'; }).join('');
+  out.innerHTML='<div style="display:flex;gap:8px;margin-bottom:10px">'+kpi(total,'lidos')+kpi(okRows.length,'padronizados','var(--brand-2)')+kpi(dup,'repetidos')+kpi(badRows.length,'descartados','#DC2626')+'</div>'
+    +(okRows.length?'<div style="max-height:34vh;overflow:auto"><table class="tbl"><thead><tr><th>Nome</th><th>Original</th><th>Padronizado</th></tr></thead><tbody>'+sample+'</tbody></table><div class="sub" style="margin-top:6px">Mostrando '+Math.min(8,okRows.length)+' de '+okRows.length+'.</div></div>':'<div class="sub">Nenhum número aproveitável encontrado.</div>');
+  var dl=document.getElementById('padr-dl'); if(dl) dl.disabled=!okRows.length;
+  var imp=document.getElementById('padr-imp'); if(imp) imp.disabled=!okRows.length;
+}
+window.padrDownload=function(){
+  if(!window._padr||!window._padr.ok.length) return;
+  var wb=XLSX.utils.book_new();
+  var ok=[['Nome','Telefone']].concat(window._padr.ok.map(function(r){return [r.name, r.phone];}));
+  var ws1=XLSX.utils.aoa_to_sheet(ok); ws1['!cols']=[{wch:28},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Padronizados');
+  var bad=[['Nome','Telefone original','Motivo']].concat(window._padr.bad);
+  var ws2=XLSX.utils.aoa_to_sheet(bad); ws2['!cols']=[{wch:28},{wch:22},{wch:26}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Descartados');
+  XLSX.writeFile(wb, 'Contatos_Padronizados.xlsx');
+};
+window.padrImport=async function(){
+  if(!window._padr||!window._padr.ok.length||!window._padrTarget){ return; }
+  var rows=window._padr.ok.map(function(r){ return {phone:r.phone, name:r.name}; });
+  var imp=document.getElementById('padr-imp'); if(imp){ imp.disabled=true; imp.textContent='Importando…'; }
+  var CH=1500, tot={added:0,duplicates:0,invalid:0,total:0};
+  for(var i=0;i<rows.length;i+=CH){
+    try{ var r=await window.MOB_RPC('mob_wa_list_import',{p_candidate:window._mobCandId,p_list:window._padrTarget,p_rows:rows.slice(i,i+CH)});
+      if(r&&r.ok){ tot.added+=r.added||0; tot.duplicates+=r.duplicates||0; tot.invalid+=r.invalid||0; tot.total+=r.total||0; }
+    }catch(e){ toast('Erro: '+(e.message||''),'err'); if(imp){imp.disabled=false;imp.textContent='Importar para a lista';} return; }
+  }
+  toast(tot.added+' adicionados à lista'); closeModal(); waBlast();
 };
 
 window.updateWaPrev = function(){
