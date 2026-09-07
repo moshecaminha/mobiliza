@@ -7856,7 +7856,7 @@ function waComputeAudience(){
   var base = waAudienceBase();
   var anyFilter = waSeg.bairros.length || waSeg.cidades.length || waSeg.classes.length;
   var leadSel = waSeg.classes.indexOf('lead')>=0;
-  return base.filter(function(p){
+  var arr = base.filter(function(p){
     if(waSeg.pessoas.indexOf(p.id)>=0) return true;
     // Leads são categoria à parte: SÓ entram se a classe "Leads" estiver marcada
     if(p.cls==='lead' && !leadSel) return false;
@@ -7866,7 +7866,13 @@ function waComputeAudience(){
     if(waSeg.cidades.length && waSeg.cidades.indexOf(p.cidade)<0) return false;
     return true;
   });
+  // Limite por lote (disparar em blocos organizados de 100/500/1000...)
+  var lim = +(window._waBatchLimit||0);
+  if(lim>0 && arr.length>lim) arr = arr.slice(0, lim);
+  return arr;
 }
+window.waFullAudienceCount = function(){ var s=window._waBatchLimit; window._waBatchLimit=0; var n=waComputeAudience().length; window._waBatchLimit=s; return n; };
+window.waSetBatchLimit = function(v){ window._waBatchLimit = +v||0; waUpdateReach(); };
 
 // Listas indexadas — evita quebrar o onclick com nomes que contêm apóstrofo
 var _waBairroList = [], _waCidadeList = [];
@@ -7903,7 +7909,9 @@ function waUpdateReach(){
     aud.forEach(function(p){ byClass[p.cls]=(byClass[p.cls]||0)+1; });
     var detail = WA_CLASSES.filter(function(c){return byClass[c.v]}).map(function(c){ return byClass[c.v]+' '+c.lbl.toLowerCase(); }).join(' · ');
     if(byClass['lead']) detail = (detail?detail+' · ':'')+byClass['lead']+' leads';
-    el.innerHTML = 'Alcance estimado: <strong>'+aud.length.toLocaleString('pt-BR')+'</strong> contatos'+(detail?' <span style="color:var(--muted);font-weight:500">('+esc(detail)+')</span>':'');
+    var _bl=+(window._waBatchLimit||0);
+    var batchTxt = _bl>0 ? ' <span style="color:var(--muted);font-weight:500">(lote de '+_bl.toLocaleString('pt-BR')+' · seleção total: '+waFullAudienceCount().toLocaleString('pt-BR')+')</span>' : (detail?' <span style="color:var(--muted);font-weight:500">('+esc(detail)+')</span>':'');
+    el.innerHTML = 'Vai disparar para: <strong>'+aud.length.toLocaleString('pt-BR')+'</strong> contatos'+batchTxt;
   }
   updateWaPrev();
 }
@@ -8009,7 +8017,13 @@ function renderWhatsapp(){
   html += '</div>';
 
   var initialAud = waComputeAudience();
-  html += '<div id="wa-reach" style="margin-top:10px;font-size:11px;color:var(--brand-2);font-weight:600;padding:8px 10px;background:rgba(0,168,120,.07);border:1px solid rgba(0,168,120,.2);border-radius:8px">Alcance estimado: <strong>'+initialAud.length.toLocaleString('pt-BR')+'</strong> contatos</div>';
+  // Disparar em lotes organizados (100/500/1000...) — limita a quantidade por disparo
+  var _bl = +(window._waBatchLimit||0);
+  html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px"><span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:800;color:var(--muted)">Disparar em lotes de</span>'
+    +'<select onchange="waSetBatchLimit(this.value)" style="max-width:170px;padding:7px 9px;border:1px solid var(--border);border-radius:8px">'
+    +[[0,'Todos de uma vez'],[100,'100 em 100'],[500,'500 em 500'],[1000,'1.000 em 1.000'],[2000,'2.000 em 2.000'],[5000,'5.000 em 5.000']].map(function(o){return '<option value="'+o[0]+'"'+(_bl===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>'
+    +'<span style="font-size:11px;color:var(--muted)">limita a quantidade por disparo · para lotes que avançam sozinhos sem repetir, use o módulo "Listas & disparo em massa"</span></div>';
+  html += '<div id="wa-reach" style="margin-top:8px;font-size:11px;color:var(--brand-2);font-weight:600;padding:8px 10px;background:rgba(0,168,120,.07);border:1px solid rgba(0,168,120,.2);border-radius:8px">Vai disparar para: <strong>'+initialAud.length.toLocaleString('pt-BR')+'</strong> contatos'+(_bl>0?(' <span style="color:var(--muted);font-weight:500">(lote de '+_bl.toLocaleString('pt-BR')+' · seleção total: '+waFullAudienceCount().toLocaleString('pt-BR')+')</span>'):'')+'</div>';
   // Modo de envio: texto livre (só janela de 24h) ou template aprovado (alcança base fria)
   var _sm = window._waSendMode||'texto';
   var _smBtn = function(k,l){ return '<button type="button" onclick="waSetSendMode(\''+k+'\')" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:'+(_sm===k?'var(--brand)':'#fff')+';color:'+(_sm===k?'#fff':'var(--muted)')+'">'+l+'</button>'; };
@@ -8051,7 +8065,7 @@ function renderWhatsapp(){
       if(sg.pessoas && sg.pessoas.length) segTxt.push(sg.pessoas.length+' pessoa(s)');
       var reach = c.reach||0;
       var cost = (c.costBrl!==undefined ? c.costBrl : reach*COST_PER_MESSAGE);
-      html += '<tr><td><strong>'+esc(c.name)+'</strong></td><td>'+esc(c.channel)+'</td><td style="font-size:11px;color:var(--muted)">'+(segTxt.length?esc(segTxt.join(' · ')):'base inteira')+'</td><td style="text-align:right;font-variant-numeric:tabular-nums">'+reach.toLocaleString('pt-BR')+'</td><td style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">R$ '+cost.toFixed(2).replace('.',',')+'</td><td>'+new Date(c.createdAt).toLocaleDateString('pt-BR')+'</td><td><span class="badge '+(c.status==='sent'?'success':'warning')+'">'+(c.status==='sent'?'enviada':'rascunho')+'</span></td><td class="actions"><button class="danger" onclick="rmCampaign(\''+c.id+'\')"><svg class="icon" width="13" height="13"><use href="#i-trash"/></svg></button></td></tr>';
+      html += '<tr><td><strong>'+esc(c.name)+'</strong></td><td>'+esc(c.channel)+'</td><td style="font-size:11px;color:var(--muted)">'+(segTxt.length?esc(segTxt.join(' · ')):'base inteira')+'</td><td style="text-align:right;font-variant-numeric:tabular-nums">'+reach.toLocaleString('pt-BR')+'</td><td style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">R$ '+cost.toFixed(2).replace('.',',')+'</td><td>'+new Date(c.createdAt).toLocaleDateString('pt-BR')+'</td><td>'+(function(){var m={sent:['enviada','success'],failed:['falhou','danger'],sending:['enviando','warning'],draft:['rascunho','warning']}[c.status]||['rascunho','warning'];var extra=(c.status==='sent'&&c.failed)?' <span style="font-size:10px;color:#B7791F">('+c.failed+' falha'+(c.failed>1?'s':'')+')</span>':'';var errTip=(c.status==='failed'&&c.error)?' <span title="'+esc(c.error)+'" style="cursor:help;color:#B91C1C;font-weight:800">ⓘ</span>':'';return '<span class="badge '+m[1]+'">'+m[0]+'</span>'+extra+errTip;})()+'</td><td class="actions"><button class="danger" onclick="rmCampaign(\''+c.id+'\')"><svg class="icon" width="13" height="13"><use href="#i-trash"/></svg></button></td></tr>';
     });
     html += '</tbody></table></div></div>';
   }
@@ -8430,6 +8444,15 @@ window.saveCampaign = function(){
   var msg = document.getElementById('wa-msg').value;
   var channel = String(document.getElementById('wa-channel').value||'').toLowerCase();
   var cost = aud.length * COST_PER_MESSAGE;
+  // Validação ANTES de criar a campanha (evita rascunho órfão que não dispara)
+  if(channel==='whatsapp'){
+    var _isTplChk = (window._waSendMode==='template');
+    var _tplChk = _isTplChk ? (window._waTplSelected||null) : null;
+    if(_isTplChk && (!_tplChk || !_tplChk.name)){
+      toast('Você está no modo "Template (base fria)", mas não escolheu um template. Selecione um template aprovado no menu — ou troque para "Texto livre (24h)".','warn');
+      return;
+    }
+  }
   var camp = {
     id:genId(), name:name, channel:channel, message:msg,
     status:'draft', createdAt:Date.now(), reach: aud.length, costBrl: cost,
@@ -8461,11 +8484,13 @@ window.saveCampaign = function(){
     else if(_waComposeMedia && _waComposeMedia.path){ sendBody.media = {path:_waComposeMedia.path, mime:_waComposeMedia.mime, filename:_waComposeMedia.filename}; camp.media = _waComposeMedia.kind; }
     toast('Disparando '+recipients.length+(isTpl?' por template…':' pelo número oficial…'));
     waPlatformSend(sendBody).then(function(d){
-      camp.status = (d.sent>0)?'sent':'failed'; camp.sent = d.sent||0; camp.failed = d.failed||0; saveState(); renderWhatsapp();
+      camp.status = (d.sent>0)?'sent':'failed'; camp.sent = d.sent||0; camp.failed = d.failed||0;
+      if(d.sent===0){ var fe=(d.results||[]).map(function(x){return x&&x.error;}).filter(Boolean)[0]; camp.error = fe || 'Nenhuma mensagem foi aceita pela Meta (verifique template aprovado e conexão do WhatsApp).'; }
+      saveState(); renderWhatsapp();
       var extra = d.failed ? ' · '+d.failed+' falharam'+(isTpl?'':' (fora da janela de 24h — use template aprovado)') : '';
       toast('Enviadas '+(d.sent||0)+' de '+recipients.length+extra, d.sent?'':'warn');
       if(!isTpl) waComposeClearMedia();
-    }).catch(function(e){ camp.status='failed'; saveState(); renderWhatsapp(); toast(e.message||'Erro no disparo. Conecte o WhatsApp em Configurações.','err'); });
+    }).catch(function(e){ camp.status='failed'; camp.error=(e&&e.message)||'Erro no disparo. Conecte o WhatsApp em Configurações.'; saveState(); renderWhatsapp(); toast(camp.error,'err'); });
   } else {
     toast('Campanha registrada ('+channel+') · '+aud.length+' contatos. Envio de SMS/e-mail exige backend próprio.');
   }
