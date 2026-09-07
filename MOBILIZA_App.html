@@ -7921,6 +7921,13 @@ function renderWhatsapp(){
     +'<button class="btn-primary" onclick="setView(\'leads\')"><svg class="icon" width="14" height="14"><use href="#i-arrow-right"/></svg> Abrir Leads</button>'
   +'</div>';
 
+  // Destaque: DISPARO EM MASSA por lista importada (planilha) com cadência automática
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;padding:16px 18px;border:1px solid rgba(37,99,235,.35);border-radius:12px;background:linear-gradient(135deg,rgba(37,99,235,.08),transparent)">'
+    +'<div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:10px;background:rgba(37,99,235,.14);display:flex;align-items:center;justify-content:center;color:#2563EB;flex-shrink:0"><svg class="icon" width="22" height="22"><use href="#i-upload"/></svg></div>'
+      +'<div><div style="font-weight:800;font-size:15px">Disparo em massa por lista</div><div style="font-size:12px;color:var(--muted)">Importe uma planilha, valide e padronize os números, salve como lista e dispare com <strong>cadência automática segura</strong> (protege o número de banimento).</div></div></div>'
+    +'<button class="btn-primary" style="background:#2563EB" onclick="waBlast()"><svg class="icon" width="14" height="14"><use href="#i-arrow-right"/></svg> Abrir listas & disparo</button>'
+  +'</div>';
+
   html += '<div class="kpi-grid">'
     +'<div class="kpi"><div class="ic"><svg class="icon" width="18" height="18"><use href="#i-message"/></svg></div><div class="lbl">Templates</div><div class="v">'+activeOnly(state.templates).length+'</div></div>'
     +'<div class="kpi blue"><div class="ic"><svg class="icon" width="18" height="18"><use href="#i-upload"/></svg></div><div class="lbl">Campanhas</div><div class="v">'+activeOnly(state.campaigns).length+'</div></div>'
@@ -8049,6 +8056,182 @@ function renderWhatsapp(){
   updateWaPrev();
   if((window._waSendMode||'texto')==='template'){ try{ waLoadTemplates(); }catch(e){} }
 }
+// ================= DISPARO EM MASSA POR LISTA (importar · validar · disparar com cadência) =================
+window._waBlast = window._waBlast || { listId:null };
+window.waBlast = async function(){
+  var host = document.getElementById('view-whatsapp'); if(!host) return;
+  host.innerHTML = '<div class="page-head"><div><h2>Listas & disparo em massa</h2><div class="sub">Carregando…</div></div><div><button class="btn-ghost" onclick="renderWhatsapp()">Voltar</button></div></div>';
+  var L={lists:[]}, C={campaigns:[]};
+  try{ L = await window.MOB_RPC('mob_wa_lists',{p_candidate:window._mobCandId}); }catch(e){}
+  try{ C = await window.MOB_RPC('mob_wa_campaigns',{p_candidate:window._mobCandId}); }catch(e){}
+  var lists=(L&&L.lists)||[], camps=(C&&C.campaigns)||[];
+  if(window._waBlast.listId && !lists.find(function(x){return x.id===window._waBlast.listId;})) window._waBlast.listId=null;
+  if(!window._waBlast.listId && lists.length) window._waBlast.listId=lists[0].id;
+  var sel=window._waBlast.listId;
+
+  var h='<div class="page-head"><div><h2>Listas & disparo em massa</h2><div class="sub">Importe uma planilha, valide, salve como lista e dispare com cadência automática segura.</div></div><div style="display:flex;gap:8px"><button class="btn-ghost" onclick="waDispatchReport()">Relatório geral</button><button class="btn-ghost" onclick="renderWhatsapp()">Voltar</button></div></div>';
+
+  // ---- LISTAS ----
+  h+='<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px"><div style="font-weight:800">1 · Listas de disparo</div><button class="btn-ghost" onclick="waListNew()"><svg class="icon" width="13" height="13"><use href="#i-plus"/></svg> Nova lista</button></div>';
+  if(!lists.length){ h+='<div class="sub">Nenhuma lista ainda. Crie uma e importe sua planilha.</div>'; }
+  else{
+    h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select id="wa-blist" onchange="waBlastSel(this.value)" style="max-width:320px">'+lists.map(function(l){ return '<option value="'+l.id+'"'+(l.id===sel?' selected':'')+'>'+esc(l.name)+' ('+(l.count||0)+')</option>'; }).join('')+'</select>';
+    h+='<button class="btn-ghost" style="color:#DC2626" onclick="waListDelete()"><svg class="icon" width="12" height="12"><use href="#i-trash"/></svg> Excluir lista</button></div>';
+    var cur=lists.find(function(x){return x.id===sel;});
+    h+='<div style="margin-top:10px;font-size:13px;color:var(--muted)">Contatos válidos na lista: <strong style="color:var(--ink)">'+((cur&&cur.count)||0).toLocaleString('pt-BR')+'</strong> <button class="btn-ghost" style="font-size:11px;padding:3px 8px;margin-left:6px" onclick="waListPreview()">Ver números</button></div>';
+    // importar
+    h+='<div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--border)"><div style="font-weight:700;font-size:13px;margin-bottom:6px">Importar planilha para esta lista</div>'
+      +'<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Aceita CSV/TXT com colunas <strong>telefone</strong> e (opcional) <strong>nome</strong>. O sistema valida, padroniza (55+DDD+número), ignora inválidos e não deixa repetir.</div>'
+      +'<input type="file" id="wa-imp-file" accept=".csv,.txt,text/csv,text/plain" style="display:none" onchange="waListImportFile(this.files)">'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-primary" onclick="document.getElementById(\'wa-imp-file\').click()"><svg class="icon" width="13" height="13"><use href="#i-upload"/></svg> Escolher arquivo</button>'
+      +'<button class="btn-ghost" onclick="waListPasteBox()">Colar números</button></div>'
+      +'<div id="wa-imp-status" style="margin-top:8px;font-size:12px"></div></div>';
+  }
+  h+='</div>';
+
+  // ---- NOVA CAMPANHA ----
+  if(sel){
+    h+='<div class="card"><div style="font-weight:800;margin-bottom:4px">2 · Nova campanha (disparo)</div>'
+      +'<div style="font-size:12px;color:var(--muted);margin-bottom:12px">A cadência é automática: <strong>seg–sáb, 9h–20h</strong>, aquecendo o número (200 → 400 → 800 → 1.500 → 3.000 → 5.000/dia). Você só dispara; o sistema pinga aos poucos para o WhatsApp não punir o número.</div>'
+      +'<div class="form-row"><div><label>Nome da campanha</label><input id="wa-c-name" placeholder="Ex: Convite caminhada 4411"></div><div><label>Modo</label><select id="wa-c-mode" onchange="waCModeSwitch(this.value)"><option value="texto">Texto livre (janela 24h)</option><option value="template">Template aprovado (base fria)</option></select></div></div>'
+      +'<div id="wa-c-texto"><label>Mensagem</label><textarea id="wa-c-body" rows="4" placeholder="Olá {nome}! ...">Olá {primeiro}! </textarea><div style="font-size:11px;color:var(--muted)">Variáveis: {nome} {primeiro}</div></div>'
+      +'<div id="wa-c-tpl" style="display:none"><div class="form-row"><div><label>Nome do template (exato, aprovado na Meta)</label><input id="wa-c-tplname" placeholder="ex: convite_evento"></div><div><label>Idioma</label><input id="wa-c-tpllang" value="pt_BR"></div></div>'
+        +'<label>Variáveis do corpo (uma por linha, na ordem — use {nome})</label><textarea id="wa-c-tplvars" rows="2" placeholder="{nome}&#10;4411"></textarea></div>'
+      +'<label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;font-weight:600;margin-top:10px"><input type="checkbox" id="wa-c-excl" checked style="width:auto"> Não enviar para quem já recebeu em campanhas anteriores</label>'
+      +'<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn-primary" onclick="waCampCreate()"><svg class="icon" width="13" height="13"><use href="#i-message"/></svg> Criar e iniciar disparo</button></div></div>';
+  }
+
+  // ---- CAMPANHAS EM ANDAMENTO ----
+  h+='<div class="card"><div style="font-weight:800;margin-bottom:12px">3 · Campanhas</div>';
+  if(!camps.length){ h+='<div class="sub">Nenhuma campanha ainda.</div>'; }
+  else{
+    h+='<div style="display:grid;gap:10px">';
+    camps.forEach(function(k){
+      var total=k.total||0, sent=k.sent||0, deliv=k.delivered||0, fail=k.failed||0, q=k.queued||0;
+      var pct=total?Math.round(sent/total*100):0;
+      var stMeta={draft:['Rascunho','#64748B'],running:['Disparando','#0E7C59'],paused:['Pausada','#B7791F'],done:['Concluída','#2563EB'],canceled:['Cancelada','#DC2626']}[k.status]||['—','#64748B'];
+      h+='<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><strong>'+esc(k.name)+'</strong> <span style="font-size:11px;color:var(--muted)">· '+esc(k.list_name||'')+'</span></div>'
+        +'<span style="font-size:10px;font-weight:800;color:'+stMeta[1]+';background:'+stMeta[1]+'1A;padding:2px 9px;border-radius:20px">'+stMeta[0]+'</span></div>';
+      if(k.note) h+='<div style="font-size:11px;color:#B7791F;margin-top:4px">⚠ '+esc(k.note)+'</div>';
+      h+='<div style="height:8px;background:var(--soft);border-radius:20px;overflow:hidden;margin:9px 0 6px"><i style="display:block;height:100%;width:'+pct+'%;background:'+stMeta[1]+'"></i></div>'
+        +'<div style="font-size:12px;color:var(--muted)">'+sent.toLocaleString('pt-BR')+'/'+total.toLocaleString('pt-BR')+' enviados · '+deliv.toLocaleString('pt-BR')+' entregues · '+fail+' falhas · '+q+' na fila</div>'
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">'
+        +((k.status==='running')?'<button class="btn-ghost" style="font-size:11px;padding:4px 9px" onclick="waCampAction(\''+k.id+'\',\'paused\')">Pausar</button>':'')
+        +((k.status==='paused'||k.status==='draft')?'<button class="btn-ghost" style="font-size:11px;padding:4px 9px;color:#0E7C59" onclick="waCampAction(\''+k.id+'\',\'running\')">Iniciar/Retomar</button>':'')
+        +'<button class="btn-ghost" style="font-size:11px;padding:4px 9px" onclick="waCampReport(\''+k.id+'\')">Relatório</button>'
+        +'<button class="btn-ghost" style="font-size:11px;padding:4px 9px;color:#DC2626" onclick="waCampDelete(\''+k.id+'\')">Excluir</button>'
+        +'</div></div>';
+    });
+    h+='</div>';
+  }
+  h+='</div>';
+
+  host.innerHTML=h;
+};
+window.waBlastSel=function(id){ window._waBlast.listId=id; waBlast(); };
+window.waCModeSwitch=function(m){ document.getElementById('wa-c-texto').style.display=(m==='texto'?'':'none'); document.getElementById('wa-c-tpl').style.display=(m==='template'?'':'none'); };
+window.waListNew=async function(){
+  var name=prompt('Nome da nova lista (ex: "Base fria zona sul"):'); if(!name||!name.trim())return;
+  var r=await window.MOB_RPC('mob_wa_list_save',{p_candidate:window._mobCandId,p_id:null,p_name:name.trim()});
+  if(r&&r.ok){ window._waBlast.listId=r.id; toast('Lista criada'); waBlast(); } else toast((r&&r.error)||'Erro','err');
+};
+window.waListDelete=async function(){
+  var id=window._waBlast.listId; if(!id)return; if(!confirm('Excluir esta lista e todos os números dela?'))return;
+  var r=await window.MOB_RPC('mob_wa_list_delete',{p_candidate:window._mobCandId,p_id:id});
+  if(r&&r.ok){ window._waBlast.listId=null; toast('Lista excluída'); waBlast(); }
+};
+function waParseRows(text){
+  var out=[]; var lines=String(text||'').split(/\r?\n/);
+  lines.forEach(function(ln){ ln=ln.trim(); if(!ln)return;
+    var parts=ln.split(/[,;\t]/).map(function(x){return x.trim().replace(/^"|"$/g,'');});
+    // detecta a coluna do telefone (a que tem mais dígitos)
+    var phi=-1, best=0;
+    parts.forEach(function(p,i){ var d=(p.match(/\d/g)||[]).length; if(d>best){best=d;phi=i;} });
+    if(phi<0||best<8) return; // linha sem telefone plausível
+    var phone=parts[phi]; var name='';
+    parts.forEach(function(p,i){ if(i!==phi && p && !/^\d[\d\s().-]*$/.test(p) && !name) name=p; });
+    out.push({phone:phone,name:name||null});
+  });
+  return out;
+}
+window.waListImportFile=function(files){
+  var f=files&&files[0]; if(!f)return;
+  var st=document.getElementById('wa-imp-status'); if(st) st.textContent='Lendo arquivo…';
+  var rd=new FileReader();
+  rd.onload=function(){ var rows=waParseRows(rd.result); waDoImport(rows); };
+  rd.onerror=function(){ if(st) st.textContent='Não consegui ler o arquivo. Salve como CSV e tente de novo.'; };
+  rd.readAsText(f);
+};
+window.waListPasteBox=function(){
+  showModalHtml('<h3>Colar números</h3><div class="sub" style="margin-bottom:8px">Um por linha. Pode incluir nome separado por vírgula: <em>João, 81999990000</em></div>'
+    +'<textarea id="wa-paste" rows="10" placeholder="81999990000&#10;Maria, (81) 98888-7777"></textarea>'
+    +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="waPasteImport()">Importar</button></div>','wapaste');
+};
+window.waPasteImport=function(){ var t=(document.getElementById('wa-paste')||{}).value||''; closeModal(); waDoImport(waParseRows(t)); };
+async function waDoImport(rows){
+  var st=document.getElementById('wa-imp-status');
+  if(!rows||!rows.length){ if(st) st.textContent='Nenhum número encontrado no arquivo.'; return; }
+  var listId=window._waBlast.listId; if(!listId){ toast('Selecione uma lista','warn'); return; }
+  var CH=1500, tot={total:0,added:0,duplicates:0,invalid:0};
+  for(var i=0;i<rows.length;i+=CH){
+    if(st) st.textContent='Importando… '+Math.min(i+CH,rows.length)+'/'+rows.length;
+    try{ var r=await window.MOB_RPC('mob_wa_list_import',{p_candidate:window._mobCandId,p_list:listId,p_rows:rows.slice(i,i+CH)});
+      if(r&&r.ok){ tot.total+=r.total||0; tot.added+=r.added||0; tot.duplicates+=r.duplicates||0; tot.invalid+=r.invalid||0; }
+    }catch(e){ if(st) st.textContent='Erro na importação: '+(e.message||''); return; }
+  }
+  toast('Importação concluída: '+tot.added+' novos');
+  // Recarrega mostrando o resumo
+  await waBlast();
+  var st2=document.getElementById('wa-imp-status');
+  if(st2) st2.innerHTML='<div style="padding:8px 10px;background:var(--soft);border-radius:8px"><strong>'+tot.added.toLocaleString('pt-BR')+'</strong> adicionados · '+tot.duplicates.toLocaleString('pt-BR')+' repetidos (ignorados) · '+tot.invalid.toLocaleString('pt-BR')+' inválidos · '+tot.total.toLocaleString('pt-BR')+' lidos</div>';
+}
+window.waListPreview=async function(){
+  var id=window._waBlast.listId; if(!id)return;
+  var r=await window.MOB_RPC('mob_wa_list_contacts',{p_candidate:window._mobCandId,p_list:id,p_limit:200,p_offset:0,p_search:null});
+  var rows=(r&&r.rows)||[];
+  var body=rows.length? '<div style="max-height:50vh;overflow:auto"><table class="tbl"><thead><tr><th>Nome</th><th>Número</th></tr></thead><tbody>'+rows.map(function(c){return '<tr><td>'+esc(c.name||'—')+'</td><td>'+esc(c.phone)+'</td></tr>';}).join('')+'</tbody></table></div>' : '<div class="sub">Lista vazia.</div>';
+  showModalHtml('<h3>Números da lista</h3><div class="sub" style="margin-bottom:8px">Mostrando até 200 de '+((r&&r.total)||0).toLocaleString('pt-BR')+'.</div>'+body+'<div class="actions"><button class="btn-primary" onclick="closeModal()">Fechar</button></div>','wapreview');
+};
+window.waCampCreate=async function(){
+  var mode=(document.getElementById('wa-c-mode')||{}).value||'texto';
+  var data={ list_id:window._waBlast.listId, name:(document.getElementById('wa-c-name')||{}).value||'', kind:mode, exclude_prior:(document.getElementById('wa-c-excl')||{}).checked };
+  if(mode==='texto'){ data.body=(document.getElementById('wa-c-body')||{}).value||''; }
+  else{ data.template_name=(document.getElementById('wa-c-tplname')||{}).value||''; data.template_lang=(document.getElementById('wa-c-tpllang')||{}).value||'pt_BR';
+        data.template_params=((document.getElementById('wa-c-tplvars')||{}).value||'').split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean); }
+  var r; try{ r=await window.MOB_RPC('mob_wa_campaign_create',{p_candidate:window._mobCandId,p_data:data}); }catch(e){ toast(e.message||'Erro','err'); return; }
+  if(!r||!r.ok){ toast((r&&r.error)||'Erro ao criar','err'); return; }
+  if(!r.queued){ toast('Campanha criada, mas 0 contatos na fila (todos já receberam antes?)','warn'); }
+  await window.MOB_RPC('mob_wa_campaign_set_status',{p_candidate:window._mobCandId,p_id:r.id,p_status:'running'}).catch(function(){});
+  toast('Disparo iniciado · '+(r.queued||0)+' na fila. A cadência cuida do ritmo.');
+  waBlast();
+};
+window.waCampAction=async function(id,status){
+  await window.MOB_RPC('mob_wa_campaign_set_status',{p_candidate:window._mobCandId,p_id:id,p_status:status}).catch(function(){});
+  toast(status==='running'?'Retomada':'Pausada'); waBlast();
+};
+window.waCampDelete=async function(id){ if(!confirm('Excluir esta campanha e o histórico dela?'))return; await window.MOB_RPC('mob_wa_campaign_delete',{p_candidate:window._mobCandId,p_id:id}).catch(function(){}); waBlast(); };
+window.waCampReport=async function(id){
+  var r=await window.MOB_RPC('mob_wa_campaign_report',{p_candidate:window._mobCandId,p_id:id,p_status:null,p_limit:500,p_offset:0});
+  if(!r||!r.ok){ toast('Erro no relatório','err'); return; }
+  var s=r.summary||{}, rows=r.rows||[];
+  var stLbl={queued:'Na fila',sending:'Enviando',sent:'Enviado',delivered:'Entregue',read:'Lido',failed:'Falhou',skipped:'Pulado'};
+  var head='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
+    +[['Total',s.total],['Enviados',s.sent],['Entregues',s.delivered],['Lidos',s.read],['Falhas',s.failed],['Na fila',s.queued]].map(function(p){return '<div style="flex:1;min-width:80px;background:var(--soft);border-radius:8px;padding:8px 10px;text-align:center"><div style="font-size:18px;font-weight:800">'+((p[1]||0).toLocaleString('pt-BR'))+'</div><div style="font-size:10px;color:var(--muted)">'+p[0]+'</div></div>';}).join('')+'</div>';
+  var tbl='<div style="max-height:44vh;overflow:auto"><table class="tbl"><thead><tr><th>Nome</th><th>Número</th><th>Status</th><th>Quando</th></tr></thead><tbody>'
+    +rows.map(function(t){return '<tr><td>'+esc(t.name||'—')+'</td><td>'+esc(t.phone)+'</td><td>'+(stLbl[t.status]||t.status)+(t.error?' <span title="'+esc(t.error)+'" style="color:#DC2626">⚠</span>':'')+'</td><td>'+(t.sent_at?new Date(t.sent_at).toLocaleString('pt-BR'):'—')+'</td></tr>';}).join('')+'</tbody></table></div>';
+  showModalHtml('<h3>Relatório · '+esc(r.campaign.name)+'</h3>'+head+tbl+'<div class="actions"><button class="btn-primary" onclick="closeModal()">Fechar</button></div>','wacreport');
+};
+window.waDispatchReport=async function(){
+  var r=await window.MOB_RPC('mob_wa_dispatch_report',{p_candidate:window._mobCandId,p_from:null,p_to:null,p_limit:1000,p_offset:0});
+  if(!r||!r.ok){ toast('Erro','err'); return; }
+  var rows=r.rows||[];
+  var stLbl={sent:'Enviado',delivered:'Entregue',read:'Lido',failed:'Falhou'};
+  var tbl=rows.length?'<div style="max-height:52vh;overflow:auto"><table class="tbl"><thead><tr><th>Data</th><th>Número</th><th>Nome</th><th>Campanha</th><th>Status</th></tr></thead><tbody>'
+    +rows.map(function(t){return '<tr><td>'+(t.sent_at?new Date(t.sent_at).toLocaleString('pt-BR'):'—')+'</td><td>'+esc(t.phone)+'</td><td>'+esc(t.name||'—')+'</td><td style="font-size:11px">'+esc(t.campaign||'')+'</td><td>'+(stLbl[t.status]||t.status)+'</td></tr>';}).join('')+'</tbody></table></div>':'<div class="sub">Nenhum disparo registrado ainda.</div>';
+  showModalHtml('<h3>Relatório geral de disparos</h3><div class="sub" style="margin-bottom:8px">Todos os números já disparados — data, conteúdo (campanha) e entrega. '+((r.total)||0).toLocaleString('pt-BR')+' registros.</div>'+tbl+'<div class="actions"><button class="btn-primary" onclick="closeModal()">Fechar</button></div>','wadreport');
+};
+
 window.updateWaPrev = function(){
   var el = document.getElementById('wa-msg');
   if(!el) return;
