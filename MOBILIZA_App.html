@@ -8311,8 +8311,9 @@ function waPadronizarOpen(){
       +'<div style="font-size:14px;margin-bottom:4px">Clique para escolher a planilha</div><div class="sub">.xlsx ou .csv · com coluna de telefone (e nome, se tiver)</div>'
       +'<input type="file" id="padr-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="padrRead(this.files)"></div>'
     +'<div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap"><label style="margin:0;text-transform:none;font-size:12px;font-weight:600">DDD padrão (opcional)</label>'
-      +'<input id="padr-ddd" maxlength="2" inputmode="numeric" placeholder="ex: 31" style="width:70px;padding:7px 9px;border:1px solid var(--border);border-radius:8px" oninput="if(window._padrRows)padrProcess(window._padrRows)">'
-      +'<span style="font-size:11px;color:var(--muted)">recupera números que vieram <strong>sem DDD</strong> (8 ou 9 dígitos) usando esse DDD</span></div>'
+      +'<input id="padr-ddd" maxlength="2" inputmode="numeric" placeholder="ex: 31" style="width:70px;padding:7px 9px;border:1px solid var(--border);border-radius:8px">'
+      +'<button class="btn-primary" style="padding:7px 14px" onclick="if(window._padrRows)window.padrProcess(window._padrRows);else toast(\'Escolha a planilha primeiro\',\'warn\')">Corrigir</button>'
+      +'<span style="font-size:11px;color:var(--muted)">recupera números <strong>sem DDD</strong> (8 ou 9 dígitos) usando esse DDD</span></div>'
     +'<div id="padr-out" style="margin-top:12px"></div>'
     +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Fechar</button>'
       +'<button class="btn-ghost" id="padr-dl" disabled onclick="padrDownload()">⬇ Baixar .xlsx padronizada</button>'
@@ -8329,13 +8330,13 @@ window.padrRead=function(files){
       var ws=wb.Sheets[wb.SheetNames[0]];
       var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',blankrows:false});
       window._padrRows=rows;
-      padrProcess(rows);
+      window.padrProcess(rows);
     }catch(err){ if(out) out.innerHTML='<div style="color:#DC2626">Erro ao ler: '+esc(err.message||''+err)+'</div>'; }
   };
   rd.onerror=function(){ if(out) out.innerHTML='<div style="color:#DC2626">Não consegui ler o arquivo.</div>'; };
   rd.readAsArrayBuffer(f);
 };
-function padrProcess(rows){
+window.padrProcess=function padrProcess(rows){
   var out=document.getElementById('padr-out');
   if(!rows||!rows.length){ if(out) out.innerHTML='<div class="sub">Planilha vazia.</div>'; return; }
   var headers=rows[0]||[]; var map={}; headers.forEach(function(h,i){ map[padrNormHeader(h)]=i; });
