@@ -8081,6 +8081,7 @@ window.waBlast = async function(){
   var L={lists:[]}, C={campaigns:[]};
   try{ L = await window.MOB_RPC('mob_wa_lists',{p_candidate:window._mobCandId}); }catch(e){}
   try{ C = await window.MOB_RPC('mob_wa_campaigns',{p_candidate:window._mobCandId}); }catch(e){}
+  var EC={}; try{ EC = await window.MOB_RPC('mob_wa_engagement_counts',{p_candidate:window._mobCandId})||{}; }catch(e){}
   var lists=(L&&L.lists)||[], camps=(C&&C.campaigns)||[];
   if(window._waBlast.listId && !lists.find(function(x){return x.id===window._waBlast.listId;})) window._waBlast.listId=null;
   if(!window._waBlast.listId && lists.length) window._waBlast.listId=lists[0].id;
@@ -8108,6 +8109,17 @@ window.waBlast = async function(){
       +'<div id="wa-imp-status" style="margin-top:8px;font-size:12px"></div></div>';
   }
   h+='</div>';
+
+  // ---- QUENTES x FRIOS (engajamento) ----
+  h+='<div class="card" style="border:1px solid rgba(220,38,38,.25)"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div style="font-weight:800">Quentes × frios</div><span style="font-size:10px;font-weight:700;color:#0B7A54;background:#DCFCE7;padding:2px 8px;border-radius:20px">automático</span></div>'
+    +'<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Quem responde ao seu número vira <strong>quente</strong> (janela de 24h aberta → pode receber <strong>texto livre</strong>). Quem nunca respondeu é <strong>frio</strong> → só por <strong>template</strong>. Isso é atualizado sozinho a cada resposta recebida.</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'
+      +'<div style="flex:1;min-width:110px;background:rgba(14,124,89,.08);border:1px solid rgba(14,124,89,.25);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--brand-2)">'+((EC.janela_aberta||0)).toLocaleString('pt-BR')+'</div><div style="font-size:11px;color:var(--muted)">quentes (janela 24h)</div></div>'
+      +'<div style="flex:1;min-width:110px;background:var(--soft);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800">'+((EC.engajados||0)).toLocaleString('pt-BR')+'</div><div style="font-size:11px;color:var(--muted)">já responderam</div></div>'
+      +'<div style="flex:1;min-width:110px;background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:#B91C1C">'+((EC.frios||0)).toLocaleString('pt-BR')+'</div><div style="font-size:11px;color:var(--muted)">frios (template)</div></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="waBuildEngList(\'quente\')">Criar lista de quentes</button><button class="btn-ghost" onclick="waBuildEngList(\'engajado\')">Criar lista de engajados</button><button class="btn-ghost" onclick="waBuildEngList(\'frio\')">Criar lista de frios</button></div>'
+    +'<div style="font-size:11px;color:var(--muted);margin-top:8px">Gera uma lista pronta pra disparo. Dispare <strong>quentes</strong> em texto livre e <strong>frios</strong> por template.</div></div>';
 
   // ---- NOVA CAMPANHA ----
   if(sel){
@@ -8213,6 +8225,14 @@ window.waListPreview=async function(){
   var body=rows.length? '<div style="max-height:50vh;overflow:auto"><table class="tbl"><thead><tr><th>Nome</th><th>Número</th></tr></thead><tbody>'+rows.map(function(c){return '<tr><td>'+esc(c.name||'—')+'</td><td>'+esc(c.phone)+'</td></tr>';}).join('')+'</tbody></table></div>' : '<div class="sub">Lista vazia.</div>';
   showModalHtml('<h3>Números da lista</h3><div class="sub" style="margin-bottom:8px">Mostrando até 200 de '+((r&&r.total)||0).toLocaleString('pt-BR')+'.</div>'+body+'<div class="actions"><button class="btn-primary" onclick="closeModal()">Fechar</button></div>','wapreview');
 };
+window.waBuildEngList=async function(kind){
+  var lbl={quente:'quentes (janela 24h)',engajado:'engajados',frio:'frios'}[kind]||kind;
+  if(!confirm('Gerar uma lista com os contatos '+lbl+' agora?'))return;
+  try{ var r=await window.MOB_RPC('mob_wa_build_engagement_list',{p_candidate:window._mobCandId,p_kind:kind,p_name:null});
+    if(r&&r.ok){ window._waBlast.listId=r.list_id; toast('Lista "'+r.name+'" criada com '+r.added+' contatos'); waBlast(); }
+    else toast((r&&r.error)||'Erro','err');
+  }catch(e){ toast(e.message||'Erro','err'); }
+};
 window.waCampCreate=async function(){
   var mode=(document.getElementById('wa-c-mode')||{}).value||'texto';
   var data={ list_id:window._waBlast.listId, name:(document.getElementById('wa-c-name')||{}).value||'', kind:mode, exclude_prior:(document.getElementById('wa-c-excl')||{}).checked };
@@ -8254,9 +8274,11 @@ window.waDispatchReport=async function(){
 
 // ===== PADRONIZADOR DE PLANILHA (mesmo motor do disparo, dentro do app) =====
 window._MOB_DDD = window._MOB_DDD || new Set(['11','12','13','14','15','16','17','18','19','21','22','24','27','28','31','32','33','34','35','37','38','41','42','43','44','45','46','47','48','49','51','53','54','55','61','62','63','64','65','66','67','68','69','71','73','74','75','77','79','81','82','83','84','85','86','87','88','89','91','92','93','94','95','96','97','98','99']);
-window.mobCleanPhone = function(raw){
+window.mobCleanPhone = function(raw, defDDD){
   var d = String(raw==null?'':raw).replace(/\D/g,'');
   if(!d) return {ok:false, reason:'vazio'};
+  // DDD padrão: números sem DDD (8 díg fixo / 9 díg celular) recebem o DDD informado
+  if(defDDD && /^\d{2}$/.test(defDDD) && (d.length===8 || d.length===9)) d = defDDD + d;
   var loc;
   if(d.slice(0,2)==='55' && (d.length===12||d.length===13)) loc=d.slice(2);
   else if(d.length===10||d.length===11) loc=d;
@@ -8288,6 +8310,9 @@ function waPadronizarOpen(){
     +'<div id="padr-drop" style="border:2px dashed #CBD5E1;border-radius:12px;padding:26px;text-align:center;cursor:pointer;background:var(--soft)" onclick="document.getElementById(\'padr-file\').click()">'
       +'<div style="font-size:14px;margin-bottom:4px">Clique para escolher a planilha</div><div class="sub">.xlsx ou .csv · com coluna de telefone (e nome, se tiver)</div>'
       +'<input type="file" id="padr-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="padrRead(this.files)"></div>'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap"><label style="margin:0;text-transform:none;font-size:12px;font-weight:600">DDD padrão (opcional)</label>'
+      +'<input id="padr-ddd" maxlength="2" inputmode="numeric" placeholder="ex: 31" style="width:70px;padding:7px 9px;border:1px solid var(--border);border-radius:8px" oninput="if(window._padrRows)padrProcess(window._padrRows)">'
+      +'<span style="font-size:11px;color:var(--muted)">recupera números que vieram <strong>sem DDD</strong> (8 ou 9 dígitos) usando esse DDD</span></div>'
     +'<div id="padr-out" style="margin-top:12px"></div>'
     +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Fechar</button>'
       +'<button class="btn-ghost" id="padr-dl" disabled onclick="padrDownload()">⬇ Baixar .xlsx padronizada</button>'
@@ -8303,6 +8328,7 @@ window.padrRead=function(files){
       var wb=XLSX.read(new Uint8Array(rd.result),{type:'array'});
       var ws=wb.Sheets[wb.SheetNames[0]];
       var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',blankrows:false});
+      window._padrRows=rows;
       padrProcess(rows);
     }catch(err){ if(out) out.innerHTML='<div style="color:#DC2626">Erro ao ler: '+esc(err.message||''+err)+'</div>'; }
   };
@@ -8320,12 +8346,13 @@ function padrProcess(rows){
   var looksHeader = headers.some(function(x){ return ['nome','telefone','celular','whatsapp','email','fone','contato'].indexOf(padrNormHeader(x))>=0; });
   if(pi<0){ var best=-1,bi=-1; for(var j=0;j<headers.length;j++){ var cnt=0; for(var r=0;r<Math.min(rows.length,30);r++){ cnt+=String(rows[r][j]||'').replace(/\D/g,'').length; } if(cnt>best){best=cnt;bi=j;} } pi=bi; }
   var start = looksHeader?1:0;
+  var defDDD=((document.getElementById('padr-ddd')||{}).value||'').replace(/\D/g,'').slice(0,2);
   var okRows=[], badRows=[], seen={}, dup=0, total=0;
   for(var i=start;i<rows.length;i++){ var row=rows[i]; if(!row)continue;
     var rawPhone=row[pi], name=ni>=0?row[ni]:'';
     if((rawPhone==null||String(rawPhone).trim()==='')&&(name==null||String(name).trim()==='')) continue;
     total++;
-    var res=window.mobCleanPhone(rawPhone);
+    var res=window.mobCleanPhone(rawPhone, defDDD);
     if(!res.ok){ badRows.push([name||'', rawPhone||'', res.reason]); continue; }
     if(seen[res.canon]){ dup++; continue; }
     seen[res.canon]=1; okRows.push({name:String(name||''), original:String(rawPhone), phone:res.send});
@@ -8333,8 +8360,18 @@ function padrProcess(rows){
   window._padr={ok:okRows, bad:badRows, dup:dup, total:total};
   var kpi=function(n,l,c){ return '<div style="flex:1;min-width:70px;background:var(--soft);border-radius:8px;padding:9px;text-align:center"><div style="font-size:19px;font-weight:800'+(c?';color:'+c:'')+'">'+n.toLocaleString('pt-BR')+'</div><div style="font-size:10px;color:var(--muted)">'+l+'</div></div>'; };
   var sample = okRows.slice(0,8).map(function(r){ return '<tr><td>'+esc(r.name||'—')+'</td><td class="sub">'+esc(r.original)+'</td><td style="color:var(--brand-2);font-weight:700">'+esc(r.phone)+'</td></tr>'; }).join('');
+  // Resumo dos motivos de descarte + amostra de descartados
+  var REZ_HELP={'vazio':'célula de telefone em branco','dígitos insuficientes':'menos de 10 dígitos (falta DDD ou o número)','formato inválido':'dígitos demais ou formato estranho','DDD inválido':'os 2 primeiros dígitos não são um DDD do Brasil','celular malformado':'11 dígitos mas sem o 9 na posição certa','assinante inválido':'número começa com dígito impossível','número repetido/sem sentido':'tudo o mesmo dígito (ex: 999999999)'};
+  var reasons={}; badRows.forEach(function(b){ var rz=b[2]||'outro'; reasons[rz]=(reasons[rz]||0)+1; });
+  var rlist=Object.keys(reasons).sort(function(a,b){return reasons[b]-reasons[a];});
+  var breakdown = badRows.length? '<div style="margin-top:10px;padding:11px 12px;border:1px solid rgba(220,38,38,.2);background:rgba(220,38,38,.04);border-radius:8px"><div style="font-weight:800;font-size:12px;margin-bottom:7px;color:#B91C1C">Por que '+badRows.length.toLocaleString('pt-BR')+' foram descartados</div>'
+    +rlist.map(function(rz){ var pct=Math.round(reasons[rz]/badRows.length*100); return '<div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:12px"><span><strong>'+esc(rz)+'</strong> <span style="color:var(--muted)">— '+esc(REZ_HELP[rz]||'')+'</span></span><strong style="white-space:nowrap">'+reasons[rz].toLocaleString('pt-BR')+' · '+pct+'%</strong></div><div style="height:6px;background:var(--soft);border-radius:20px;overflow:hidden;margin-top:2px"><i style="display:block;height:100%;width:'+pct+'%;background:#DC2626"></i></div></div>'; }).join('')
+    +'<div style="font-size:11px;color:var(--muted);margin-top:6px">Baixe a planilha e abra a aba <strong>Descartados</strong> para ver número por número.</div></div>' : '';
+  var badSample = badRows.slice(0,6).map(function(b){ return '<tr><td>'+esc(b[0]||'—')+'</td><td class="sub">'+esc(b[1])+'</td><td style="color:#B91C1C">'+esc(b[2])+'</td></tr>'; }).join('');
   out.innerHTML='<div style="display:flex;gap:8px;margin-bottom:10px">'+kpi(total,'lidos')+kpi(okRows.length,'padronizados','var(--brand-2)')+kpi(dup,'repetidos')+kpi(badRows.length,'descartados','#DC2626')+'</div>'
-    +(okRows.length?'<div style="max-height:34vh;overflow:auto"><table class="tbl"><thead><tr><th>Nome</th><th>Original</th><th>Padronizado</th></tr></thead><tbody>'+sample+'</tbody></table><div class="sub" style="margin-top:6px">Mostrando '+Math.min(8,okRows.length)+' de '+okRows.length+'.</div></div>':'<div class="sub">Nenhum número aproveitável encontrado.</div>');
+    +breakdown
+    +(okRows.length?'<div style="max-height:26vh;overflow:auto;margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">Amostra padronizada</div><table class="tbl"><thead><tr><th>Nome</th><th>Original</th><th>Padronizado</th></tr></thead><tbody>'+sample+'</tbody></table></div>':'<div class="sub" style="margin-top:8px">Nenhum número aproveitável encontrado.</div>')
+    +(badRows.length?'<div style="max-height:22vh;overflow:auto;margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">Amostra dos descartados</div><table class="tbl"><thead><tr><th>Nome</th><th>Original</th><th>Motivo</th></tr></thead><tbody>'+badSample+'</tbody></table></div>':'');
   var dl=document.getElementById('padr-dl'); if(dl) dl.disabled=!okRows.length;
   var imp=document.getElementById('padr-imp'); if(imp) imp.disabled=!okRows.length;
 }
@@ -8433,8 +8470,9 @@ window.waTplPick = function(){
   var t = window._waTemplates[+i]; window._waTplSelected = t;
   if(prev){ prev.style.display='block'; prev.textContent = t.body||''; }
   var h='';
+  if(t.complex){ h += '<div style="margin-top:8px;padding:8px 10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:8px;font-size:11.5px;color:#B91C1C">⚠ Este template usa variável no <strong>cabeçalho ou botão</strong>. O disparo simples só preenche variáveis do <strong>corpo</strong> — use um template com variáveis apenas no texto para evitar erro de parâmetros.</div>'; }
   for(var k=1;k<=(+t.vars||0);k++){ h += '<label style="margin-top:8px">Variável {{'+k+'}}'+(k===1?' <span style="text-transform:none;font-weight:500;color:var(--muted)">(sugestão: nome)</span>':'')+'</label><input class="wa-tplvar" value="'+(k===1?'{nome}':'')+'" placeholder="{nome}, {bairro} ou texto fixo" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px">'; }
-  if(varsBox) varsBox.innerHTML = h || '<div style="font-size:11px;color:var(--muted);margin-top:6px">Este template não tem variáveis.</div>';
+  if(varsBox) varsBox.innerHTML = h || '<div style="font-size:11px;color:var(--muted);margin-top:6px">Este template não tem variáveis — será enviado como está.</div>';
 };
 window.saveCampaign = function(){
   var name = document.getElementById('wa-name').value.trim();
