@@ -8196,7 +8196,12 @@ window.waBlast = async function(){
       +'<div id="wa-c-tpl" style="display:none"><div class="form-row"><div><label>Nome do template (exato, aprovado na Meta)</label><input id="wa-c-tplname" placeholder="ex: convite_evento"></div><div><label>Idioma</label><input id="wa-c-tpllang" value="pt_BR"></div></div>'
         +'<label>Variáveis do corpo (uma por linha, na ordem — use {nome})</label><textarea id="wa-c-tplvars" rows="2" placeholder="{nome}&#10;4411"></textarea></div>'
       +'<label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;font-weight:600;margin-top:10px"><input type="checkbox" id="wa-c-excl" checked style="width:auto"> Não enviar para quem já recebeu em campanhas anteriores</label>'
-      +'<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn-primary" onclick="waCampCreate()"><svg class="icon" width="13" height="13"><use href="#i-message"/></svg> Criar e iniciar disparo</button></div></div>';
+      +'<div style="margin-top:12px"><label>Quando disparar</label>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="wa-c-when" onchange="waWhenSwitch(this.value)" style="max-width:150px"><option value="now">Agora</option><option value="sched">Agendar</option></select>'
+        +'<input type="date" id="wa-c-date" style="display:none">'
+        +'<input type="time" id="wa-c-time" value="09:00" style="display:none"></div>'
+        +'<div id="wa-c-when-hint" style="font-size:11px;color:var(--muted);margin-top:5px"></div></div>'
+      +'<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn-primary" id="wa-c-go" onclick="waCampCreate()"><svg class="icon" width="13" height="13"><use href="#i-message"/></svg> Criar e iniciar disparo</button></div></div>';
   }
 
   // ---- CAMPANHAS EM ANDAMENTO ----
@@ -8207,16 +8212,18 @@ window.waBlast = async function(){
     camps.forEach(function(k){
       var total=k.total||0, sent=k.sent||0, deliv=k.delivered||0, fail=k.failed||0, q=k.queued||0;
       var pct=total?Math.round(sent/total*100):0;
-      var stMeta={draft:['Rascunho','#64748B'],running:['Disparando','#0E7C59'],paused:['Pausada','#B7791F'],done:['Concluída','#2563EB'],canceled:['Cancelada','#DC2626']}[k.status]||['—','#64748B'];
+      var stMeta={draft:['Rascunho','#64748B'],scheduled:['Agendada','#7C3AED'],running:['Disparando','#0E7C59'],paused:['Pausada','#B7791F'],done:['Concluída','#2563EB'],canceled:['Cancelada','#DC2626']}[k.status]||['—','#64748B'];
       h+='<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><strong>'+esc(k.name)+'</strong> <span style="font-size:11px;color:var(--muted)">· '+esc(k.list_name||'')+'</span></div>'
         +'<span style="font-size:10px;font-weight:800;color:'+stMeta[1]+';background:'+stMeta[1]+'1A;padding:2px 9px;border-radius:20px">'+stMeta[0]+'</span></div>';
+      if(k.status==='scheduled'&&k.scheduled_at) h+='<div style="font-size:11px;color:#7C3AED;font-weight:600;margin-top:4px">🕒 Agendado para '+new Date(k.scheduled_at).toLocaleString('pt-BR')+'</div>';
       if(k.note) h+='<div style="font-size:11px;color:#B7791F;margin-top:4px">⚠ '+esc(k.note)+'</div>';
       h+='<div style="height:8px;background:var(--soft);border-radius:20px;overflow:hidden;margin:9px 0 6px"><i style="display:block;height:100%;width:'+pct+'%;background:'+stMeta[1]+'"></i></div>'
         +'<div style="font-size:12px;color:var(--muted)">'+sent.toLocaleString('pt-BR')+'/'+total.toLocaleString('pt-BR')+' enviados · '+deliv.toLocaleString('pt-BR')+' entregues · '+fail+' falhas · '+q+' na fila</div>'
         +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">'
         +((k.status==='running')?'<button class="btn-ghost" style="font-size:11px;padding:4px 9px" onclick="waCampAction(\''+k.id+'\',\'paused\')">Pausar</button>':'')
         +((k.status==='paused'||k.status==='draft')?'<button class="btn-ghost" style="font-size:11px;padding:4px 9px;color:#0E7C59" onclick="waCampAction(\''+k.id+'\',\'running\')">Iniciar/Retomar</button>':'')
+        +((k.status==='scheduled')?'<button class="btn-ghost" style="font-size:11px;padding:4px 9px;color:#0E7C59" onclick="waCampAction(\''+k.id+'\',\'running\')">Disparar agora</button><button class="btn-ghost" style="font-size:11px;padding:4px 9px;color:#B7791F" onclick="waCampAction(\''+k.id+'\',\'draft\')">Cancelar agendamento</button>':'')
         +'<button class="btn-ghost" style="font-size:11px;padding:4px 9px" onclick="waCampReport(\''+k.id+'\')">Relatório</button>'
         +'<button class="btn-ghost" style="font-size:11px;padding:4px 9px;color:#DC2626" onclick="waCampDelete(\''+k.id+'\')">Excluir</button>'
         +'</div></div>';
@@ -8299,17 +8306,37 @@ window.waBuildEngList=async function(kind){
     else toast((r&&r.error)||'Erro','err');
   }catch(e){ toast(e.message||'Erro','err'); }
 };
+window.waWhenSwitch=function(v){
+  var d=document.getElementById('wa-c-date'), t=document.getElementById('wa-c-time'), h=document.getElementById('wa-c-when-hint'), go=document.getElementById('wa-c-go');
+  var sched=(v==='sched');
+  if(d) d.style.display=sched?'':'none'; if(t) t.style.display=sched?'':'none';
+  if(sched && d && !d.value){ var dt=new Date(Date.now()+86400000); d.value=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
+  if(h) h.innerHTML = sched? 'Horário de Brasília (fuso do candidato). O envio respeita a janela seg–sáb, 9h–20h — se agendar fora dela, começa na próxima janela.' : '';
+  if(go) go.innerHTML='<svg class="icon" width="13" height="13"><use href="#i-message"/></svg> '+(sched?'Agendar disparo':'Criar e iniciar disparo');
+};
 window.waCampCreate=async function(){
   var mode=(document.getElementById('wa-c-mode')||{}).value||'texto';
+  var when=(document.getElementById('wa-c-when')||{}).value||'now';
   var data={ list_id:window._waBlast.listId, name:(document.getElementById('wa-c-name')||{}).value||'', kind:mode, exclude_prior:(document.getElementById('wa-c-excl')||{}).checked };
   if(mode==='texto'){ data.body=(document.getElementById('wa-c-body')||{}).value||''; }
   else{ data.template_name=(document.getElementById('wa-c-tplname')||{}).value||''; data.template_lang=(document.getElementById('wa-c-tpllang')||{}).value||'pt_BR';
         data.template_params=((document.getElementById('wa-c-tplvars')||{}).value||'').split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean); }
+  if(when==='sched'){
+    var sd=(document.getElementById('wa-c-date')||{}).value||'', st=(document.getElementById('wa-c-time')||{}).value||'';
+    if(!sd){ toast('Escolha a data do agendamento','warn'); return; }
+    data.schedule_date=sd; data.schedule_time=st||'09:00';
+  }
   var r; try{ r=await window.MOB_RPC('mob_wa_campaign_create',{p_candidate:window._mobCandId,p_data:data}); }catch(e){ toast(e.message||'Erro','err'); return; }
   if(!r||!r.ok){ toast((r&&r.error)||'Erro ao criar','err'); return; }
   if(!r.queued){ toast('Campanha criada, mas 0 contatos na fila (todos já receberam antes?)','warn'); }
-  await window.MOB_RPC('mob_wa_campaign_set_status',{p_candidate:window._mobCandId,p_id:r.id,p_status:'running'}).catch(function(){});
-  toast('Disparo iniciado · '+(r.queued||0)+' na fila. A cadência cuida do ritmo.');
+  if(r.status==='scheduled'){
+    toast('Disparo agendado · '+(r.queued||0)+' na fila. Vai sair sozinho no horário.');
+  } else if(r.status==='running'){
+    toast('Disparo iniciado · '+(r.queued||0)+' na fila. A cadência cuida do ritmo.');
+  } else {
+    await window.MOB_RPC('mob_wa_campaign_set_status',{p_candidate:window._mobCandId,p_id:r.id,p_status:'running'}).catch(function(){});
+    toast('Disparo iniciado · '+(r.queued||0)+' na fila. A cadência cuida do ritmo.');
+  }
   waBlast();
 };
 window.waCampAction=async function(id,status){
