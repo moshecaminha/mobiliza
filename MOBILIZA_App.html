@@ -6767,17 +6767,42 @@ async function renderAgenda(){
   host.innerHTML=html;
 }
 window.agendaPrint=function(){
-  var items=window._agendaItems||[]; var filter=window._agendaFilter||'semana';
-  var list=agendaInRange(items,filter);
-  var rangeLbl={hoje:'Hoje',amanha:'Amanhã',semana:'Esta semana (dom → sáb)',mes:'Este mês',todos:'Todos os compromissos'}[filter];
+  var filter=window._agendaFilter||'semana';
+  var r=agendaRangeFor(filter);
+  var toISO=function(d){ if(!d)return ''; var m=d.getMonth()+1,dd=d.getDate(); return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(dd<10?'0':'')+dd; };
+  var de=r?toISO(r[0]):'', ate=r?toISO(r[1]):'';
+  showModalHtml('<h3>Relatório da agenda</h3>'
+    +'<div class="sub" style="margin-bottom:12px">Escolha o período do relatório. Deixe as datas em branco para incluir tudo.</div>'
+    +'<div class="form-row"><div><label>De</label><input type="date" id="agr-de" value="'+de+'"></div><div><label>Até</label><input type="date" id="agr-ate" value="'+ate+'"></div></div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn-ghost" style="font-size:11px;padding:4px 9px" onclick="agrQuick(\'hoje\')">Hoje</button><button class="btn-ghost" style="font-size:11px;padding:4px 9px" onclick="agrQuick(\'semana\')">Esta semana</button><button class="btn-ghost" style="font-size:11px;padding:4px 9px" onclick="agrQuick(\'mes\')">Este mês</button><button class="btn-ghost" style="font-size:11px;padding:4px 9px" onclick="agrQuick(\'todos\')">Tudo</button></div>'
+    +'<label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;font-weight:600;margin-top:12px"><input type="checkbox" id="agr-desc" checked style="width:auto"> Incluir coluna de descrição (para impressão / e-mail)</label>'
+    +'<div class="actions"><button class="btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn-primary" onclick="agendaPrintGen()"><svg class="icon" width="13" height="13"><use href="#i-download"/></svg> Gerar relatório</button></div>','agrep');
+};
+window.agrQuick=function(k){
+  var r=agendaRangeFor(k);
+  var toISO=function(d){ if(!d)return ''; var m=d.getMonth()+1,dd=d.getDate(); return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(dd<10?'0':'')+dd; };
+  var de=document.getElementById('agr-de'), ate=document.getElementById('agr-ate');
+  if(de) de.value=r?toISO(r[0]):''; if(ate) ate.value=r?toISO(r[1]):'';
+};
+window.agendaPrintGen=function(){
+  var de=(document.getElementById('agr-de')||{}).value||'';
+  var ate=(document.getElementById('agr-ate')||{}).value||'';
+  var withDesc=(document.getElementById('agr-desc')||{}).checked!==false;
+  var items=window._agendaItems||[];
+  var d0=de?parseLocalDate(de):null, d1=ate?parseLocalDate(ate):null; if(d1) d1.setHours(23,59,59,999);
+  var list=items.filter(function(x){ var d=parseLocalDate(x.date); if(!d)return false; if(d0&&d<d0)return false; if(d1&&d>d1)return false; return true; }).sort(agendaSort);
   var candName=((document.getElementById('brand-name')||{}).textContent||'').trim();
-  var rows=list.map(function(e){ return '<tr><td>'+fmtDate(e.date)+'</td><td>'+(e.time||'—')+'</td><td>'+esc(e.title)+'</td><td>'+esc(e.location||'—')+'</td><td>'+(e.source==='evento'?'Evento QR ('+(e.checkins||0)+' check-ins)':({publico:'Público',midia:'Mídia',interno:'Interno',pessoal:'Pessoal'}[e.type]||'Agenda'))+'</td></tr>'; }).join('');
+  var lbl=(de||ate)?((de?fmtDate(de):'início')+' até '+(ate?fmtDate(ate):'fim')):'Todos os compromissos';
+  var tipoOf=function(e){ return e.source==='evento'?'Evento QR ('+(e.checkins||0)+' check-ins)':({publico:'Público',midia:'Mídia',interno:'Interno',pessoal:'Pessoal'}[e.type]||'Agenda'); };
+  var cspan=withDesc?6:5;
+  var rows=list.map(function(e){ return '<tr><td>'+fmtDate(e.date)+'</td><td>'+(e.time||'—')+'</td><td>'+esc(e.title)+'</td><td>'+esc(e.location||'—')+'</td><td>'+tipoOf(e)+'</td>'+(withDesc?'<td>'+esc(e.description||'—')+'</td>':'')+'</tr>'; }).join('');
   var w=window.open('','_blank'); if(!w){ toast('Permita pop-ups para gerar o relatório','warn'); return; }
-  w.document.write('<html><head><title>Agenda — '+rangeLbl+'</title><meta charset="utf-8"><style>body{font-family:Arial,Helvetica,sans-serif;padding:26px;color:#0F172A}h1{font-size:20px;margin:0 0 2px}.sub{color:#64748B;font-size:13px;margin-bottom:16px}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;background:#F1F5F9;padding:9px;border-bottom:2px solid #e5e7eb}td{padding:9px;border-bottom:1px solid #eef2f6}@media print{.noprint{display:none}}</style></head><body>'
-    +'<h1>Agenda'+(candName?' — '+candName:'')+'</h1><div class="sub">'+rangeLbl+' · '+list.length+' compromisso(s) · gerado em '+new Date().toLocaleString('pt-BR')+'</div>'
-    +'<table><thead><tr><th>Data</th><th>Hora</th><th>Compromisso</th><th>Local</th><th>Tipo</th></tr></thead><tbody>'+(rows||'<tr><td colspan="5">Sem compromissos no período.</td></tr>')+'</tbody></table>'
+  w.document.write('<html><head><title>Agenda — '+esc(lbl)+'</title><meta charset="utf-8"><style>body{font-family:Arial,Helvetica,sans-serif;padding:26px;color:#0F172A}h1{font-size:20px;margin:0 0 2px}.sub{color:#64748B;font-size:13px;margin-bottom:16px}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;background:#F1F5F9;padding:9px;border-bottom:2px solid #e5e7eb}td{padding:9px;border-bottom:1px solid #eef2f6;vertical-align:top}td:last-child{color:#334155}@media print{.noprint{display:none}}</style></head><body>'
+    +'<h1>Agenda'+(candName?' — '+esc(candName):'')+'</h1><div class="sub">'+esc(lbl)+' · '+list.length+' compromisso(s) · gerado em '+new Date().toLocaleString('pt-BR')+'</div>'
+    +'<table><thead><tr><th>Data</th><th>Hora</th><th>Compromisso</th><th>Local</th><th>Tipo</th>'+(withDesc?'<th>Descrição</th>':'')+'</tr></thead><tbody>'+(rows||'<tr><td colspan="'+cspan+'">Sem compromissos no período.</td></tr>')+'</tbody></table>'
     +'<button class="noprint" onclick="window.print()" style="margin-top:18px;padding:11px 20px;background:#00A878;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Imprimir / Salvar PDF</button>'
     +'</body></html>'); w.document.close();
+  closeModal();
 };
 // Card do dashboard: eventos desta semana (domingo → sábado), agenda + eventos QR
 async function dashLoadWeek(){
