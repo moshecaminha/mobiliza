@@ -7853,6 +7853,16 @@ function waAudienceBase(){
 
 // Filtros vazios = todos. Pessoas marcadas entram sempre.
 function waComputeAudience(){
+  // Se houver lista(s) salva(s) selecionada(s), a audiência são os contatos dessas listas
+  if(window._waSelLists && window._waSelLists.length){
+    var seenL={}, arrL=[];
+    window._waSelLists.forEach(function(id){ ((window._waListCache||{})[id]||[]).forEach(function(c){
+      var k=String(c.phone||'').replace(/\D/g,''); if(!k||seenL[k])return; seenL[k]=1;
+      arrL.push({id:'list:'+(c.id||k), name:c.name||'', phone:c.phone, cls:'lista', bairro:'', cidade:''});
+    }); });
+    var limL=+(window._waBatchLimit||0); if(limL>0 && arrL.length>limL) arrL=arrL.slice(0,limL);
+    return arrL;
+  }
   var base = waAudienceBase();
   var anyFilter = waSeg.bairros.length || waSeg.cidades.length || waSeg.classes.length;
   var leadSel = waSeg.classes.indexOf('lead')>=0;
@@ -7873,6 +7883,19 @@ function waComputeAudience(){
 }
 window.waFullAudienceCount = function(){ var s=window._waBatchLimit; window._waBatchLimit=0; var n=waComputeAudience().length; window._waBatchLimit=s; return n; };
 window.waSetBatchLimit = function(v){ window._waBatchLimit = +v||0; waUpdateReach(); };
+window.waToggleSavedList = function(id, el){
+  window._waSelLists = window._waSelLists || {}; if(Array.isArray(window._waSelLists)===false) window._waSelLists=[];
+  var i = window._waSelLists.indexOf(id);
+  if(i>=0){ window._waSelLists.splice(i,1); if(el){el.classList.remove('on');el.style.background='rgba(37,99,235,.05)';el.style.borderColor='rgba(37,99,235,.4)';} waUpdateReach(); return; }
+  window._waSelLists.push(id); if(el){el.classList.add('on');el.style.background='';el.style.borderColor='#2563EB';}
+  window._waListCache = window._waListCache || {};
+  if(!window._waListCache[id]){
+    if(el){ var s=el.querySelector('strong'); if(s) s.textContent='…'; }
+    window.MOB_RPC('mob_wa_list_contacts',{p_candidate:window._mobCandId,p_list:id,p_limit:10000,p_offset:0,p_search:null})
+      .then(function(r){ window._waListCache[id]=(r&&r.rows)||[]; waUpdateReach(); })
+      .catch(function(){ window._waListCache[id]=[]; waUpdateReach(); });
+  } else waUpdateReach();
+};
 
 // Listas indexadas — evita quebrar o onclick com nomes que contêm apóstrofo
 var _waBairroList = [], _waCidadeList = [];
@@ -7922,6 +7945,11 @@ function renderWhatsapp(){
   if(window._waLeadsCache==null && window._mobCandId && window.MOB_RPC){
     window._waLeadsCache = []; // evita refetch em loop
     window.MOB_RPC('mob_leads_list',{p_candidate:window._mobCandId}).then(function(rows){ window._waLeadsCache=rows||[]; renderWhatsapp(); }).catch(function(){});
+  }
+  // Listas salvas (módulo de disparo em massa) — aparecem aqui e atualizam sozinhas
+  if(window._waSavedLists==null && window._mobCandId && window.MOB_RPC){
+    window._waSavedLists = [];
+    window.MOB_RPC('mob_wa_lists',{p_candidate:window._mobCandId}).then(function(r){ window._waSavedLists=(r&&r.lists)||[]; renderWhatsapp(); }).catch(function(){});
   }
   var html = '<div class="page-head"><div><h2>Comunicação</h2><div class="sub">'+activeOnly(state.templates).length+' templates · '+activeOnly(state.campaigns).length+' campanhas</div></div><div style="display:flex;gap:8px"><button class="btn-ghost" onclick="modalTemplate()"><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg> Template</button></div></div>';
   html += '<div class="notice"><strong>ℹ Envio real</strong> requer backend com WhatsApp Business API (Meta) + Twilio + SendGrid. Aqui você cria, segmenta e simula.</div>';
@@ -7977,6 +8005,18 @@ function renderWhatsapp(){
     +'<span class="seg'+(_leadOn?' on':'')+'" onclick="waToggle(\'classes\',\'lead\',this)" style="border:1.5px dashed var(--brand-2);'+(_leadOn?'':'background:rgba(0,168,120,.06);')+'font-weight:700"><svg width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-users"/></svg>Leads (eventos) <strong style="opacity:.75">'+_leadCount+'</strong></span>'
     +'<span style="font-size:10.5px;color:var(--muted);align-self:center;margin-left:4px">'+(_leadCount?'exige template aprovado (base fria)':'nenhum lead ainda')+'</span>'
   +'</div>';
+
+  // LISTAS SALVAS (do módulo de disparo em massa) — auto-atualizam
+  var _savedLists = window._waSavedLists||[];
+  var _selL = window._waSelLists||[];
+  html += '<div style="margin:14px 0 5px;padding-top:12px;border-top:1px dashed var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#2563EB;font-weight:800;display:flex;align-items:center;gap:7px">Listas salvas <span style="background:rgba(37,99,235,.12);color:#2563EB;font-weight:700;font-size:9px;padding:2px 7px;border-radius:20px;text-transform:none;letter-spacing:0">disparo em massa · atualiza sozinho</span></div>';
+  html += '<div class="wa-segs">';
+  if(!_savedLists.length){ html += '<span style="font-size:11px;color:var(--muted)">Nenhuma lista salva. Crie no módulo "Listas & disparo em massa" (ou pelo painel Quentes × frios).</span>'; }
+  else _savedLists.forEach(function(l){ var on=_selL.indexOf(l.id)>=0;
+    html += '<span class="seg'+(on?' on':'')+'" onclick="waToggleSavedList(\''+l.id+'\',this)" style="border:1.5px solid '+(on?'#2563EB':'rgba(37,99,235,.4)')+(on?'':';background:rgba(37,99,235,.05)')+';font-weight:700"><svg width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-upload"/></svg>'+esc(l.name)+' <strong style="opacity:.75">'+(l.count||0)+'</strong></span>';
+  });
+  html += '</div>';
+  if(_selL.length) html += '<div style="font-size:11px;color:#2563EB;font-weight:600;margin-top:5px">Lista(s) selecionada(s): o disparo vai para os contatos dessas listas (ignora os outros filtros).</div>';
 
   // 2) Bairros
   var bairros = {};
@@ -8077,6 +8117,7 @@ function renderWhatsapp(){
 window._waBlast = window._waBlast || { listId:null };
 window.waBlast = async function(){
   var host = document.getElementById('view-whatsapp'); if(!host) return;
+  window._waSavedLists = null; window._waListCache = null; // força a Comunicação a recarregar as listas
   host.innerHTML = '<div class="page-head"><div><h2>Listas & disparo em massa</h2><div class="sub">Carregando…</div></div><div><button class="btn-ghost" onclick="renderWhatsapp()">Voltar</button></div></div>';
   var L={lists:[]}, C={campaigns:[]};
   try{ L = await window.MOB_RPC('mob_wa_lists',{p_candidate:window._mobCandId}); }catch(e){}
@@ -8480,6 +8521,7 @@ window.saveCampaign = function(){
   if(!name){ toast('Nomeie a campanha','warn'); return; }
   var aud = waComputeAudience();
   if(!aud.length){ toast('Segmentação vazia — nenhum contato selecionado','warn'); return; }
+  if(aud.length>400 && !confirm('Você vai disparar para '+aud.length.toLocaleString('pt-BR')+' contatos de uma vez.\n\nPara volumes altos, o ideal é o módulo "Listas & disparo em massa", que tem cadência automática e protege o número de banimento.\n\nDisparar assim mesmo?')) return;
   var msg = document.getElementById('wa-msg').value;
   var channel = String(document.getElementById('wa-channel').value||'').toLowerCase();
   var cost = aud.length * COST_PER_MESSAGE;
