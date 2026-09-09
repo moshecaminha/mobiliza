@@ -7771,7 +7771,16 @@ window.convOpen = function(phone, name){
     var body='<div class="conv-th-msgs" id="conv-th-msgs">'
       + (msgs.length? msgs.map(function(m){
           var out=m.direction==='out';
-          return '<div class="conv-bubble '+(out?'out':'in')+'">'+esc(m.body||'')+'<div class="t">'+(m.created_at?new Date(m.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'')+'</div></div>';
+          var tstr=(m.created_at?new Date(m.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'');
+          var inner;
+          if(m.media_path){
+            if(m.media_type==='image') inner='<img class="conv-media" data-mp="'+esc(m.media_path)+'" style="max-width:220px;max-height:260px;border-radius:8px;display:block;cursor:zoom-in;background:#e5e7eb;min-height:36px" onclick="convOpenMedia(this)">';
+            else if(m.media_type==='audio') inner='<audio class="conv-media" data-mp="'+esc(m.media_path)+'" controls preload="metadata" style="max-width:232px;height:40px"></audio>';
+            else if(m.media_type==='video') inner='<video class="conv-media" data-mp="'+esc(m.media_path)+'" controls preload="metadata" style="max-width:232px;border-radius:8px"></video>';
+            else inner='<a class="conv-media" data-mp="'+esc(m.media_path)+'" target="_blank" style="color:inherit;text-decoration:underline">📎 arquivo</a>';
+            if(m.body && !/^\[(image|audio|video|document|sticker)\]$/.test(m.body)) inner+='<div style="margin-top:4px">'+esc(m.body)+'</div>';
+          } else { inner=esc(m.body||''); }
+          return '<div class="conv-bubble '+(out?'out':'in')+'">'+inner+'<div class="t">'+tstr+'</div></div>';
         }).join('') : '<div style="color:var(--muted);text-align:center;padding:20px;margin:auto">Sem mensagens.</div>')
       +'</div>';
     var reply='<div class="conv-th-compose">'
@@ -7789,8 +7798,21 @@ window.convOpen = function(phone, name){
     +'</div>';
     th.innerHTML = head+body+reply;
     try{ var _mb=document.getElementById('conv-th-msgs'); if(_mb) _mb.scrollTop=_mb.scrollHeight; }catch(e){}
+    convResolveMedia();
   }).catch(function(e){ th.innerHTML='<div style="padding:16px;color:var(--coral)">'+esc(e.message||'Erro')+'</div>'; });
 };
+// Resolve as URLs assinadas da mídia recebida (imagem/áudio/vídeo) do bucket privado
+window.convResolveMedia = function(){
+  var els=document.querySelectorAll('.conv-media[data-mp]');
+  for(var i=0;i<els.length;i++){ (function(el){
+    var p=el.getAttribute('data-mp'); if(!p||el.getAttribute('data-done'))return; el.setAttribute('data-done','1');
+    try{ window.MOB_SB.storage.from('wa-media').createSignedUrl(p,3600).then(function(r){
+      var u=r&&r.data&&r.data.signedUrl; if(!u)return;
+      if(el.tagName==='A') el.href=u; else el.src=u;
+    }).catch(function(){}); }catch(e){}
+  })(els[i]); }
+};
+window.convOpenMedia = function(img){ if(img&&img.src) window.open(img.src,'_blank'); };
 // Sobe a mídia para o bucket wa-media e dispara via mob-wa-send (upload único → Meta reaproveita o media_id)
 window.waUploadAndSend = function(file, kind, target){
   if(!window.MOB_SB || !window._mobCandId) return Promise.reject(new Error('Sessão não iniciada'));
