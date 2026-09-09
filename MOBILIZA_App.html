@@ -8110,7 +8110,7 @@ function renderWhatsapp(){
     +'<select id="wa-tpl-select" onchange="waTplPick()" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px"><option value="">Carregando templates…</option></select>'
     +'<div id="wa-tpl-preview" style="font-size:12px;color:var(--ink-2);white-space:pre-wrap;margin-top:8px;padding:8px 10px;background:#fff;border:1px solid var(--border);border-radius:8px;display:none"></div>'
     +'<div id="wa-tpl-vars"></div>'
-    +'<div style="font-size:11px;color:var(--muted);margin-top:6px">O template alcança quem <strong>ainda não te escreveu</strong> (base fria). Nos valores das variáveis, use {nome} {bairro} {cidade} {numero} — o sistema substitui por pessoa.</div>'
+    +'<div style="font-size:11px;color:var(--muted);margin-top:6px">O template alcança quem <strong>ainda não te escreveu</strong> (base fria). Para valor que muda por pessoa, use os códigos <strong>{nome} {bairro} {cidade} {numero}</strong>. Para um <strong>valor fixo</strong> (ex.: quem indicou, como "Marcelo Júnior"), digite o texto direto — <strong>sem chaves</strong>.</div>'
   +'</div>';
   html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:11px;color:var(--muted)" id="wa-cost">—</div><button class="btn-primary" onclick="saveCampaign()"><svg class="icon" width="13" height="13"><use href="#i-message"/></svg> Disparar agora</button></div>';
   html += '</div>';
@@ -8597,7 +8597,17 @@ window.saveCampaign = function(){
 
   if(channel==='whatsapp'){
     var num = (state.candidate&&state.candidate.partyNumber)||'';
-    var subst = function(txt,p){ return String(txt||'').replace(/\{nome\}/g,(p.name||'').split(' ')[0]||'').replace(/\{bairro\}/g,p.bairro||'').replace(/\{cidade\}/g,p.cidade||p.city||'').replace(/\{numero\}/g,num); };
+    var subst = function(txt,p){
+      var out = String(txt||'')
+        .replace(/\{nome\}/gi,(p.name||'').split(' ')[0]||'')
+        .replace(/\{primeiro\}/gi,(p.name||'').split(' ')[0]||'')
+        .replace(/\{bairro\}/gi,p.bairro||'')
+        .replace(/\{cidade\}/gi,p.cidade||p.city||'')
+        .replace(/\{numero\}/gi,num);
+      // Qualquer chave restante que não seja um código vira texto normal: {Moshe} -> Moshe
+      out = out.replace(/\{([^{}]+)\}/g,'$1');
+      return out.trim();
+    };
     var validAud = aud.filter(function(p){ return (p.phone||'').replace(/\D/g,'').length>=10; });
     var isTpl = (window._waSendMode==='template');
     var tpl = isTpl ? (window._waTplSelected||null) : null;
