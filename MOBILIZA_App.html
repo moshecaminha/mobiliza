@@ -8205,7 +8205,7 @@ window.waBlast = async function(){
   if(!window._waBlast.listId && lists.length) window._waBlast.listId=lists[0].id;
   var sel=window._waBlast.listId;
 
-  var h='<div class="page-head"><div><h2>Listas & disparo em massa</h2><div class="sub">Importe uma planilha, valide, salve como lista e dispare com cadência automática segura.</div></div><div style="display:flex;gap:8px"><button class="btn-ghost" onclick="waDispatchReport()">Relatório geral</button><button class="btn-ghost" onclick="renderWhatsapp()">Voltar</button></div></div>';
+  var h='<div class="page-head"><div><h2>Listas & disparo em massa</h2><div class="sub">Importe uma planilha, valide, salve como lista e dispare com cadência automática segura.</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" onclick="waExportLists()"><svg class="icon" width="13" height="13"><use href="#i-download"/></svg> Exportar Excel</button><button class="btn-ghost" onclick="waDispatchReport()">Relatório geral</button><button class="btn-ghost" onclick="renderWhatsapp()">Voltar</button></div></div>';
 
   // ---- LISTAS ----
   h+='<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px"><div style="font-weight:800">1 · Listas de disparo</div><button class="btn-ghost" onclick="waListNew()"><svg class="icon" width="13" height="13"><use href="#i-plus"/></svg> Nova lista</button></div>';
@@ -8350,6 +8350,28 @@ window.waListPreview=async function(){
   var body=rows.length? '<div style="max-height:50vh;overflow:auto"><table class="tbl"><thead><tr><th>Nome</th><th>Número</th></tr></thead><tbody>'+rows.map(function(c){return '<tr><td>'+esc(c.name||'—')+'</td><td>'+esc(c.phone)+'</td></tr>';}).join('')+'</tbody></table></div>' : '<div class="sub">Lista vazia.</div>';
   showModalHtml('<h3>Números da lista</h3><div class="sub" style="margin-bottom:8px">Mostrando até 200 de '+((r&&r.total)||0).toLocaleString('pt-BR')+'.</div>'+body+'<div class="actions"><button class="btn-primary" onclick="closeModal()">Fechar</button></div>','wapreview');
 };
+window.waExportLists=async function(){
+  toast('Gerando Excel…');
+  var r; try{ r=await window.MOB_RPC('mob_wa_list_export',{p_candidate:window._mobCandId}); }catch(e){ toast(e.message||'Erro','err'); return; }
+  if(!r||!r.ok){ toast((r&&r.error)||'Erro ao exportar','err'); return; }
+  if(typeof XLSX==='undefined' && typeof mobLoadSheetJS==='function'){ mobLoadSheetJS(function(){ waDoExportXlsx(r.lists); }); return; }
+  waDoExportXlsx(r.lists);
+};
+function waDoExportXlsx(lists){
+  var wb=XLSX.utils.book_new(); var used={}, n=0, totalContatos=0;
+  (lists||[]).forEach(function(l){
+    var cs=l.contacts||[]; if(!cs.length) return; // pula lista vazia (todos já receberam)
+    var rows=[['Nome','Telefone']].concat(cs.map(function(c){ return [c.name||'', c.phone]; }));
+    var nm=String(l.name||'Lista').replace(/[\\\/\*\?\[\]:]/g,' ').trim().slice(0,28)||'Lista';
+    var base=nm, k=1; while(used[nm.toLowerCase()]){ k++; nm=(base.slice(0,25)+' '+k); } used[nm.toLowerCase()]=1;
+    var ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=[{wch:30},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, ws, nm); n++; totalContatos+=cs.length;
+  });
+  if(!n){ toast('Nenhum contato para exportar (todos já receberam).','warn'); return; }
+  var cand=((state.candidate&&state.candidate.name)||'campanha').replace(/[^\w\s-]/g,'').trim().replace(/\s+/g,'_');
+  XLSX.writeFile(wb, 'Listas_'+cand+'_sem_ja_enviados.xlsx');
+  toast(n+' listas · '+totalContatos.toLocaleString('pt-BR')+' contatos exportados');
+}
 window.waBuildEngList=async function(kind){
   var lbl={quente:'quentes (janela 24h)',engajado:'engajados',frio:'frios'}[kind]||kind;
   if(!confirm('Gerar uma lista com os contatos '+lbl+' agora?'))return;
