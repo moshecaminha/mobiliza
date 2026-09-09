@@ -8007,7 +8007,8 @@ function renderWhatsapp(){
   var firstMsg = activeOnly(state.templates).length>0?state.templates[0].content:('Olá {nome}! Mensagem da campanha de '+state.candidate.name);
   html += '<div class="wa-compose">'
     +'<label>Nome da campanha</label><input id="wa-name" placeholder="Ex: Convite caminhada">'
-    +'<div class="form-row"><div><label>Canal</label><select id="wa-channel"><option value="whatsapp">WhatsApp</option><option value="sms">SMS</option><option value="email">E-mail</option></select></div><div><label>Quando</label><select id="wa-when"><option value="now">Agora</option><option value="later">Agendar</option></select></div></div>'
+    +'<div class="form-row"><div><label>Canal</label><select id="wa-channel"><option value="whatsapp">WhatsApp</option><option value="sms">SMS</option><option value="email">E-mail</option></select></div><div><label>Quando</label><select id="wa-when" onchange="waWhenToggle(this.value)"><option value="now">Agora</option><option value="later">Agendar</option></select></div></div>'
+    +'<div id="wa-sched-box" style="display:none;margin-top:-4px"><div class="form-row"><div><label>Data</label><input type="date" id="wa-sched-date"></div><div><label>Hora</label><input type="time" id="wa-sched-time" value="09:00"></div></div><div style="font-size:11px;color:var(--muted)">Horário de Brasília (fuso do candidato). Respeita a janela seg–sáb, 9h–20h.</div></div>'
     // ===== SEGMENTAÇÃO MULTI-CRITÉRIO =====
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px"><label style="margin:0">Segmentação</label><div style="display:flex;gap:6px"><button type="button" class="btn-ghost" style="font-size:10px;padding:4px 8px" onclick="waSelectAllClasses()">Todas as classes</button><button type="button" class="btn-ghost" style="font-size:10px;padding:4px 8px" onclick="waClearSeg()">Limpar</button></div></div>'
     +'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Combine quantos critérios quiser. Nenhum critério marcado = base inteira.</div>';
@@ -8119,9 +8120,12 @@ function renderWhatsapp(){
     +'<div class="wa-phone"><div class="wa-phone-h"><div class="av2">'+(state.candidate.name||'?').slice(0,1).toUpperCase()+'</div><div><div class="nm">'+esc(state.candidate.name)+'</div><div class="st">conta oficial</div></div></div><div class="wa-phone-body"><div class="wa-bubble" id="wa-prev"></div></div></div>'
     +'</div></div>';
 
-  if(activeOnly(state.campaigns).length>0){
-    html += '<div class="card"><div class="card-head"><div class="card-title">Histórico</div><div class="card-sub">Custo por disparo: R$ 0,40</div></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Nome</th><th>Canal</th><th>Segmentação</th><th style="text-align:right">Disparos</th><th style="text-align:right">Custo</th><th>Data</th><th>Status</th><th></th></tr></thead><tbody>';
-    activeOnly(state.campaigns).slice().reverse().slice(0,10).forEach(function(c){
+  // Campanhas de WhatsApp com ENTREGA EM TEMPO REAL (mesma base do módulo de disparo em massa)
+  html += '<div id="wa-live-campaigns"></div>';
+
+  if(activeOnly(state.campaigns).filter(function(c){return c.channel!=='whatsapp';}).length>0){
+    html += '<div class="card"><div class="card-head"><div class="card-title">Histórico (SMS / e-mail)</div><div class="card-sub">Custo por disparo: R$ 0,40</div></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Nome</th><th>Canal</th><th>Segmentação</th><th style="text-align:right">Disparos</th><th style="text-align:right">Custo</th><th>Data</th><th>Status</th><th></th></tr></thead><tbody>';
+    activeOnly(state.campaigns).filter(function(c){return c.channel!=='whatsapp';}).slice().reverse().slice(0,10).forEach(function(c){
       var sg = c.segments||{};
       var segTxt = [];
       if(sg.classes && sg.classes.length) segTxt.push(sg.classes.length+' classe(s)');
@@ -8137,7 +8141,33 @@ function renderWhatsapp(){
   document.getElementById('view-whatsapp').innerHTML = html;
   updateWaPrev();
   if((window._waSendMode||'texto')==='template'){ try{ waLoadTemplates(); }catch(e){} }
+  waCommLoadCampaigns();
+  if(window._waCommPoll) clearInterval(window._waCommPoll);
+  window._waCommPoll=setInterval(function(){ var v=document.getElementById('view-whatsapp'); if(v&&v.classList.contains('active')&&document.getElementById('wa-live-campaigns')){ waCommLoadCampaigns(); } else { clearInterval(window._waCommPoll); window._waCommPoll=null; } },15000);
 }
+window.waCommLoadCampaigns=function(){
+  var box=document.getElementById('wa-live-campaigns'); if(!box||!window._mobCandId||!window.MOB_RPC) return;
+  window.MOB_RPC('mob_wa_campaigns',{p_candidate:window._mobCandId}).then(function(r){
+    var box=document.getElementById('wa-live-campaigns'); if(!box) return;
+    var camps=(r&&r.campaigns)||[];
+    if(!camps.length){ box.innerHTML=''; return; }
+    var stMeta=function(s){ return {draft:['Rascunho','#64748B'],scheduled:['Agendada','#7C3AED'],running:['Disparando','#0E7C59'],paused:['Pausada','#B7791F'],done:['Concluída','#2563EB'],canceled:['Cancelada','#DC2626']}[s]||['—','#64748B']; };
+    var h='<div class="card"><div class="card-head"><div class="card-title">Disparos de WhatsApp · entrega em tempo real</div><div class="card-sub">Atualiza sozinho · cadência automática protege o número</div></div>';
+    h+='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Nome</th><th>Lista/Base</th><th style="text-align:right">Fila</th><th style="text-align:right">Enviados</th><th style="text-align:right">Entregues</th><th style="text-align:right">Falhas</th><th>Status</th><th></th></tr></thead><tbody>';
+    camps.slice(0,15).forEach(function(k){
+      var m=stMeta(k.status); var total=k.total||0, sent=k.sent||0, pct=total?Math.round(sent/total*100):0;
+      var sched=(k.status==='scheduled'&&k.scheduled_at)?'<br><span style="font-size:10px;color:#7C3AED">🕒 '+new Date(k.scheduled_at).toLocaleString('pt-BR')+'</span>':'';
+      var act=(k.status==='running')?'<button class="btn-ghost" style="font-size:10px;padding:3px 7px" onclick="waCampAction(\''+k.id+'\',\'paused\')">Pausar</button>':((k.status==='paused'||k.status==='scheduled')?'<button class="btn-ghost" style="font-size:10px;padding:3px 7px;color:#0E7C59" onclick="waCampAction(\''+k.id+'\',\'running\')">'+(k.status==='scheduled'?'Disparar já':'Retomar')+'</button>':'');
+      h+='<tr><td><strong>'+esc(k.name)+'</strong>'+sched+'</td><td style="font-size:11px;color:var(--muted)">'+esc(k.list_name||'audiência')+'</td>'
+        +'<td style="text-align:right">'+((k.queued||0)).toLocaleString('pt-BR')+'</td><td style="text-align:right">'+sent.toLocaleString('pt-BR')+' <span style="color:var(--muted);font-size:10px">'+pct+'%</span></td>'
+        +'<td style="text-align:right;color:var(--brand-2)">'+((k.delivered||0)).toLocaleString('pt-BR')+'</td><td style="text-align:right;color:'+((k.failed||0)?'#B91C1C':'inherit')+'">'+((k.failed||0)).toLocaleString('pt-BR')+'</td>'
+        +'<td><span class="badge" style="background:'+m[1]+'1A;color:'+m[1]+'">'+m[0]+'</span>'+(k.note?' <span title="'+esc(k.note)+'" style="cursor:help;color:#B7791F;font-weight:800">ⓘ</span>':'')+'</td>'
+        +'<td class="actions" style="white-space:nowrap">'+act+'</td></tr>';
+    });
+    h+='</tbody></table></div></div>';
+    box.innerHTML=h;
+  }).catch(function(){});
+};
 // ================= DISPARO EM MASSA POR LISTA (importar · validar · disparar com cadência) =================
 window._waBlast = window._waBlast || { listId:null };
 window.waBlast = async function(){
@@ -8341,7 +8371,10 @@ window.waCampCreate=async function(){
 };
 window.waCampAction=async function(id,status){
   await window.MOB_RPC('mob_wa_campaign_set_status',{p_candidate:window._mobCandId,p_id:id,p_status:status}).catch(function(){});
-  toast(status==='running'?'Retomada':'Pausada'); waBlast();
+  toast(status==='running'?'Retomada':'Pausada');
+  if(document.getElementById('wa-c-name')){ waBlast(); }
+  else if(document.getElementById('wa-live-campaigns')){ waCommLoadCampaigns(); }
+  else { try{ waBlast(); }catch(e){} }
 };
 window.waCampDelete=async function(id){ if(!confirm('Excluir esta campanha e o histórico dela?'))return; await window.MOB_RPC('mob_wa_campaign_delete',{p_candidate:window._mobCandId,p_id:id}).catch(function(){}); waBlast(); };
 window.waCampReport=async function(id){
@@ -8573,7 +8606,6 @@ window.saveCampaign = function(){
   if(!name){ toast('Nomeie a campanha','warn'); return; }
   var aud = waComputeAudience();
   if(!aud.length){ toast('Segmentação vazia — nenhum contato selecionado','warn'); return; }
-  if(aud.length>400 && !confirm('Você vai disparar para '+aud.length.toLocaleString('pt-BR')+' contatos de uma vez.\n\nPara volumes altos, o ideal é o módulo "Listas & disparo em massa", que tem cadência automática e protege o número de banimento.\n\nDisparar assim mesmo?')) return;
   var msg = document.getElementById('wa-msg').value;
   var channel = String(document.getElementById('wa-channel').value||'').toLowerCase();
   var cost = aud.length * COST_PER_MESSAGE;
@@ -8586,15 +8618,6 @@ window.saveCampaign = function(){
       return;
     }
   }
-  var camp = {
-    id:genId(), name:name, channel:channel, message:msg,
-    status:'draft', createdAt:Date.now(), reach: aud.length, costBrl: cost,
-    segments: JSON.parse(JSON.stringify(waSeg)),
-    recipientIds: aud.map(function(p){return p.id;})
-  };
-  state.campaigns.push(camp);
-  saveState(); renderWhatsapp();
-
   if(channel==='whatsapp'){
     var num = (state.candidate&&state.candidate.partyNumber)||'';
     var subst = function(txt,p){
@@ -8604,39 +8627,56 @@ window.saveCampaign = function(){
         .replace(/\{bairro\}/gi,p.bairro||'')
         .replace(/\{cidade\}/gi,p.cidade||p.city||'')
         .replace(/\{numero\}/gi,num);
-      // Qualquer chave restante que não seja um código vira texto normal: {Moshe} -> Moshe
       out = out.replace(/\{([^{}]+)\}/g,'$1');
       return out.trim();
     };
     var validAud = aud.filter(function(p){ return (p.phone||'').replace(/\D/g,'').length>=10; });
+    if(!validAud.length){ toast('Nenhum contato com telefone válido para disparo.','warn'); return; }
     var isTpl = (window._waSendMode==='template');
     var tpl = isTpl ? (window._waTplSelected||null) : null;
     if(isTpl && (!tpl || !tpl.name)){ toast('Escolha um template aprovado','warn'); return; }
-    var recipients;
+    var recipients, pdata={ name:name, purpose:'comunicacao' };
     if(isTpl){
       var varInputs = [].slice.call(document.querySelectorAll('.wa-tplvar')).map(function(x){return x.value||'';});
-      recipients = validAud.map(function(p){
-        return { phone:p.phone, name:p.name, params: varInputs.map(function(v){ return subst(v,p); }), text:'[modelo: '+tpl.name+']' };
-      });
+      recipients = validAud.map(function(p){ return { phone:p.phone, name:p.name, params: varInputs.map(function(v){ return subst(v,p); }) }; });
+      pdata.kind='template'; pdata.template_name=tpl.name; pdata.template_lang=tpl.language||'pt_BR';
     } else {
-      recipients = validAud.map(function(p){ return { phone:p.phone, name:p.name, text: subst(msg,p) }; });
+      recipients = validAud.map(function(p){ return { phone:p.phone, name:p.name, msg: subst(msg,p) }; });
+      pdata.kind='texto'; pdata.body=msg;
+      if(_waComposeMedia && _waComposeMedia.path){ pdata.media = {path:_waComposeMedia.path, mime:_waComposeMedia.mime, filename:_waComposeMedia.filename}; }
     }
-    if(!recipients.length){ toast('Campanha registrada, mas nenhum contato tem telefone válido para disparo.','warn'); return; }
-    var sendBody = {recipients:recipients, purpose:'comunicacao'};
-    if(isTpl){ sendBody.template = {name:tpl.name, language:tpl.language||'pt_BR'}; camp.template = tpl.name; }
-    else if(_waComposeMedia && _waComposeMedia.path){ sendBody.media = {path:_waComposeMedia.path, mime:_waComposeMedia.mime, filename:_waComposeMedia.filename}; camp.media = _waComposeMedia.kind; }
-    toast('Disparando '+recipients.length+(isTpl?' por template…':' pelo número oficial…'));
-    waPlatformSend(sendBody).then(function(d){
-      camp.status = (d.sent>0)?'sent':'failed'; camp.sent = d.sent||0; camp.failed = d.failed||0;
-      if(d.sent===0){ var fe=(d.results||[]).map(function(x){return x&&x.error;}).filter(Boolean)[0]; camp.error = fe || 'Nenhuma mensagem foi aceita pela Meta (verifique template aprovado e conexão do WhatsApp).'; }
-      saveState(); renderWhatsapp();
-      var extra = d.failed ? ' · '+d.failed+' falharam'+(isTpl?'':' (fora da janela de 24h — use template aprovado)') : '';
-      toast('Enviadas '+(d.sent||0)+' de '+recipients.length+extra, d.sent?'':'warn');
-      if(!isTpl) waComposeClearMedia();
-    }).catch(function(e){ camp.status='failed'; camp.error=(e&&e.message)||'Erro no disparo. Conecte o WhatsApp em Configurações.'; saveState(); renderWhatsapp(); toast(camp.error,'err'); });
-  } else {
-    toast('Campanha registrada ('+channel+') · '+aud.length+' contatos. Envio de SMS/e-mail exige backend próprio.');
+    // Agendamento (dropdown "Quando")
+    var when=(document.getElementById('wa-when')||{}).value||'now';
+    if(when==='later'){
+      var sd=(document.getElementById('wa-sched-date')||{}).value||'', st=(document.getElementById('wa-sched-time')||{}).value||'';
+      if(!sd){ toast('Escolha a data do agendamento','warn'); return; }
+      pdata.schedule_date=sd; pdata.schedule_time=st||'09:00';
+    }
+    toast('Criando disparo com cadência…');
+    window.MOB_RPC('mob_wa_campaign_adhoc',{p_candidate:window._mobCandId,p_data:pdata,p_recipients:recipients}).then(function(r){
+      if(r&&r.ok){
+        if(r.status==='scheduled') toast('Disparo agendado · '+(r.queued||0)+' na fila. Sai sozinho no horário.');
+        else toast('Disparo criado · '+(r.queued||0)+' na fila. A cadência envia com segurança; acompanhe a entrega abaixo.');
+        if(!isTpl) waComposeClearMedia();
+        renderWhatsapp();
+      } else toast((r&&r.error)||'Erro ao criar disparo','err');
+    }).catch(function(e){ toast(e.message||'Erro. Conecte o WhatsApp em Configurações.','err'); });
+    return;
   }
+  // SMS / e-mail: apenas registrado (envio real exige backend próprio)
+  var camp = {
+    id:genId(), name:name, channel:channel, message:msg,
+    status:'draft', createdAt:Date.now(), reach: aud.length, costBrl: cost,
+    segments: JSON.parse(JSON.stringify(waSeg)),
+    recipientIds: aud.map(function(p){return p.id;})
+  };
+  state.campaigns.push(camp); saveState(); renderWhatsapp();
+  toast('Campanha registrada ('+channel+') · '+aud.length+' contatos. Envio de SMS/e-mail exige backend próprio.');
+};
+window.waWhenToggle=function(v){
+  var box=document.getElementById('wa-sched-box'); if(box) box.style.display=(v==='later')?'':'none';
+  var d=document.getElementById('wa-sched-date');
+  if(v==='later' && d && !d.value){ var dt=new Date(Date.now()+3600000); d.value=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
 };
 window.rmCampaign = function(id){ if(!confirm('Mover para lixeira?'))return; var item=softDelete(state.campaigns,id); logAction('delete','campaign',item); saveState(); renderWhatsapp(); toast('Movido para lixeira'); };
 
