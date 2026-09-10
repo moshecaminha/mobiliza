@@ -10548,6 +10548,7 @@ window.waUazLoad = function(){
     var stColor=connected?'#0B7A54':(st==='connecting'?'#B45309':'#64748B');
     h+='<div style="margin-top:10px;font-size:13px;font-weight:700;color:'+stColor+'">● Status: '+esc(st)+(connected?' (pronto para disparar)':'')+'</div>';
     h+='<div id="uaz-qr" style="margin-top:10px"></div>';
+    h+='<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border)"><div style="font-weight:700;font-size:12px;margin-bottom:3px">Recebimento (webhook)</div><div class="sub" style="margin-bottom:6px">Necessário para as mensagens recebidas aparecerem nas Conversas. Ao conectar, já tentamos configurar sozinho.</div><button class="btn-ghost" onclick="waUazWebhook()">Configurar webhook</button><div id="uaz-wh" style="margin-top:6px"></div></div>';
     box.innerHTML=h;
   }).catch(function(e){ box.innerHTML='<div class="sub">'+esc(e.message||'erro')+'</div>'; });
 };
@@ -10566,6 +10567,15 @@ window.waUazConnect=function(){
   }).catch(function(e){ if(qb) qb.innerHTML='<div style="color:#DC2626;font-size:12px">'+esc(e.message||'erro')+'</div>'; });
 };
 window.waUazStatus=function(){ window.MOB_SB.functions.invoke('mob-uaz',{body:{candidateId:window._mobCandId,action:'status'}}).then(function(res){ var d=res&&res.data; toast('Status UAZAPI: '+((d&&d.status)||'—')); waUazLoad(); }).catch(function(e){ toast(e.message||'Erro','err'); }); };
+window.waUazWebhook=function(){
+  var wb=document.getElementById('uaz-wh'); if(wb) wb.innerHTML='<div class="sub">Configurando…</div>';
+  window.MOB_SB.functions.invoke('mob-uaz',{body:{candidateId:window._mobCandId,action:'setwebhook'}}).then(function(res){
+    var d=res&&res.data; if(!d){ if(wb) wb.innerHTML='<div style="color:#DC2626;font-size:12px">Erro</div>'; return; }
+    var u=d.webhook_url||'';
+    var msg=d.auto?'<span style="color:#0B7A54;font-weight:700">✔ Configurado automaticamente na UAZAPI.</span>':'<span style="color:#B45309;font-weight:700">Não consegui configurar sozinho.</span> Cole esta URL no campo de webhook da sua instância UAZAPI:';
+    if(wb) wb.innerHTML='<div style="font-size:12px">'+msg+'<div style="margin-top:5px"><input readonly onclick="this.select()" value="'+esc(u)+'" style="width:100%;font-size:11px"><button class="btn-ghost" style="font-size:11px;margin-top:4px" onclick="try{navigator.clipboard.writeText(this.previousElementSibling.value);toast(\'Copiado\')}catch(e){}">Copiar URL</button></div></div>';
+  }).catch(function(e){ if(wb) wb.innerHTML='<div style="color:#DC2626;font-size:12px">'+esc(e.message||'erro')+'</div>'; });
+};
 
 // ===== WhatsApp Business — até 2 números por candidato, com papéis (Eventos/Conversas/Comunicação) =====
 window.waLoadConfig = function(){
