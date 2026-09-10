@@ -10386,6 +10386,13 @@ function renderSettings(){
     +'<div id="wa-connect-box" style="margin-top:8px"><div style="color:var(--muted);font-size:13px;padding:10px 0">Carregando status…</div></div>'
     +'</div>';
 
+  // ===== Conectar via UAZAPI (não oficial) =====
+  html += '<div class="config-section" style="border:1px solid rgba(37,99,235,.35);background:linear-gradient(135deg,rgba(37,99,235,.06),transparent)">'
+    +'<h3><svg class="icon" width="15" height="15" style="color:#2563EB"><use href="#i-whatsapp"/></svg> Conectar via UAZAPI <span style="font-size:11px;font-weight:700;color:#2563EB;background:#DBEAFE;padding:2px 8px;border-radius:999px;margin-left:6px">não oficial</span></h3>'
+    +'<div class="sub">Alternativa que conecta lendo o QR (como o WhatsApp Web), sem template nem janela de 24h. <strong style="color:#B45309">Atenção:</strong> é não oficial e também pode ser banida — use com cadência e base limpa.</div>'
+    +'<div id="uaz-connect-box" style="margin-top:8px"><div style="color:var(--muted);font-size:13px;padding:10px 0">Carregando…</div></div>'
+    +'</div>';
+
   // ===== Conectar Instagram / Facebook (Radar Social) =====
   html += '<div class="config-section" style="border:1px solid rgba(221,42,123,.30);background:linear-gradient(135deg,rgba(221,42,123,.05),transparent)">'
     +'<h3><svg class="icon" width="15" height="15" style="color:#DD2A7B"><use href="#i-instagram"/></svg> Conectar Instagram / Facebook <span style="font-size:11px;font-weight:700;color:#8134AF;background:#F3E8FF;padding:2px 8px;border-radius:999px;margin-left:6px">Radar Social</span></h3>'
@@ -10498,6 +10505,7 @@ function renderSettings(){
     try{ window.MOB_RPC('mob_is_platform_admin').then(function(v){ window.MOB_IS_ADMIN=(v===true); if(window._mobView==='settings') renderSettings(); }).catch(function(){ window.MOB_IS_ADMIN=false; }); }catch(e){ window.MOB_IS_ADMIN=false; }
   }
   try{ if(typeof waLoadConfig==='function') waLoadConfig(); }catch(e){}
+  try{ if(typeof waUazLoad==='function') waUazLoad(); }catch(e){}
   try{ if(typeof socialLoadConfig==='function') socialLoadConfig(); }catch(e){}
   try{ if(window.MOB_SB && window.MOB_SB.auth){ window.MOB_SB.auth.getUser().then(function(u){ var el=document.getElementById('mc-email'); if(el && u && u.data && u.data.user) el.textContent=u.data.user.email||''; }).catch(function(){}); } }catch(e){}
 }
@@ -10524,6 +10532,41 @@ window.testReminderEmail = function(){
     else toast((r&&r.error)||'Não enviou — verifique a chave do Resend no Vault','warn');
   }).catch(function(e){ toast(e.message||'Erro','err'); });
 };
+// ===== UAZAPI (não oficial) — conexão alternativa por QR =====
+window.waUazLoad = function(){
+  var box=document.getElementById('uaz-connect-box'); if(!box) return;
+  if(!window._mobCandId||!window.MOB_RPC){ box.innerHTML='<div class="sub">Sessão não iniciada.</div>'; return; }
+  window.MOB_RPC('mob_uaz_get',{p_candidate:window._mobCandId}).then(function(r){
+    if(!r||!r.ok){ box.innerHTML='<div class="sub">'+esc((r&&r.error)||'erro')+'</div>'; return; }
+    var prov=r.provider||'meta'; var st=(r.status||'disconnected'); var connected=(st==='connected'||st==='open');
+    var provBtn=function(k,l,c){ return '<button onclick="waUazSetProvider(\''+k+'\')" style="padding:7px 12px;border-radius:8px;border:1px solid '+(prov===k?c:'var(--border)')+';background:'+(prov===k?c:'#fff')+';color:'+(prov===k?'#fff':'var(--muted)')+';font-weight:700;font-size:12px;cursor:pointer">'+l+'</button>'; };
+    var h='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center"><span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:800;color:var(--muted)">Provedor de disparo</span>'+provBtn('meta','Meta (oficial)','#128C4B')+provBtn('uaz','UAZAPI','#2563EB')+'<span style="font-size:11px;color:var(--muted)">'+(prov==='uaz'?'os disparos deste candidato saem pela UAZAPI':'os disparos saem pela Meta oficial')+'</span></div>';
+    h+='<div class="form-row"><div><label>URL da UAZAPI</label><input id="uaz-base" value="'+esc(r.base_url||'')+'" placeholder="https://seudominio.uazapi.com"></div><div><label>Token da instância</label><input id="uaz-token" type="password" placeholder="'+(r.has_token?'•••••• (salvo — deixe em branco p/ manter)':'cole o token da instância')+'"></div></div>';
+    h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn-ghost" onclick="waUazSaveCfg()">Salvar credenciais</button>'
+      +'<button class="btn-primary" style="background:#2563EB" onclick="waUazConnect()"><svg class="icon" width="13" height="13"><use href="#i-hashtag"/></svg> Conectar (QR)</button>'
+      +'<button class="btn-ghost" onclick="waUazStatus()">Verificar status</button></div>';
+    var stColor=connected?'#0B7A54':(st==='connecting'?'#B45309':'#64748B');
+    h+='<div style="margin-top:10px;font-size:13px;font-weight:700;color:'+stColor+'">● Status: '+esc(st)+(connected?' (pronto para disparar)':'')+'</div>';
+    h+='<div id="uaz-qr" style="margin-top:10px"></div>';
+    box.innerHTML=h;
+  }).catch(function(e){ box.innerHTML='<div class="sub">'+esc(e.message||'erro')+'</div>'; });
+};
+window.waUazSetProvider=function(p){ window.MOB_RPC('mob_wa_set_provider',{p_candidate:window._mobCandId,p_provider:p}).then(function(){ toast('Provedor: '+(p==='uaz'?'UAZAPI':'Meta oficial')); waUazLoad(); }).catch(function(e){ toast(e.message||'Erro','err'); }); };
+window.waUazSaveCfg=function(){ var b=(document.getElementById('uaz-base')||{}).value||''; var t=(document.getElementById('uaz-token')||{}).value||''; window.MOB_RPC('mob_uaz_save',{p_candidate:window._mobCandId,p_base_url:b,p_token:t,p_instance:null}).then(function(r){ if(r&&r.ok){ toast('Credenciais salvas'); waUazLoad(); } else toast((r&&r.error)||'Erro','err'); }).catch(function(e){ toast(e.message||'Erro','err'); }); };
+window.waUazConnect=function(){
+  var qb=document.getElementById('uaz-qr'); if(qb) qb.innerHTML='<div class="sub">Conectando…</div>';
+  window.MOB_SB.functions.invoke('mob-uaz',{body:{candidateId:window._mobCandId,action:'connect'}}).then(function(res){
+    var d=res&&res.data; if(!d||d.ok!==true){ if(qb) qb.innerHTML='<div style="color:#DC2626;font-size:12px">'+esc((d&&d.error)||'Erro ao conectar')+'</div>'; return; }
+    var html='';
+    if(d.qrcode){ var src=/^data:/.test(d.qrcode)?d.qrcode:('data:image/png;base64,'+d.qrcode); html='<div style="text-align:center"><img src="'+src+'" style="width:230px;max-width:80%;border:1px solid var(--border);border-radius:12px;padding:8px;background:#fff"><div class="sub" style="margin-top:6px">No WhatsApp do número: <strong>Aparelhos conectados → Conectar aparelho</strong>, e leia o QR.</div></div>'; }
+    else if(d.paircode){ html='<div style="font-size:13px">Código de pareamento: <strong style="font-size:20px;letter-spacing:2px">'+esc(d.paircode)+'</strong><div class="sub">No WhatsApp → Aparelhos conectados → Conectar com número, e digite o código.</div></div>'; }
+    else { html='<div class="sub">Status: '+esc(d.status||'—')+'. Toque em "Verificar status" em alguns segundos.</div>'; }
+    if(qb) qb.innerHTML=html;
+    setTimeout(function(){ try{ waUazStatus(); }catch(e){} }, 9000);
+  }).catch(function(e){ if(qb) qb.innerHTML='<div style="color:#DC2626;font-size:12px">'+esc(e.message||'erro')+'</div>'; });
+};
+window.waUazStatus=function(){ window.MOB_SB.functions.invoke('mob-uaz',{body:{candidateId:window._mobCandId,action:'status'}}).then(function(res){ var d=res&&res.data; toast('Status UAZAPI: '+((d&&d.status)||'—')); waUazLoad(); }).catch(function(e){ toast(e.message||'Erro','err'); }); };
+
 // ===== WhatsApp Business — até 2 números por candidato, com papéis (Eventos/Conversas/Comunicação) =====
 window.waLoadConfig = function(){
   var box = document.getElementById('wa-connect-box'); if(!box) return;
